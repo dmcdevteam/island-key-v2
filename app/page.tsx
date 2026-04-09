@@ -18,18 +18,38 @@ function EntryRouter() {
 
       // ── QR scan path: params present ──────────────────────────────
       if (p && t && r && ['B', 'M', 'P'].includes(t) && ['chania', 'rethymno', 'heraklion', 'lasithi'].includes(r)) {
-        const supabase = getClient();
-        const { data: property } = await supabase
-          .from('properties')
-          .select('name')
-          .eq('slug', p)
-          .single();
+        let propertyName: string | null = null;
+
+        try {
+          const timeout = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Supabase lookup timed out after 5s')), 5000)
+          );
+          const supabase = getClient();
+          const query = supabase
+            .from('properties')
+            .select('name')
+            .eq('slug', p)
+            .single();
+
+          const { data: property, error } = await Promise.race([query, timeout]);
+
+          if (error) {
+            console.error('[EntryRouter] Supabase property lookup error:', error.message, '| slug:', p);
+          } else {
+            propertyName = (property as any)?.name ?? null;
+          }
+        } catch (err: any) {
+          console.error('[EntryRouter] Property lookup failed:', err?.message ?? err, '| slug:', p);
+          // Fall through — redirect to /onboard without a property name pre-fill
+          router.replace('/onboard');
+          return;
+        }
 
         localStorage.setItem('ik_qr', JSON.stringify({
           prop: p,
           tier: t,
           region: r,
-          property_name: (property as any)?.name ?? null,
+          property_name: propertyName,
         }));
 
         router.replace('/splash');
