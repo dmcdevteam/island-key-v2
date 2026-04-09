@@ -1,0 +1,14 @@
+{
+  "name": "Island Key",
+  "short_name": "Island Key",
+  "description": "Your island. Unlocked. Curated experiences across Crete.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FDFCFA",
+  "theme_color": "#1B2D4F",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

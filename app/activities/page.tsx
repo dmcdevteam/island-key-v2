@@ -1,0 +1,124 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { BottomNav } from '@/components/ui/bottom-nav';
+import { CategoryChip, ActivityCard } from '@/components/ui/components';
+import { ACTIVITY_CATEGORIES, getSession } from '@/lib/utils';
+import { createClient } from '@/lib/supabase';
+import type { Activity } from '@/lib/types';
+
+const CATEGORY_ICONS: Record<string, string> = {
+  sea: '🌊', land: '⛰️', table: '🍷', culture: '🏛️', adventure: '🧗', wellness: '🧘',
+};
+
+const CATEGORY_GRADIENTS: Record<string, string> = {
+  sea:       'linear-gradient(135deg,rgba(26,138,125,0.06),rgba(27,45,79,0.06))',
+  land:      'linear-gradient(135deg,rgba(27,45,79,0.06),rgba(26,138,125,0.06))',
+  table:     'linear-gradient(135deg,rgba(26,138,125,0.06),rgba(212,133,74,0.06))',
+  culture:   'linear-gradient(135deg,rgba(122,107,93,0.06),rgba(196,112,63,0.06))',
+  adventure: 'linear-gradient(135deg,rgba(139,111,71,0.06),rgba(107,123,94,0.06))',
+  wellness:  'linear-gradient(135deg,rgba(26,138,125,0.06),rgba(232,245,243,0.06))',
+};
+
+export default function ActivitiesPage() {
+  const router = useRouter();
+  const [activeCategory, setActiveCategory] = useState('all');
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase
+      .from('activities')
+      .select('*')
+      .eq('is_active', true)
+      .order('sort_order')
+      .order('title')
+      .then(({ data, error }) => {
+        if (error) setError(error.message);
+        else setActivities(data ?? []);
+        setLoading(false);
+      });
+  }, []);
+
+  const session = getSession();
+
+  const filtered = activities
+    // Region filter: show island-wide + guest's region (skip if no session)
+    .filter(a => !session || a.region === 'island-wide' || a.region === session.region)
+    // Tier filter: guest's tier must be in tier_visibility (skip if no session)
+    .filter(a => !session || !a.tier_visibility?.length || a.tier_visibility.includes(session.tier))
+    // Category filter
+    .filter(a => activeCategory === 'all' || a.category === activeCategory);
+
+  return (
+    <div className="min-h-screen bg-cream flex flex-col pb-[90px]">
+      <div className="px-5 pt-[52px] pb-3">
+        <h1 className="font-display text-xl font-medium text-navy">Explore Activities</h1>
+        <p className="text-xs text-tx-light mt-0.5">Curated by locals, vetted for quality</p>
+      </div>
+
+      {/* Category chips */}
+      <div className="flex gap-1.5 px-5 overflow-x-auto no-scrollbar mb-3 flex-shrink-0">
+        {ACTIVITY_CATEGORIES.map(cat => (
+          <CategoryChip
+            key={cat.key}
+            label={cat.key === 'all' ? 'All' : cat.label}
+            icon={cat.icon || undefined}
+            active={activeCategory === cat.key}
+            onClick={() => setActiveCategory(cat.key)}
+          />
+        ))}
+      </div>
+
+      {/* Activity list */}
+      <div className="flex-1 overflow-y-auto px-5">
+        {loading && (
+          <div className="flex flex-col gap-2.5">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex gap-3 p-2.5 bg-white rounded border border-border-light">
+                <div className="w-[78px] h-[78px] rounded-sm bg-navy/5 animate-pulse flex-shrink-0" />
+                <div className="flex-1 flex flex-col justify-center gap-2">
+                  <div className="h-3.5 bg-navy/5 rounded animate-pulse w-2/3" />
+                  <div className="h-3 bg-navy/5 rounded animate-pulse" />
+                  <div className="h-3 bg-navy/5 rounded animate-pulse w-1/2" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {error && (
+          <div className="mt-4 p-4 rounded-2xl bg-red-50 text-red-600 text-sm">
+            Failed to load activities: {error}
+          </div>
+        )}
+
+        {!loading && !error && (
+          <div className="flex flex-col gap-2.5">
+            {filtered.map(activity => (
+              <ActivityCard
+                key={activity.id}
+                title={activity.title}
+                description={activity.description}
+                category={activity.category as any}
+                priceFrom={activity.price_from ?? 0}
+                duration={activity.duration ?? ''}
+                icon={CATEGORY_ICONS[activity.category] ?? '🌟'}
+                bgGradient={CATEGORY_GRADIENTS[activity.category] ?? CATEGORY_GRADIENTS.culture}
+                onClick={() => router.push(`/activities/${activity.slug}`)}
+              />
+            ))}
+            {filtered.length === 0 && (
+              <p className="text-center text-tx-light text-sm mt-12">No activities in this category yet.</p>
+            )}
+          </div>
+        )}
+      </div>
+
+      <BottomNav />
+    </div>
+  );
+}
