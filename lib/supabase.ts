@@ -1,9 +1,6 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 // ─── Typed client interface ───────────────────────────────────────────────────
 // @supabase/supabase-js v2.103 resolves GenericSchema from two different
@@ -17,10 +14,16 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 type AnyClient = ReturnType<typeof createSupabaseClient<any>>;
 
 // ─── Browser / client-component client (anon key) ───
+// Singleton is created lazily inside getClient() so env vars are read at
+// call time, not at module-init time (avoids caching an undefined-URL client
+// in environments where env vars aren't available at import).
 let clientInstance: AnyClient | null = null;
 
 export function createClient(): AnyClient {
-  return createSupabaseClient(SUPABASE_URL, SUPABASE_ANON_KEY) as AnyClient;
+  return createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  ) as AnyClient;
 }
 
 export function getClient(): AnyClient {
@@ -32,5 +35,8 @@ export function getClient(): AnyClient {
 
 // ─── Server client (service role — API routes only, never sent to browser) ───
 export function createServerClient(): AnyClient {
-  return createSupabaseClient(SUPABASE_URL, SUPABASE_SERVICE_KEY) as AnyClient;
+  return createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  ) as AnyClient;
 }
