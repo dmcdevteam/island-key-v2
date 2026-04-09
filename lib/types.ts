@@ -254,24 +254,32 @@ export interface QRParams {
 }
 
 // ─── Supabase Database type ───
-type Row<T> = T;
-type Insert<T> = Partial<T>;
-type Update<T> = Partial<T>;
+// Must satisfy GenericSchema: Tables + Views + Functions, with Relationships on every table.
+type TableDef<T> = {
+  Row: T;
+  Insert: Partial<T>;
+  Update: Partial<T>;
+  Relationships: never[];
+};
 
 export interface Database {
   public: {
     Tables: {
-      properties: { Row: Row<Property>; Insert: Insert<Property>; Update: Update<Property> };
-      providers: { Row: Row<Provider>; Insert: Insert<Provider>; Update: Update<Provider> };
-      guests: { Row: Row<Guest>; Insert: Insert<Guest>; Update: Update<Guest> };
-      activities: { Row: Row<Activity>; Insert: Insert<Activity>; Update: Update<Activity> };
-      deals: { Row: Row<Deal>; Insert: Insert<Deal>; Update: Update<Deal> };
-      transfers: { Row: Row<Transfer>; Insert: Insert<Transfer>; Update: Update<Transfer> };
-      rentals: { Row: Row<Rental>; Insert: Insert<Rental>; Update: Update<Rental> };
-      events: { Row: Row<CalendarEvent>; Insert: Insert<CalendarEvent>; Update: Update<CalendarEvent> };
-      articles: { Row: Row<Article>; Insert: Insert<Article>; Update: Update<Article> };
-      bookings: { Row: Row<Booking>; Insert: Insert<Booking>; Update: Update<Booking> };
-      info_pages: { Row: Row<InfoPage>; Insert: Insert<InfoPage>; Update: Update<InfoPage> };
+      properties: TableDef<Property>;
+      providers:  TableDef<Provider>;
+      guests:     TableDef<Guest>;
+      activities: TableDef<Activity>;
+      deals:      TableDef<Deal>;
+      transfers:  TableDef<Transfer>;
+      rentals:    TableDef<Rental>;
+      events:     TableDef<CalendarEvent>;
+      articles:   TableDef<Article>;
+      bookings:   TableDef<Booking>;
+      info_pages: TableDef<InfoPage>;
     };
+    Views:          Record<string, never>;
+    Functions:      Record<string, never>;
+    Enums:          Record<string, never>;
+    CompositeTypes: Record<string, never>;
   };
 }
