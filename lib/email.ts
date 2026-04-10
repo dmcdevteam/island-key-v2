@@ -75,6 +75,7 @@ export async function sendHostNotification(
   options?: { guestName?: string; guestPhone?: string | null }
 ): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY;
+  console.log('[EMAIL] API key prefix:', apiKey?.slice(0, 8));
   if (!apiKey || apiKey === 're_your-api-key-here') {
     console.warn('Email: RESEND_API_KEY not set — skipping host notification');
     return;
@@ -134,6 +135,7 @@ export async function sendHostNotification(
 
   const resend = new Resend(apiKey);
 
+  console.log('[EMAIL] Sending to:', property.host_email, '| from:', FROM);
   const { error: emailErr } = await resend.emails.send({
     from: FROM,
     to: property.host_email,
