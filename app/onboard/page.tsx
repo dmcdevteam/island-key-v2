@@ -55,6 +55,8 @@ export default function OnboardPage() {
   const [countryCode, setCountryCode] = useState('30');
   const [localPhone, setLocalPhone] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [showNudge, setShowNudge] = useState(false);
 
   // Load QR params from sessionStorage, then fetch property from Supabase
   useEffect(() => {
@@ -158,8 +160,17 @@ export default function OnboardPage() {
     };
 
     setSession(session);
-    localStorage.removeItem('ik_qr'); // no longer needed once session is established
-    router.push('/home');
+    localStorage.removeItem('ik_qr');
+
+    if (waOptIn && whatsappNumber) {
+      // Opted in with a number — show success message then navigate
+      setShowSuccess(true);
+      setTimeout(() => router.push('/home'), 2000);
+    } else {
+      // No WhatsApp — show gentle nudge before navigating
+      setShowNudge(true);
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -296,6 +307,45 @@ export default function OnboardPage() {
       >
         {submitting ? 'Saving...' : "Let's go →"}
       </Button>
+
+      {/* WhatsApp success message */}
+      {showSuccess && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 px-6">
+          <div className="bg-white rounded-2xl px-6 py-7 max-w-sm w-full text-center shadow-xl">
+            <div className="text-3xl mb-3">💬</div>
+            <p className="text-[15px] text-navy leading-relaxed">
+              You're all set! We'll send you curated tips, last-minute deals and local news on WhatsApp during your stay in Crete.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* WhatsApp nudge modal */}
+      {showNudge && (
+        <div className="fixed inset-0 z-[200] flex items-end bg-black/40">
+          <div className="bg-white rounded-t-2xl px-6 pt-6 pb-10 w-full shadow-xl animate-slide-up">
+            <div className="w-9 h-1 bg-border rounded-full mx-auto mb-5" />
+            <h2 className="font-display text-[20px] font-medium text-navy mb-2">Don't miss out</h2>
+            <p className="text-[13px] text-tx-mid leading-relaxed mb-6">
+              Our WhatsApp updates are how guests discover the best last-minute deals, hidden gems and local events during their stay. It's free, easy to unsubscribe, and we'll never spam you.
+            </p>
+            <div className="flex flex-col gap-2.5">
+              <button
+                onClick={() => setShowNudge(false)}
+                className="w-full py-3.5 rounded-lg bg-teal text-white text-[14px] font-semibold"
+              >
+                Stay in the loop
+              </button>
+              <button
+                onClick={() => router.push('/home')}
+                className="w-full py-3 text-[13px] text-tx-mid"
+              >
+                No thanks, continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
