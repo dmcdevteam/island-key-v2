@@ -70,7 +70,14 @@ export default function ActivityDetailPage() {
     const s = getSession();
     setSession(s);
     if (s?.first_name) setGuestName(s.first_name);
+    // Initialise booking date to check_in so value is never before min
+    if (s?.check_in) setBookingDate(s.check_in);
   }, []);
+
+  // Debug: log session when modal opens so we can verify check_in/check_out
+  useEffect(() => {
+    if (showModal) console.log('[BOOKING DEBUG] session:', session);
+  }, [showModal, session]);
 
   useEffect(() => {
     if (!slug) return;

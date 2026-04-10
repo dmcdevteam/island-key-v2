@@ -222,12 +222,19 @@ export default function OnboardPage() {
             <input
               type="date"
               value={checkIn}
-              onChange={(e) => { setCheckIn(e.target.value); if (e.target.value) setDateError(false); }}
+              onChange={(e) => {
+                const v = e.target.value;
+                setCheckIn(v);
+                if (v) setDateError(false);
+                // Reset check-out if it's no longer after the new check-in
+                if (checkOut && v && checkOut <= v) setCheckOut('');
+              }}
               className={`flex-1 px-3.5 py-3 border-[1.5px] rounded-sm font-body text-sm text-tx bg-white outline-none focus:border-teal ${dateError && !checkIn ? 'border-red-400' : 'border-border'}`}
             />
             <input
               type="date"
               value={checkOut}
+              min={checkIn ? (() => { const d = new Date(checkIn + 'T00:00:00'); d.setDate(d.getDate() + 1); return d.toISOString().slice(0, 10); })() : undefined}
               onChange={(e) => { setCheckOut(e.target.value); if (e.target.value) setDateError(false); }}
               className={`flex-1 px-3.5 py-3 border-[1.5px] rounded-sm font-body text-sm text-tx bg-white outline-none focus:border-teal ${dateError && !checkOut ? 'border-red-400' : 'border-border'}`}
             />
