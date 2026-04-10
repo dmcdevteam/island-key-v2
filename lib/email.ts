@@ -1,7 +1,7 @@
 import { Resend } from 'resend';
 import { createServerClient } from './supabase';
 
-const FROM = 'onboarding@resend.dev';
+const FROM = 'bookings@islandkey.gr';
 
 function buildEmailHtml(data: {
   propertyName: string;
