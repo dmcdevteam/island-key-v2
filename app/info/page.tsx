@@ -30,7 +30,11 @@ export default function InfoPage() {
   return (
     <div className="min-h-screen bg-cream flex flex-col pb-[90px]">
       <div className="px-5 pt-[52px] pb-3">
-        <h1 className="font-display text-xl font-medium text-navy">Useful Info</h1>
+        <div className="flex items-center gap-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo_icon_navy.png" alt="Island Key" style={{ height: 24, width: 'auto' }} />
+          <h1 className="font-display text-xl font-medium text-navy">Useful Info</h1>
+        </div>
         <p className="text-xs text-tx-light mt-0.5">Everything you need, offline-ready</p>
       </div>
 

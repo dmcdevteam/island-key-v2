@@ -178,6 +178,8 @@ export default function QRAdminPage() {
 
           {/* Center: QR code */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, justifyContent: 'center', gap: '8mm' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo_icon_transparent.png" alt="Island Key" style={{ height: '16mm', width: 'auto' }} />
             <QRCode
               value={qrUrl}
               size={200}

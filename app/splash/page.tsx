@@ -18,7 +18,13 @@ export default function SplashPage() {
 
       {/* Content */}
       <div className="relative text-center z-10 animate-fade-up">
-        {/* Logo */}
+        {/* Logo image */}
+        <div className="flex justify-center mb-5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo_icon_transparent.png" alt="Island Key" style={{ height: 80, width: 'auto' }} />
+        </div>
+
+        {/* Wordmark */}
         <div className="mb-8">
           <h1 className="font-display text-[42px] font-medium text-white tracking-tight leading-none">
             <span className="font-bold">Island</span>{' '}Key
