@@ -65,6 +65,7 @@ export default function ActivityDetailPage() {
   const [localPhone, setLocalPhone] = useState('');
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState(false);
 
   // Read session client-side only (localStorage unavailable during SSR)
   useEffect(() => {
@@ -99,9 +100,16 @@ export default function ActivityDetailPage() {
   const maxPax = activity?.max_group_size ?? 20;
   const hasPrice = unitPrice > 0;
 
+  function validateEmail() {
+    const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail.trim());
+    setEmailError(!valid);
+    return valid;
+  }
+
   // ─── WhatsApp path ───
   async function handleWhatsApp() {
     if (!activity) return;
+    if (!validateEmail()) return;
     setBookingLoading(true);
     setBookingError(null);
 
@@ -209,6 +217,7 @@ export default function ActivityDetailPage() {
   // ─── Stripe path ───
   async function handleStripeBook() {
     if (!activity || !hasPrice) return;
+    if (!validateEmail()) return;
     setBookingLoading(true);
     setBookingError(null);
 
@@ -428,16 +437,21 @@ export default function ActivityDetailPage() {
               </div>
             )}
 
-            {/* Email (optional) */}
-            <div className="flex justify-between items-center py-2.5 border-b border-border-light">
-              <span className="text-[13px] text-tx-mid">Email</span>
-              <input
-                type="email"
-                placeholder="For confirmation (optional)"
-                value={guestEmail}
-                onChange={e => setGuestEmail(e.target.value)}
-                className="text-[13px] text-right text-navy bg-transparent outline-none placeholder:text-tx-light w-48"
-              />
+            {/* Email (required) */}
+            <div className={`py-2.5 border-b ${emailError ? 'border-red-300' : 'border-border-light'}`}>
+              <div className="flex justify-between items-center">
+                <span className="text-[13px] text-tx-mid">Email</span>
+                <input
+                  type="email"
+                  placeholder="your@email.com"
+                  value={guestEmail}
+                  onChange={e => { setGuestEmail(e.target.value); if (emailError) setEmailError(false); }}
+                  className="text-[13px] text-right text-navy bg-transparent outline-none placeholder:text-tx-light w-48"
+                />
+              </div>
+              {emailError && (
+                <p className="text-[11px] text-red-500 mt-1 text-right">Please enter your email address to receive booking confirmation</p>
+              )}
             </div>
 
             {/* Accommodation */}
