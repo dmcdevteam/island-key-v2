@@ -348,7 +348,14 @@ export default function ActivityDetailPage() {
                 value={bookingDate}
                 min={session?.check_in ?? new Date().toISOString().slice(0, 10)}
                 max={session?.check_out ?? undefined}
-                onChange={e => setBookingDate(e.target.value)}
+                onChange={e => {
+                  let v = e.target.value;
+                  const minDate = session?.check_in ?? new Date().toISOString().slice(0, 10);
+                  const maxDate = session?.check_out;
+                  if (v < minDate) v = minDate;
+                  if (maxDate && v > maxDate) v = maxDate;
+                  setBookingDate(v);
+                }}
                 className="text-[13px] font-semibold text-navy bg-transparent outline-none"
               />
             </div>

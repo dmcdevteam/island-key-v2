@@ -17,16 +17,25 @@ type AnyClient = ReturnType<typeof createSupabaseClient<any>>;
 // Singleton is created lazily inside getClient() so env vars are read at
 // call time, not at module-init time (avoids caching an undefined-URL client
 // in environments where env vars aren't available at import).
+// Singleton scoped to the browser only — never reuse a server-side instance
+// on the client, which could carry wrong env context in some Next.js builds.
 let clientInstance: AnyClient | null = null;
 
 export function createClient(): AnyClient {
-  if (!clientInstance) {
-    clientInstance = createSupabaseClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    ) as AnyClient;
+  if (typeof window !== 'undefined') {
+    if (!clientInstance) {
+      clientInstance = createSupabaseClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      ) as AnyClient;
+    }
+    return clientInstance;
   }
-  return clientInstance;
+  // Server-side: always create a fresh instance (not shared across requests)
+  return createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  ) as AnyClient;
 }
 
 // ─── Server client (service role — API routes only, never sent to browser) ───
