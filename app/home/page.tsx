@@ -114,13 +114,25 @@ export default function HomePage() {
 
   if (!session) return null;
 
-  const tripDay = (() => {
-    if (!session.check_in) return 1;
-    return Math.max(1, Math.ceil((Date.now() - new Date(session.check_in).getTime()) / 86400000) + 1);
-  })();
-  const tripLength = (() => {
-    if (!session.check_in || !session.check_out) return 7;
-    return Math.ceil((new Date(session.check_out).getTime() - new Date(session.check_in).getTime()) / 86400000);
+  // Use UTC date strings throughout to avoid timezone-shift bugs with date-only values
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const checkIn  = session.check_in  ?? '';
+  const checkOut = session.check_out ?? '';
+
+  const tripStatus = (() => {
+    if (!checkIn) return { type: 'unknown' as const };
+    if (todayStr < checkIn) {
+      const daysUntil = Math.round((new Date(checkIn).getTime() - new Date(todayStr).getTime()) / 86400000);
+      return { type: 'before' as const, daysUntil };
+    }
+    if (checkOut && todayStr > checkOut) {
+      return { type: 'after' as const };
+    }
+    const dayNum = Math.round((new Date(todayStr).getTime() - new Date(checkIn).getTime()) / 86400000) + 1;
+    const length = checkOut
+      ? Math.round((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / 86400000)
+      : 7;
+    return { type: 'during' as const, dayNum, length };
   })();
 
   const featuredDeal = data.deals[0] ?? null;
@@ -146,10 +158,28 @@ export default function HomePage() {
             </div>
           </div>
           <div className="text-right">
-            <p className="text-xs font-semibold text-tx-mid">Day {tripDay} of {tripLength}</p>
-            <p className="text-[11px] text-tx-light">
-              {new Date().toLocaleDateString('en', { weekday: 'short', day: 'numeric', month: 'short' })}
-            </p>
+            {tripStatus.type === 'before' && (
+              <>
+                <p className="text-xs font-semibold text-tx-mid">Trip starts in {tripStatus.daysUntil} {tripStatus.daysUntil === 1 ? 'day' : 'days'}</p>
+                <p className="text-[11px] text-tx-light">
+                  {new Date(checkIn + 'T00:00:00').toLocaleDateString('en', { weekday: 'short', day: 'numeric', month: 'short' })}
+                </p>
+              </>
+            )}
+            {tripStatus.type === 'during' && (
+              <>
+                <p className="text-xs font-semibold text-tx-mid">Day {tripStatus.dayNum} of {tripStatus.length}</p>
+                <p className="text-[11px] text-tx-light">
+                  {new Date(checkIn + 'T00:00:00').toLocaleDateString('en', { weekday: 'short', day: 'numeric', month: 'short' })}
+                </p>
+              </>
+            )}
+            {tripStatus.type === 'after' && (
+              <p className="text-xs font-semibold text-tx-mid">We hope you enjoyed your stay!</p>
+            )}
+            {tripStatus.type === 'unknown' && (
+              <p className="text-xs font-semibold text-tx-mid">Welcome to Crete</p>
+            )}
           </div>
         </div>
 
