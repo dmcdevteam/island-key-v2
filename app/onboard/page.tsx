@@ -55,6 +55,7 @@ export default function OnboardPage() {
   const [countryCode, setCountryCode] = useState('30');
   const [localPhone, setLocalPhone] = useState('');
   const [nameError, setNameError] = useState(false);
+  const [dateError, setDateError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showNudge, setShowNudge] = useState(false);
@@ -110,6 +111,8 @@ export default function OnboardPage() {
     if (submitting) return;
     if (!firstName.trim()) { setNameError(true); return; }
     setNameError(false);
+    if (!checkIn || !checkOut) { setDateError(true); return; }
+    setDateError(false);
     setSubmitting(true);
 
     let guestId: string | null = null;
@@ -219,16 +222,17 @@ export default function OnboardPage() {
             <input
               type="date"
               value={checkIn}
-              onChange={(e) => setCheckIn(e.target.value)}
-              className="flex-1 px-3.5 py-3 border-[1.5px] border-border rounded-sm font-body text-sm text-tx bg-white outline-none focus:border-teal"
+              onChange={(e) => { setCheckIn(e.target.value); if (e.target.value) setDateError(false); }}
+              className={`flex-1 px-3.5 py-3 border-[1.5px] rounded-sm font-body text-sm text-tx bg-white outline-none focus:border-teal ${dateError && !checkIn ? 'border-red-400' : 'border-border'}`}
             />
             <input
               type="date"
               value={checkOut}
-              onChange={(e) => setCheckOut(e.target.value)}
-              className="flex-1 px-3.5 py-3 border-[1.5px] border-border rounded-sm font-body text-sm text-tx bg-white outline-none focus:border-teal"
+              onChange={(e) => { setCheckOut(e.target.value); if (e.target.value) setDateError(false); }}
+              className={`flex-1 px-3.5 py-3 border-[1.5px] rounded-sm font-body text-sm text-tx bg-white outline-none focus:border-teal ${dateError && !checkOut ? 'border-red-400' : 'border-border'}`}
             />
           </div>
+          {dateError && <p className="text-[11px] text-red-500 mt-1">Please enter your check-in and check-out dates</p>}
         </div>
 
         {/* Group type */}
