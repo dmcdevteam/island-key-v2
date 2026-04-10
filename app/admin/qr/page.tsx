@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import QRCode from 'react-qr-code';
 import QRCodeLib from 'qrcode';
-import { getClient } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase';
 import type { Tier, Region } from '@/lib/types';
 
 const APP_URL = 'https://islandkey.gr';
@@ -22,7 +22,7 @@ export default function QRAdminPage() {
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     async function fetchProperties() {
-      const supabase = getClient();
+      const supabase = createClient();
       const { data } = await supabase
         .from('properties')
         .select('id, slug, name, tier, region')

@@ -3,7 +3,7 @@
 import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { hasSession } from '@/lib/utils';
-import { getClient } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase';
 import type { Tier, Region } from '@/lib/types';
 
 function EntryRouter() {
@@ -24,7 +24,7 @@ function EntryRouter() {
           const timeout = new Promise<never>((_, reject) =>
             setTimeout(() => reject(new Error('Supabase lookup timed out after 5s')), 5000)
           );
-          const supabase = getClient();
+          const supabase = createClient();
           const query = supabase
             .from('properties')
             .select('name')

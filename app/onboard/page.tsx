@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getClient } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase';
 import { setSession } from '@/lib/utils';
 import { AccommodationCard, SelectionChip, Button } from '@/components/ui/components';
 import type { Tier, Region, GroupType, QRParams } from '@/lib/types';
@@ -74,7 +74,7 @@ export default function OnboardPage() {
 
       setPropertySlug(slug);
 
-      const supabase = getClient();
+      const supabase = createClient();
       const { data, error } = await supabase
         .from('properties')
         .select('id, name, tier, region')
@@ -107,7 +107,7 @@ export default function OnboardPage() {
     if (submitting) return;
     setSubmitting(true);
 
-    const supabase = getClient();
+    const supabase = createClient();
     let guestId: string | null = null;
 
     // Build full international number (digits only, no + sign)
