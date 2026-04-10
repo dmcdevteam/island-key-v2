@@ -20,15 +20,11 @@ type AnyClient = ReturnType<typeof createSupabaseClient<any>>;
 let clientInstance: AnyClient | null = null;
 
 export function createClient(): AnyClient {
-  return createSupabaseClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  ) as AnyClient;
-}
-
-export function getClient(): AnyClient {
   if (!clientInstance) {
-    clientInstance = createClient();
+    clientInstance = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    ) as AnyClient;
   }
   return clientInstance;
 }

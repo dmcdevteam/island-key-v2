@@ -49,8 +49,8 @@ export default function ActivityDetailPage() {
   const router = useRouter();
   const params = useParams();
   const slug = params?.slug as string;
-  const session = getSession();
 
+  const [session, setSession] = useState<import('@/lib/types').GuestSession | null>(null);
   const [activity, setActivity] = useState<Activity | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -59,11 +59,18 @@ export default function ActivityDetailPage() {
   const [showModal, setShowModal] = useState(false);
   const [bookingDate, setBookingDate] = useState(tomorrow());
   const [pax, setPax] = useState(2);
-  const [guestName, setGuestName] = useState(session?.first_name ?? '');
+  const [guestName, setGuestName] = useState('');
   const [countryCode, setCountryCode] = useState('+30');
   const [localPhone, setLocalPhone] = useState('');
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
+
+  // Read session client-side only (localStorage unavailable during SSR)
+  useEffect(() => {
+    const s = getSession();
+    setSession(s);
+    if (s?.first_name) setGuestName(s.first_name);
+  }, []);
 
   useEffect(() => {
     if (!slug) return;
@@ -313,8 +320,8 @@ export default function ActivityDetailPage() {
             {hasPrice ? <>{formatPrice(unitPrice)}<span className="text-[11px] text-tx-light font-normal">/pp</span></> : '—'}
           </p>
         </div>
-        <BookButton onClick={() => { setShowModal(true); setBookingError(null); }} />
-        <WhatsAppButton onClick={() => { setShowModal(true); setBookingError(null); }} />
+        <BookButton onClick={() => { console.log('[IK] Modal open — session check_in:', session?.check_in, 'check_out:', session?.check_out); setShowModal(true); setBookingError(null); }} />
+        <WhatsAppButton onClick={() => { console.log('[IK] Modal open — session check_in:', session?.check_in, 'check_out:', session?.check_out); setShowModal(true); setBookingError(null); }} />
       </div>
 
       {/* ─── Booking Modal ─── */}
