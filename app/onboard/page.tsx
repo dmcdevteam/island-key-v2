@@ -48,12 +48,13 @@ export default function OnboardPage() {
 
   // Form state
   const [firstName, setFirstName] = useState('');
-  const [checkIn, setCheckIn] = useState('2026-05-15');
-  const [checkOut, setCheckOut] = useState('2026-05-22');
+  const [checkIn, setCheckIn] = useState('');
+  const [checkOut, setCheckOut] = useState('');
   const [groupType, setGroupType] = useState<GroupType | null>(null);
   const [waOptIn, setWaOptIn] = useState(true);
   const [countryCode, setCountryCode] = useState('30');
   const [localPhone, setLocalPhone] = useState('');
+  const [nameError, setNameError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showNudge, setShowNudge] = useState(false);
@@ -107,6 +108,8 @@ export default function OnboardPage() {
 
   async function handleSubmit() {
     if (submitting) return;
+    if (!firstName.trim()) { setNameError(true); return; }
+    setNameError(false);
     setSubmitting(true);
 
     let guestId: string | null = null;
@@ -200,10 +203,11 @@ export default function OnboardPage() {
           <input
             type="text"
             value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
+            onChange={(e) => { setFirstName(e.target.value); if (e.target.value.trim()) setNameError(false); }}
             placeholder="e.g. Maria"
-            className="w-full px-3.5 py-3 border-[1.5px] border-border rounded-sm font-body text-sm text-tx bg-white outline-none transition-colors focus:border-teal placeholder:text-tx-light"
+            className={`w-full px-3.5 py-3 border-[1.5px] rounded-sm font-body text-sm text-tx bg-white outline-none transition-colors focus:border-teal placeholder:text-tx-light ${nameError ? 'border-red-400' : 'border-border'}`}
           />
+          {nameError && <p className="text-[11px] text-red-500 mt-1">Please enter your name</p>}
         </div>
 
         {/* Dates */}
