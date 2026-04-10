@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { sendHostNotification } from '@/lib/email';
+import { sendHostNotification, sendInternalNotification } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
-  let body: { bookingId: string; guestName?: string; guestPhone?: string | null };
+  let body: { bookingId: string; guestName?: string; guestPhone?: string | null; guestEmail?: string };
 
   try {
     body = await req.json();
@@ -16,11 +16,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'bookingId required' }, { status: 400 });
   }
 
-  // Fire-and-forget — errors are logged inside sendHostNotification, never surface to guest
-  sendHostNotification(body.bookingId, {
-    guestName: body.guestName,
-    guestPhone: body.guestPhone,
-  }).catch(err => console.error('notify-host unhandled:', err));
+  // Fire host + internal simultaneously — fire-and-forget, never surfaces to guest
+  Promise.all([
+    sendHostNotification(body.bookingId, { guestName: body.guestName, guestPhone: body.guestPhone }),
+    sendInternalNotification(body.bookingId, { guestEmail: body.guestEmail }),
+  ]).catch(err => console.error('notify-host unhandled:', err));
 
   return NextResponse.json({ ok: true });
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createServerClient } from '@/lib/supabase';
-import { sendHostNotification, sendGuestConfirmation } from '@/lib/email';
+import { sendHostNotification, sendGuestConfirmation, sendInternalNotification } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,37 +54,35 @@ export async function POST(req: Request) {
       const guestEmail = session.metadata?.guestEmail;
       const guestName  = session.metadata?.guestName ?? 'Guest';
 
-      // Notify host — fire and forget
-      sendHostNotification(bookingId).catch(err =>
-        console.error('Webhook: host notification failed', err)
-      );
+      // Fetch booking once for guest confirmation (host + internal fetch their own data)
+      const { data: b } = await createServerClient()
+        .from('bookings')
+        .select('item_title, booking_date, pax, total_price, confirmation_code, payment_method')
+        .eq('id', bookingId)
+        .single();
 
-      // Notify guest — fire and forget, skipped if no email in metadata
-      if (guestEmail) {
-        (async () => {
-          try {
-            const supabase2 = createServerClient();
-            const { data: b } = await supabase2
-              .from('bookings')
-              .select('item_title, booking_date, pax, total_price, confirmation_code, payment_method')
-              .eq('id', bookingId)
-              .single();
-            if (!b) return;
-            await sendGuestConfirmation({
-              to: guestEmail,
-              guestName,
-              itemTitle: b.item_title,
-              bookingDate: b.booking_date,
-              pax: b.pax,
-              totalPrice: b.total_price,
-              confirmationCode: b.confirmation_code,
-              paymentMethod: b.payment_method ?? 'stripe',
-            });
-          } catch (err) {
-            console.error('Webhook: guest confirmation failed', err);
-          }
-        })();
+      const emails: Promise<void>[] = [
+        sendHostNotification(bookingId),
+        sendInternalNotification(bookingId, { guestEmail }),
+      ];
+
+      if (guestEmail && b) {
+        emails.push(sendGuestConfirmation({
+          to: guestEmail,
+          guestName,
+          itemTitle: b.item_title,
+          bookingDate: b.booking_date,
+          pax: b.pax,
+          totalPrice: b.total_price,
+          confirmationCode: b.confirmation_code,
+          paymentMethod: b.payment_method ?? 'stripe',
+        }));
       }
+
+      // Fire all simultaneously — fire-and-forget, never blocks webhook response
+      Promise.all(emails).catch(err =>
+        console.error('Webhook: email batch failed', err)
+      );
     }
   }
 

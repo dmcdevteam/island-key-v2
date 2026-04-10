@@ -164,6 +164,90 @@ export async function sendGuestConfirmation(data: {
   }
 }
 
+const INTERNAL_EMAIL = 'dmcdevteam@gmail.com';
+
+export async function sendInternalNotification(
+  bookingId: string,
+  options?: { guestEmail?: string }
+): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey || apiKey === 're_your-api-key-here') return;
+
+  const supabase = createServerClient();
+
+  const { data: booking, error: bErr } = await supabase
+    .from('bookings')
+    .select('item_title, booking_date, pax, total_price, unit_price, confirmation_code, payment_method, property_id, guest_id, commission')
+    .eq('id', bookingId)
+    .single();
+
+  if (bErr || !booking) {
+    console.error('Internal email: booking not found', bookingId, bErr?.message);
+    return;
+  }
+
+  let propertyName = '—';
+  if (booking.property_id) {
+    const { data: prop } = await supabase
+      .from('properties')
+      .select('name')
+      .eq('id', booking.property_id)
+      .single();
+    if (prop?.name) propertyName = prop.name;
+  }
+
+  let guestName = 'Guest', guestPhone = '—', guestEmail = options?.guestEmail ?? '—';
+  if (booking.guest_id) {
+    const { data: guest } = await supabase
+      .from('guests')
+      .select('first_name, whatsapp_number')
+      .eq('id', booking.guest_id)
+      .single();
+    if (guest) {
+      if (guest.first_name) guestName = guest.first_name;
+      if (guest.whatsapp_number) guestPhone = guest.whatsapp_number;
+    }
+  }
+
+  const formattedDate = new Date(booking.booking_date + 'T00:00:00').toLocaleDateString('en-GB', {
+    weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
+  });
+  const paymentLabel = booking.payment_method === 'stripe' ? 'Card (Stripe)' : 'WhatsApp';
+  const commission = booking.commission != null ? `€${booking.commission}` : '—';
+
+  const rows = [
+    ['Ref',         booking.confirmation_code],
+    ['Activity',    booking.item_title],
+    ['Date',        formattedDate],
+    ['Guests',      String(booking.pax)],
+    ['Unit price',  `€${booking.unit_price}`],
+    ['Total',       `€${booking.total_price}`],
+    ['Commission',  commission],
+    ['Payment',     paymentLabel],
+    ['Property',    propertyName],
+    ['Guest name',  guestName],
+    ['Guest email', guestEmail],
+    ['Guest WA',    guestPhone],
+  ].map(([k, v]) => `<tr><td style="padding:5px 12px 5px 0;color:#6B7280;font-size:13px;white-space:nowrap">${k}</td><td style="padding:5px 0;font-size:13px;font-weight:600;color:#111">${v}</td></tr>`).join('');
+
+  const html = `<!DOCTYPE html><html><body style="font-family:monospace;padding:24px;background:#f9f9f9">
+<div style="max-width:480px;background:white;padding:24px;border:1px solid #e5e7eb;border-radius:6px">
+<p style="margin:0 0 16px;font-size:12px;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px">Island Key — Internal Booking Alert</p>
+<table style="border-collapse:collapse;width:100%">${rows}</table>
+</div></body></html>`;
+
+  const resend = new Resend(apiKey);
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to: INTERNAL_EMAIL,
+    subject: `[IK Booking] ${booking.confirmation_code} — ${booking.item_title} — ${propertyName}`,
+    html,
+  });
+
+  if (error) console.error('Internal email: Resend failed', error);
+  else console.log('Internal email: sent for booking', booking.confirmation_code);
+}
+
 export async function sendHostNotification(
   bookingId: string,
   options?: { guestName?: string; guestPhone?: string | null }

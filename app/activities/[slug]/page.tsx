@@ -164,6 +164,7 @@ export default function ActivityDetailPage() {
             guestPhone: localPhone.trim()
               ? `${countryCode}${localPhone.trim().replace(/^0+/, '').replace(/\s+/g, '')}`
               : session?.whatsapp_number ?? null,
+            guestEmail: guestEmail.trim() || undefined,
           }),
         }).catch(err => console.error('notify-host fetch error:', err));
         // Notify guest — fire and forget, skipped silently if no email
