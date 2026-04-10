@@ -116,6 +116,8 @@ export default function OnboardPage() {
       : null;
 
     // Insert guest record into Supabase
+    console.log('[ONBOARD DEBUG] anon key prefix:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.slice(0, 50));
+    console.log('[ONBOARD DEBUG] supabase url:', process.env.NEXT_PUBLIC_SUPABASE_URL);
     const { data: guestRaw, error } = await supabase
       .from('guests')
       .insert({
