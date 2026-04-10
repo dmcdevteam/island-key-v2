@@ -70,6 +70,100 @@ function buildEmailHtml(data: {
 </html>`;
 }
 
+function buildGuestEmailHtml(data: {
+  guestName: string;
+  itemTitle: string;
+  bookingDate: string;
+  pax: number;
+  totalPrice: number;
+  confirmationCode: string;
+  paymentMethod: string;
+}): string {
+  const formattedDate = new Date(data.bookingDate + 'T00:00:00').toLocaleDateString('en-GB', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+  });
+  const formattedTotal = `€${data.totalPrice.toLocaleString('en', { minimumFractionDigits: 0 })}`;
+  const paymentLabel = data.paymentMethod === 'stripe' ? 'Card (paid online)' : 'Via WhatsApp';
+
+  const row = (label: string, value: string) => `
+    <tr>
+      <td style="padding:8px 0;color:#6B7280;font-size:13px;border-bottom:1px solid #F3F4F6;width:40%">${label}</td>
+      <td style="padding:8px 0;font-size:13px;font-weight:600;color:#1B2D4F;border-bottom:1px solid #F3F4F6">${value}</td>
+    </tr>`;
+
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:24px;background:#F5F0E8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+  <div style="max-width:520px;margin:0 auto">
+
+    <!-- Header -->
+    <div style="background:#1B2D4F;border-radius:8px 8px 0 0;padding:24px;text-align:center">
+      <p style="margin:0;color:rgba(255,255,255,0.5);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase">Island Key</p>
+      <h1 style="margin:6px 0 0;color:white;font-size:18px;font-weight:600">Your booking is confirmed</h1>
+    </div>
+
+    <!-- Body -->
+    <div style="background:white;padding:28px;border-radius:0 0 8px 8px">
+      <p style="margin:0 0 20px;font-size:14px;color:#374151">Hi ${data.guestName}, your experience is booked! Here's your summary.</p>
+
+      <table style="width:100%;border-collapse:collapse">
+        ${row('Experience', data.itemTitle)}
+        ${row('Date', formattedDate)}
+        ${row('Guests', `${data.pax} ${data.pax === 1 ? 'person' : 'people'}`)}
+        ${row('Total', formattedTotal)}
+        ${row('Payment', paymentLabel)}
+        ${row('Reference', `<span style="color:#1A8A7D;font-family:monospace;font-size:15px">${data.confirmationCode}</span>`)}
+      </table>
+
+      <!-- Note -->
+      <div style="margin-top:24px;padding:14px 16px;background:#F0FAF9;border-left:3px solid #1A8A7D;border-radius:0 6px 6px 0">
+        <p style="margin:0;font-size:13px;color:#1A8A7D;font-weight:600">Your curator will be in touch via WhatsApp to confirm the details.</p>
+        <p style="margin:4px 0 0;font-size:12px;color:#6B7280">Keep your reference number handy — you may need it if you contact us.</p>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <p style="text-align:center;font-size:11px;color:#9CA3AF;margin-top:16px">
+      Island Key &mdash; Crete &mdash; <a href="https://islandkey.gr" style="color:#9CA3AF">islandkey.gr</a>
+    </p>
+
+  </div>
+</body>
+</html>`;
+}
+
+export async function sendGuestConfirmation(data: {
+  to: string;
+  guestName: string;
+  itemTitle: string;
+  bookingDate: string;
+  pax: number;
+  totalPrice: number;
+  confirmationCode: string;
+  paymentMethod: string;
+}): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey || apiKey === 're_your-api-key-here') {
+    console.warn('Email: RESEND_API_KEY not set — skipping guest confirmation');
+    return;
+  }
+
+  const resend = new Resend(apiKey);
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to: data.to,
+    subject: `Your booking is confirmed — Ref: ${data.confirmationCode}`,
+    html: buildGuestEmailHtml(data),
+  });
+
+  if (error) {
+    console.error('Email: guest confirmation failed', error);
+  } else {
+    console.log('Email: guest confirmation sent to', data.to, 'for booking', data.confirmationCode);
+  }
+}
+
 export async function sendHostNotification(
   bookingId: string,
   options?: { guestName?: string; guestPhone?: string | null }

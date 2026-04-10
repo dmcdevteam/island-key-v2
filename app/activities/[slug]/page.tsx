@@ -60,6 +60,7 @@ export default function ActivityDetailPage() {
   const [bookingDate, setBookingDate] = useState(tomorrow());
   const [pax, setPax] = useState(2);
   const [guestName, setGuestName] = useState('');
+  const [guestEmail, setGuestEmail] = useState('');
   const [countryCode, setCountryCode] = useState('+30');
   const [localPhone, setLocalPhone] = useState('');
   const [bookingLoading, setBookingLoading] = useState(false);
@@ -144,18 +145,27 @@ export default function ActivityDetailPage() {
         console.error('Booking insert error:', error.message);
       } else if (data) {
         confirmationCode = data.confirmation_code;
-        // Notify host server-side — fire and forget, never blocks guest flow
+        const resolvedName = guestName.trim() || session?.first_name || 'Guest';
+        // Notify host — fire and forget
         fetch('/api/notify-host', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             bookingId: data.id,
-            guestName: guestName.trim() || session?.first_name || 'Guest',
+            guestName: resolvedName,
             guestPhone: localPhone.trim()
               ? `${countryCode}${localPhone.trim().replace(/^0+/, '').replace(/\s+/g, '')}`
               : session?.whatsapp_number ?? null,
           }),
         }).catch(err => console.error('notify-host fetch error:', err));
+        // Notify guest — fire and forget, skipped silently if no email
+        if (guestEmail.trim()) {
+          fetch('/api/notify-guest', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bookingId: data.id, guestEmail: guestEmail.trim(), guestName: resolvedName }),
+          }).catch(err => console.error('notify-guest fetch error:', err));
+        }
       }
     } catch (err) {
       console.error('Booking insert exception:', err);
@@ -216,6 +226,8 @@ export default function ActivityDetailPage() {
           propertyId: session?.property_id ?? null,
           providerId: activity.provider_id ?? null,
           meetingPoint: activity.meeting_point ?? null,
+          guestEmail: guestEmail.trim() || null,
+          guestName: guestName.trim() || session?.first_name || 'Guest',
         }),
       });
 
@@ -415,6 +427,18 @@ export default function ActivityDetailPage() {
                 </div>
               </div>
             )}
+
+            {/* Email (optional) */}
+            <div className="flex justify-between items-center py-2.5 border-b border-border-light">
+              <span className="text-[13px] text-tx-mid">Email</span>
+              <input
+                type="email"
+                placeholder="For confirmation (optional)"
+                value={guestEmail}
+                onChange={e => setGuestEmail(e.target.value)}
+                className="text-[13px] text-right text-navy bg-transparent outline-none placeholder:text-tx-light w-48"
+              />
+            </div>
 
             {/* Accommodation */}
             <div className="flex justify-between items-center py-2.5 border-b border-border-light">

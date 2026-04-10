@@ -27,6 +27,8 @@ export async function POST(req: Request) {
     propertyId: string | null;
     providerId: string | null;
     meetingPoint: string | null;
+    guestEmail: string | null;
+    guestName: string | null;
   };
 
   try {
@@ -113,6 +115,8 @@ export async function POST(req: Request) {
       metadata: {
         bookingId,
         confirmationCode,
+        ...(body.guestEmail ? { guestEmail: body.guestEmail } : {}),
+        ...(body.guestName  ? { guestName:  body.guestName  } : {}),
       },
       success_url: `${appUrl}/booking/confirmation?${successParams.toString()}`,
       cancel_url: `${appUrl}/activities`,
