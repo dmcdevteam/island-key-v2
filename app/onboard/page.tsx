@@ -107,7 +107,6 @@ export default function OnboardPage() {
     if (submitting) return;
     setSubmitting(true);
 
-    const supabase = createClient();
     let guestId: string | null = null;
 
     // Build full international number (digits only, no + sign)
@@ -115,31 +114,33 @@ export default function OnboardPage() {
       ? `${countryCode}${localPhone.trim().replace(/^0+/, '').replace(/\D/g, '')}`
       : null;
 
-    // Insert guest record into Supabase
-    console.log('[ONBOARD DEBUG] anon key prefix:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.slice(0, 50));
-    console.log('[ONBOARD DEBUG] supabase url:', process.env.NEXT_PUBLIC_SUPABASE_URL);
-    const { data: guestRaw, error } = await supabase
-      .from('guests')
-      .insert({
-        first_name: firstName || 'Guest',
-        property_id: propertyUuid,
-        tier,
-        region,
-        check_in: checkIn,
-        check_out: checkOut,
-        group_type: groupType || 'couple',
-        whatsapp_opted_in: waOptIn,
-        whatsapp_number: whatsappNumber,
-        user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
-      } as never)
-      .select('id')
-      .single();
-
-    if (error) {
-      console.error('Onboard: guest insert failed', error.message);
+    // Insert guest record via server-side API route (bypasses RLS, uses service role)
+    try {
+      const res = await fetch('/api/guests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          first_name: firstName || 'Guest',
+          property_id: propertyUuid,
+          tier,
+          region,
+          check_in: checkIn,
+          check_out: checkOut,
+          group_type: groupType || 'couple',
+          whatsapp_opted_in: waOptIn,
+          whatsapp_number: whatsappNumber,
+          user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        console.error('Onboard: guest insert failed', json.error);
+      } else {
+        guestId = json.id ?? null;
+      }
+    } catch (err) {
+      console.error('Onboard: guest insert error', err);
       // Continue anyway — session still works without guest_id
-    } else {
-      guestId = (guestRaw as unknown as { id: string })?.id ?? null;
     }
 
     const session = {
