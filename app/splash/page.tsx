@@ -21,7 +21,7 @@ export default function SplashPage() {
         {/* Logo image */}
         <div className="flex justify-center mb-5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo_icon_transparent.png" alt="Island Key" style={{ height: 80, width: 'auto' }} />
+          <img src="/logo_icon_transparent.png" alt="Island Key" style={{ height: 160, width: 'auto' }} />
         </div>
 
         {/* Wordmark */}
