@@ -78,6 +78,7 @@ export interface Activity {
   currency: string;
   duration: string | null;
   season: string | null;
+  availability_text: string | null;
   max_group_size: number | null;
   languages: string[];
   meeting_point: string | null;

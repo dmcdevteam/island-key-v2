@@ -268,6 +268,16 @@ export default function ActivityDetailPage() {
           {activity.languages?.length > 0 && <span className="text-[11px] text-tx-mid">🌐 {activity.languages.join(', ')}</span>}
         </div>
 
+        {activity.availability_text && (
+          <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-teal/10 rounded-lg">
+            <span className="text-teal text-[13px]">🕐</span>
+            <div>
+              <span className="text-[10px] font-bold text-teal uppercase tracking-wide">Availability · </span>
+              <span className="text-[13px] font-medium text-navy">{activity.availability_text}</span>
+            </div>
+          </div>
+        )}
+
         <p className="text-[13px] text-tx-mid leading-relaxed mb-4">{activity.description}</p>
 
         {activity.includes && activity.includes.length > 0 && (
@@ -329,7 +339,8 @@ export default function ActivityDetailPage() {
               <input
                 type="date"
                 value={bookingDate}
-                min={new Date().toISOString().slice(0, 10)}
+                min={session?.check_in ?? new Date().toISOString().slice(0, 10)}
+                max={session?.check_out ?? undefined}
                 onChange={e => setBookingDate(e.target.value)}
                 className="text-[13px] font-semibold text-navy bg-transparent outline-none"
               />
