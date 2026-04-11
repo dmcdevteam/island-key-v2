@@ -28,16 +28,16 @@ async function compositeLogoOnQR(qrDataUrl: string, qrSize: number): Promise<str
   await new Promise<void>((res) => { qrImg.onload = () => res(); qrImg.src = qrDataUrl; });
   ctx.drawImage(qrImg, 0, 0, qrSize, qrSize);
 
-  // Logo dimensions (~18% of QR size)
-  const logoSize = Math.round(qrSize * 0.18);
+  // Logo dimensions (~24% of QR size)
+  const logoSize = Math.round(qrSize * 0.24);
   const bgPad = Math.round(logoSize * 0.18);
   const bgSize = logoSize + bgPad * 2;
   const x = Math.round((qrSize - bgSize) / 2);
   const y = Math.round((qrSize - bgSize) / 2);
   const radius = Math.round(bgSize * 0.15);
 
-  // Navy rounded-square background
-  ctx.fillStyle = '#1B2D4F';
+  // White rounded-square background
+  ctx.fillStyle = '#FFFFFF';
   ctx.beginPath();
   ctx.moveTo(x + radius, y);
   ctx.lineTo(x + bgSize - radius, y);
@@ -50,10 +50,13 @@ async function compositeLogoOnQR(qrDataUrl: string, qrSize: number): Promise<str
   ctx.quadraticCurveTo(x, y, x + radius, y);
   ctx.closePath();
   ctx.fill();
+  ctx.strokeStyle = '#E0E0E0';
+  ctx.lineWidth = 2;
+  ctx.stroke();
 
-  // Logo (transparent PNG, white version)
+  // Logo (navy icon on white background)
   const logoImg = new Image();
-  await new Promise<void>((res) => { logoImg.onload = () => res(); logoImg.src = '/logo_icon_transparent.png'; });
+  await new Promise<void>((res) => { logoImg.onload = () => res(); logoImg.src = '/logo_icon_navy.png'; });
   const lx = Math.round((qrSize - logoSize) / 2);
   const ly = Math.round((qrSize - logoSize) / 2);
   ctx.drawImage(logoImg, lx, ly, logoSize, logoSize);
@@ -110,7 +113,7 @@ export default function QRAdminPage() {
 
   // Logo overlay style — absolute centred on a relative QR container
   const logoOverlay = (qrSize: number) => {
-    const logoSize = Math.round(qrSize * 0.18);
+    const logoSize = Math.round(qrSize * 0.24);
     const bgPad = Math.round(logoSize * 0.18);
     const bgSize = logoSize + bgPad * 2;
     return {
@@ -126,8 +129,9 @@ export default function QRAdminPage() {
         transform: 'translate(-50%, -50%)',
         width: bgSize,
         height: bgSize,
-        background: '#1B2D4F',
+        background: '#FFFFFF',
         borderRadius: 6,
+        border: '1px solid #E0E0E0',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -211,7 +215,7 @@ export default function QRAdminPage() {
                       />
                       <div style={s.bg}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src="/logo_icon_transparent.png" alt="" style={s.logo} />
+                        <img src="/logo_icon_navy.png" alt="" style={s.logo} />
                       </div>
                     </div>
                   );
@@ -285,19 +289,20 @@ export default function QRAdminPage() {
                 top: '50%',
                 left: '50%',
                 transform: 'translate(-50%, -50%)',
-                width: Math.round(200 * 0.18 * 1.36),
-                height: Math.round(200 * 0.18 * 1.36),
-                background: '#1B2D4F',
+                width: Math.round(200 * 0.24 * 1.36),
+                height: Math.round(200 * 0.24 * 1.36),
+                background: '#FFFFFF',
                 borderRadius: 6,
+                border: '1px solid #E0E0E0',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src="/logo_icon_transparent.png"
+                  src="/logo_icon_navy.png"
                   alt=""
-                  style={{ width: Math.round(200 * 0.18), height: Math.round(200 * 0.18), objectFit: 'contain' }}
+                  style={{ width: Math.round(200 * 0.24), height: Math.round(200 * 0.24), objectFit: 'contain' }}
                 />
               </div>
             </div>
