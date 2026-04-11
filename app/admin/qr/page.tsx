@@ -16,6 +16,51 @@ interface PropertyOption {
   region: Region;
 }
 
+// Composites the logo onto a QR canvas and returns a data URL
+async function compositeLogoOnQR(qrDataUrl: string, qrSize: number): Promise<string> {
+  const canvas = document.createElement('canvas');
+  canvas.width = qrSize;
+  canvas.height = qrSize;
+  const ctx = canvas.getContext('2d')!;
+
+  // Draw QR
+  const qrImg = new Image();
+  await new Promise<void>((res) => { qrImg.onload = () => res(); qrImg.src = qrDataUrl; });
+  ctx.drawImage(qrImg, 0, 0, qrSize, qrSize);
+
+  // Logo dimensions (~18% of QR size)
+  const logoSize = Math.round(qrSize * 0.18);
+  const bgPad = Math.round(logoSize * 0.18);
+  const bgSize = logoSize + bgPad * 2;
+  const x = Math.round((qrSize - bgSize) / 2);
+  const y = Math.round((qrSize - bgSize) / 2);
+  const radius = Math.round(bgSize * 0.15);
+
+  // Navy rounded-square background
+  ctx.fillStyle = '#1B2D4F';
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + bgSize - radius, y);
+  ctx.quadraticCurveTo(x + bgSize, y, x + bgSize, y + radius);
+  ctx.lineTo(x + bgSize, y + bgSize - radius);
+  ctx.quadraticCurveTo(x + bgSize, y + bgSize, x + bgSize - radius, y + bgSize);
+  ctx.lineTo(x + radius, y + bgSize);
+  ctx.quadraticCurveTo(x, y + bgSize, x, y + bgSize - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+  ctx.fill();
+
+  // Logo (transparent PNG, white version)
+  const logoImg = new Image();
+  await new Promise<void>((res) => { logoImg.onload = () => res(); logoImg.src = '/logo_icon_transparent.png'; });
+  const lx = Math.round((qrSize - logoSize) / 2);
+  const ly = Math.round((qrSize - logoSize) / 2);
+  ctx.drawImage(logoImg, lx, ly, logoSize, logoSize);
+
+  return canvas.toDataURL('image/png');
+}
+
 export default function QRAdminPage() {
   const [properties, setProperties] = useState<PropertyOption[]>([]);
   const [selectedId, setSelectedId] = useState('');
@@ -45,13 +90,16 @@ export default function QRAdminPage() {
 
   async function handleDownload() {
     if (!selected || !qrUrl) return;
-    const dataUrl = await QRCodeLib.toDataURL(qrUrl, {
-      width: 1024,
+    const QR_SIZE = 1024;
+    const qrDataUrl = await QRCodeLib.toDataURL(qrUrl, {
+      width: QR_SIZE,
       margin: 2,
+      errorCorrectionLevel: 'H',
       color: { dark: '#1B2D4F', light: '#FFFFFF' },
     });
+    const composited = await compositeLogoOnQR(qrDataUrl, QR_SIZE);
     const a = document.createElement('a');
-    a.href = dataUrl;
+    a.href = composited;
     a.download = `island-key-qr-${selected.slug}.png`;
     a.click();
   }
@@ -59,6 +107,38 @@ export default function QRAdminPage() {
   function handlePrint() {
     window.print();
   }
+
+  // Logo overlay style — absolute centred on a relative QR container
+  const logoOverlay = (qrSize: number) => {
+    const logoSize = Math.round(qrSize * 0.18);
+    const bgPad = Math.round(logoSize * 0.18);
+    const bgSize = logoSize + bgPad * 2;
+    return {
+      wrapper: {
+        position: 'relative' as const,
+        display: 'inline-block',
+        lineHeight: 0,
+      },
+      bg: {
+        position: 'absolute' as const,
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: bgSize,
+        height: bgSize,
+        background: '#1B2D4F',
+        borderRadius: 6,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      },
+      logo: {
+        width: logoSize,
+        height: logoSize,
+        objectFit: 'contain' as const,
+      },
+    };
+  };
 
   return (
     <>
@@ -118,13 +198,24 @@ export default function QRAdminPage() {
 
               {/* QR preview */}
               <div className="flex flex-col items-center mb-8 p-8 bg-white border border-border rounded-sm">
-                <QRCode
-                  value={qrUrl}
-                  size={240}
-                  fgColor="#1B2D4F"
-                  bgColor="#FFFFFF"
-                  level="M"
-                />
+                {(() => {
+                  const s = logoOverlay(240);
+                  return (
+                    <div style={s.wrapper}>
+                      <QRCode
+                        value={qrUrl}
+                        size={240}
+                        fgColor="#1B2D4F"
+                        bgColor="#FFFFFF"
+                        level="H"
+                      />
+                      <div style={s.bg}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src="/logo_icon_transparent.png" alt="" style={s.logo} />
+                      </div>
+                    </div>
+                  );
+                })()}
                 <p className="mt-4 text-xs text-tx-mid">{selected.name}</p>
               </div>
 
@@ -180,13 +271,36 @@ export default function QRAdminPage() {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, justifyContent: 'center', gap: '8mm' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo_icon_navy.png" alt="Island Key" style={{ height: '16mm', width: 'auto' }} />
-            <QRCode
-              value={qrUrl}
-              size={200}
-              fgColor="#1B2D4F"
-              bgColor="#FFFFFF"
-              level="M"
-            />
+            {/* QR with logo overlay */}
+            <div style={{ position: 'relative', display: 'inline-block', lineHeight: 0 }}>
+              <QRCode
+                value={qrUrl}
+                size={200}
+                fgColor="#1B2D4F"
+                bgColor="#FFFFFF"
+                level="H"
+              />
+              <div style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: Math.round(200 * 0.18 * 1.36),
+                height: Math.round(200 * 0.18 * 1.36),
+                background: '#1B2D4F',
+                borderRadius: 6,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/logo_icon_transparent.png"
+                  alt=""
+                  style={{ width: Math.round(200 * 0.18), height: Math.round(200 * 0.18), objectFit: 'contain' }}
+                />
+              </div>
+            </div>
 
             {/* Headline + sub-line */}
             <div style={{ textAlign: 'center' }}>
