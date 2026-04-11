@@ -54,6 +54,9 @@ export default function OnboardPage() {
   const [waOptIn, setWaOptIn] = useState(true);
   const [countryCode, setCountryCode] = useState('30');
   const [localPhone, setLocalPhone] = useState('');
+  const [adults, setAdults] = useState<string>('');
+  const [children, setChildren] = useState<string>('');
+  const [friendsCount, setFriendsCount] = useState<string>('');
   const [nameError, setNameError] = useState(false);
   const [dateError, setDateError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -117,6 +120,13 @@ export default function OnboardPage() {
 
     let guestId: string | null = null;
 
+    // Compute group_size
+    let groupSize: number | null = null;
+    if (groupType === 'couple') groupSize = 2;
+    else if (groupType === 'solo') groupSize = 1;
+    else if (groupType === 'family') groupSize = (parseInt(adults) || 0) + (parseInt(children) || 0) || null;
+    else if (groupType === 'friends') groupSize = parseInt(friendsCount) || null;
+
     // Build full international number (digits only, no + sign)
     const whatsappNumber = waOptIn && localPhone.trim()
       ? `${countryCode}${localPhone.trim().replace(/^0+/, '').replace(/\D/g, '')}`
@@ -135,6 +145,9 @@ export default function OnboardPage() {
           check_in: checkIn,
           check_out: checkOut,
           group_type: groupType || 'couple',
+          group_size: groupSize,
+          adults: groupType === 'family' ? (parseInt(adults) || null) : null,
+          children: groupType === 'family' ? (parseInt(children) || 0) : null,
           whatsapp_opted_in: waOptIn,
           whatsapp_number: whatsappNumber,
           user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
@@ -256,6 +269,60 @@ export default function OnboardPage() {
                 onClick={() => setGroupType(opt.value)}
               />
             ))}
+          </div>
+
+          {/* Family inputs */}
+          <div
+            className={`overflow-hidden transition-all duration-300 ease-in-out ${
+              groupType === 'family' ? 'max-h-24 opacity-100 mt-3' : 'max-h-0 opacity-0'
+            }`}
+          >
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <label className="text-[11px] text-tx-mid mb-1 block">Adults</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={adults}
+                  onChange={(e) => setAdults(e.target.value)}
+                  placeholder="2"
+                  inputMode="numeric"
+                  className="w-full px-3.5 py-3 border-[1.5px] border-border rounded-sm font-body text-sm text-tx bg-white outline-none focus:border-teal"
+                />
+              </div>
+              <div className="flex-1">
+                <label className="text-[11px] text-tx-mid mb-1 block">Children</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={children}
+                  onChange={(e) => setChildren(e.target.value)}
+                  placeholder="0"
+                  inputMode="numeric"
+                  className="w-full px-3.5 py-3 border-[1.5px] border-border rounded-sm font-body text-sm text-tx bg-white outline-none focus:border-teal"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Friends input */}
+          <div
+            className={`overflow-hidden transition-all duration-300 ease-in-out ${
+              groupType === 'friends' ? 'max-h-24 opacity-100 mt-3' : 'max-h-0 opacity-0'
+            }`}
+          >
+            <div>
+              <label className="text-[11px] text-tx-mid mb-1 block">How many in your group?</label>
+              <input
+                type="number"
+                min={2}
+                value={friendsCount}
+                onChange={(e) => setFriendsCount(e.target.value)}
+                placeholder="4"
+                inputMode="numeric"
+                className="w-full px-3.5 py-3 border-[1.5px] border-border rounded-sm font-body text-sm text-tx bg-white outline-none focus:border-teal"
+              />
+            </div>
           </div>
         </div>
 

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSession, TIER_LABELS, timeRemaining, formatPrice } from '@/lib/utils';
 import { BottomNav } from '@/components/ui/bottom-nav';
-import { TierBadge, SectionHeader, ActivityMiniCard, ArticleCard } from '@/components/ui/components';
+import { SectionHeader, ActivityMiniCard, ArticleCard } from '@/components/ui/components';
 import { createClient } from '@/lib/supabase';
 import type { GuestSession, Deal, Activity, Article, CalendarEvent } from '@/lib/types';
 
@@ -148,7 +148,6 @@ export default function HomePage() {
             Hello, <span className="font-semibold">{session.first_name}</span> 👋
           </h1>
         </div>
-        <TierBadge tier={session.tier} />
       </div>
 
       <div className="flex-1 overflow-y-auto">
