@@ -35,12 +35,12 @@ function buildEmailHtml(data: {
     <!-- Header -->
     <div style="background:#1B2D4F;border-radius:8px 8px 0 0;padding:24px;text-align:center">
       <p style="margin:0;color:rgba(255,255,255,0.5);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase">Island Key</p>
-      <h1 style="margin:6px 0 0;color:white;font-size:18px;font-weight:600">New Booking at ${data.propertyName}</h1>
+      <h1 style="margin:6px 0 0;color:white;font-size:18px;font-weight:600">New Enquiry at ${data.propertyName}</h1>
     </div>
 
     <!-- Body -->
     <div style="background:white;padding:28px;border-radius:0 0 8px 8px">
-      <p style="margin:0 0 20px;font-size:14px;color:#374151">A guest has booked an experience through Island Key. Details below.</p>
+      <p style="margin:0 0 20px;font-size:14px;color:#374151">A guest has submitted an availability enquiry through Island Key. Details below.</p>
 
       <table style="width:100%;border-collapse:collapse">
         ${row('Experience', data.itemTitle)}
@@ -100,12 +100,12 @@ function buildGuestEmailHtml(data: {
     <!-- Header -->
     <div style="background:#1B2D4F;border-radius:8px 8px 0 0;padding:24px;text-align:center">
       <p style="margin:0;color:rgba(255,255,255,0.5);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase">Island Key</p>
-      <h1 style="margin:6px 0 0;color:white;font-size:18px;font-weight:600">Your booking is confirmed</h1>
+      <h1 style="margin:6px 0 0;color:white;font-size:18px;font-weight:600">Enquiry received</h1>
     </div>
 
     <!-- Body -->
     <div style="background:white;padding:28px;border-radius:0 0 8px 8px">
-      <p style="margin:0 0 20px;font-size:14px;color:#374151">Hi ${data.guestName}, your experience is booked! Here's your summary.</p>
+      <p style="margin:0 0 20px;font-size:14px;color:#374151">Hi ${data.guestName}, we've received your enquiry! Your Island Key curator will check availability and get back to you on WhatsApp within a few hours.</p>
 
       <table style="width:100%;border-collapse:collapse">
         ${row('Experience', data.itemTitle)}
@@ -118,8 +118,8 @@ function buildGuestEmailHtml(data: {
 
       <!-- Note -->
       <div style="margin-top:24px;padding:14px 16px;background:#F0FAF9;border-left:3px solid #1A8A7D;border-radius:0 6px 6px 0">
-        <p style="margin:0;font-size:13px;color:#1A8A7D;font-weight:600">Your curator will be in touch via WhatsApp to confirm the details.</p>
-        <p style="margin:4px 0 0;font-size:12px;color:#6B7280">Keep your reference number handy — you may need it if you contact us.</p>
+        <p style="margin:0;font-size:13px;color:#1A8A7D;font-weight:600">Your curator will be in touch via WhatsApp within a few hours.</p>
+        <p style="margin:4px 0 0;font-size:12px;color:#6B7280">No payment is taken until availability is confirmed. Keep your reference number handy.</p>
       </div>
     </div>
 
@@ -153,7 +153,7 @@ export async function sendGuestConfirmation(data: {
   const { error } = await resend.emails.send({
     from: FROM,
     to: data.to,
-    subject: `Your booking is confirmed — Ref: ${data.confirmationCode}`,
+    subject: `Enquiry received — Ref: ${data.confirmationCode}`,
     html: buildGuestEmailHtml(data),
   });
 
@@ -240,7 +240,7 @@ export async function sendInternalNotification(
   const { error } = await resend.emails.send({
     from: FROM,
     to: INTERNAL_EMAIL,
-    subject: `[IK Booking] ${booking.confirmation_code} — ${booking.item_title} — ${propertyName}`,
+    subject: `[IK Enquiry] ${booking.confirmation_code} — ${booking.item_title} — ${propertyName}`,
     html,
   });
 
@@ -317,7 +317,7 @@ export async function sendHostNotification(
   const { error: emailErr } = await resend.emails.send({
     from: FROM,
     to: property.host_email,
-    subject: `New booking at ${property.name} — Ref: ${booking.confirmation_code}`,
+    subject: `[IK Enquiry] ${booking.confirmation_code} — ${booking.item_title} — ${property.name}`,
     html: buildEmailHtml({
       propertyName: property.name,
       guestName,

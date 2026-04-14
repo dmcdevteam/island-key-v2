@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { BookButton, WhatsAppButton } from '@/components/ui/components';
-import { whatsappLink, formatPrice, getSession } from '@/lib/utils';
+import { formatPrice, getSession } from '@/lib/utils';
 import { createClient } from '@/lib/supabase';
 import type { Activity } from '@/lib/types';
 
@@ -32,6 +32,9 @@ const COUNTRY_CODES = [
   { flag: '🇳🇴', code: '+47',  label: 'NO' },
   { flag: '🇩🇰', code: '+45',  label: 'DK' },
 ];
+
+// Spyros's WhatsApp — enquiries go here
+const SPYROS_WA = '306974176759';
 
 function tomorrow() {
   const d = new Date();
@@ -63,8 +66,9 @@ export default function ActivityDetailPage() {
   const [guestEmail, setGuestEmail] = useState('');
   const [countryCode, setCountryCode] = useState('+30');
   const [localPhone, setLocalPhone] = useState('');
-  const [bookingLoading, setBookingLoading] = useState(false);
-  const [bookingError, setBookingError] = useState<string | null>(null);
+  const [guestNotes, setGuestNotes] = useState('');
+  const [enquiryLoading, setEnquiryLoading] = useState(false);
+  const [enquiryError, setEnquiryError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState(false);
 
   // Read session client-side only (localStorage unavailable during SSR)
@@ -72,14 +76,8 @@ export default function ActivityDetailPage() {
     const s = getSession();
     setSession(s);
     if (s?.first_name) setGuestName(s.first_name);
-    // Initialise booking date to check_in so value is never before min
     if (s?.check_in) setBookingDate(s.check_in);
   }, []);
-
-  // Debug: log session when modal opens so we can verify check_in/check_out
-  useEffect(() => {
-    if (showModal) console.log('[BOOKING DEBUG] session:', session);
-  }, [showModal, session]);
 
   useEffect(() => {
     if (!slug) return;
@@ -96,9 +94,8 @@ export default function ActivityDetailPage() {
   }, [slug]);
 
   const unitPrice = activity?.price_from ?? 0;
-  const total = unitPrice * pax;
-  const maxPax = activity?.max_group_size ?? 20;
   const hasPrice = unitPrice > 0;
+  const maxPax = activity?.max_group_size ?? 20;
 
   function validateEmail() {
     const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail.trim());
@@ -106,14 +103,19 @@ export default function ActivityDetailPage() {
     return valid;
   }
 
-  // ─── WhatsApp path ───
-  async function handleWhatsApp() {
+  // ─── Submit enquiry ───
+  async function handleEnquiry() {
     if (!activity) return;
     if (!validateEmail()) return;
-    setBookingLoading(true);
-    setBookingError(null);
+    setEnquiryLoading(true);
+    setEnquiryError(null);
 
     let confirmationCode: string | null = null;
+
+    // Build full phone from inputs or session
+    const fullPhone = localPhone.trim()
+      ? `${countryCode}${localPhone.trim().replace(/^0+/, '').replace(/\s+/g, '')}`
+      : session?.whatsapp_number ?? null;
 
     try {
       const supabase = createClient();
@@ -139,34 +141,35 @@ export default function ActivityDetailPage() {
           pax,
           days: 1,
           unit_price: unitPrice,
-          total_price: total,
+          total_price: unitPrice * pax,
           payment_method: 'whatsapp',
-          status: 'pending',
+          status: 'enquiry',
           guest_id: session?.guest_id ?? null,
           property_id: propertyUuid,
           provider_id: activity.provider_id ?? null,
+          guest_notes: guestNotes.trim() || null,
         })
         .select('id, confirmation_code')
         .single();
 
       if (error) {
-        console.error('Booking insert error:', error.message);
+        console.error('Enquiry insert error:', error.message);
       } else if (data) {
         confirmationCode = data.confirmation_code;
         const resolvedName = guestName.trim() || session?.first_name || 'Guest';
-        // Notify host — fire and forget
+
+        // Notify host + internal — fire and forget
         fetch('/api/notify-host', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             bookingId: data.id,
             guestName: resolvedName,
-            guestPhone: localPhone.trim()
-              ? `${countryCode}${localPhone.trim().replace(/^0+/, '').replace(/\s+/g, '')}`
-              : session?.whatsapp_number ?? null,
+            guestPhone: fullPhone,
             guestEmail: guestEmail.trim() || undefined,
           }),
         }).catch(err => console.error('notify-host fetch error:', err));
+
         // Notify guest — fire and forget, skipped silently if no email
         if (guestEmail.trim()) {
           fetch('/api/notify-guest', {
@@ -177,77 +180,36 @@ export default function ActivityDetailPage() {
         }
       }
     } catch (err) {
-      console.error('Booking insert exception:', err);
+      console.error('Enquiry insert exception:', err);
     }
 
+    // Send WhatsApp to Spyros
     const name = guestName.trim() || session?.first_name || 'Guest';
-    const property = session?.property_name || 'my accommodation';
-
-    // Build full international number from country code + local digits (strip leading zero)
-    const fullPhone = localPhone.trim()
-      ? `${countryCode}${localPhone.trim().replace(/^0+/, '').replace(/\s+/g, '')}`
-      : session?.whatsapp_number ?? null;
+    const property = session?.property_name || '—';
 
     const parts = [
-      `Hi Island Key! I'd like to book:`,
-      activity.title,
-      formatDateLong(bookingDate),
-      `${pax} ${pax === 1 ? 'person' : 'people'}`,
-      `Staying at: ${property}`,
-      `Name: ${name}`,
-      fullPhone ? `WhatsApp: ${fullPhone}` : null,
-      confirmationCode ? `Ref: ${confirmationCode}` : null,
-      `Please confirm availability.`,
+      `🌟 New Enquiry — Island Key`,
+      `📍 Activity: ${activity.title}`,
+      `📅 Date: ${formatDateLong(bookingDate)}`,
+      `👥 People: ${pax}`,
+      `👤 Guest: ${name}`,
+      `📧 Email: ${guestEmail.trim() || '—'}`,
+      fullPhone ? `📱 WhatsApp: ${fullPhone}` : null,
+      guestNotes.trim() ? `📝 Notes: ${guestNotes.trim()}` : null,
+      `🏠 Property: ${property}`,
+      confirmationCode ? `🔖 Ref: ${confirmationCode}` : null,
     ].filter(Boolean);
-    const message = parts.join(' | ');
+    const message = parts.join('\n');
 
-    window.open(whatsappLink(message), '_blank');
+    window.open(`https://wa.me/${SPYROS_WA}?text=${encodeURIComponent(message)}`, '_blank');
 
-    const params = new URLSearchParams({
-      method: 'whatsapp',
+    const urlParams = new URLSearchParams({
       title: activity.title,
       date: bookingDate,
       pax: String(pax),
-      total: String(total),
       ...(confirmationCode ? { code: confirmationCode } : {}),
-      ...(activity.meeting_point ? { meeting: activity.meeting_point } : {}),
     });
-    router.push(`/booking/confirmation?${params.toString()}`);
-  }
-
-  // ─── Stripe path ───
-  async function handleStripeBook() {
-    if (!activity || !hasPrice) return;
-    if (!validateEmail()) return;
-    setBookingLoading(true);
-    setBookingError(null);
-
-    try {
-      const res = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          activityId: activity.id,
-          activityTitle: activity.title,
-          unitPrice,
-          pax,
-          bookingDate,
-          guestId: session?.guest_id ?? null,
-          propertyId: session?.property_id ?? null,
-          providerId: activity.provider_id ?? null,
-          meetingPoint: activity.meeting_point ?? null,
-          guestEmail: guestEmail.trim() || null,
-          guestName: guestName.trim() || session?.first_name || 'Guest',
-        }),
-      });
-
-      const json = await res.json();
-      if (!res.ok || !json.url) throw new Error(json.error ?? 'Checkout failed');
-      window.location.href = json.url;
-    } catch (err: any) {
-      setBookingError(err.message ?? 'Something went wrong. Try WhatsApp instead.');
-      setBookingLoading(false);
-    }
+    router.push(`/booking/confirmation?${urlParams.toString()}`);
   }
 
   // ─── Loading ───
@@ -349,19 +311,19 @@ export default function ActivityDetailPage() {
             {hasPrice ? <>{formatPrice(unitPrice)}<span className="text-[11px] text-tx-light font-normal">/pp</span></> : '—'}
           </p>
         </div>
-        <BookButton onClick={() => { console.log('[IK] Modal open — session check_in:', session?.check_in, 'check_out:', session?.check_out); setShowModal(true); setBookingError(null); }} />
-        <WhatsAppButton onClick={() => { console.log('[IK] Modal open — session check_in:', session?.check_in, 'check_out:', session?.check_out); setShowModal(true); setBookingError(null); }} />
+        <BookButton onClick={() => { setShowModal(true); setEnquiryError(null); }} />
+        <WhatsAppButton onClick={() => { setShowModal(true); setEnquiryError(null); }} />
       </div>
 
-      {/* ─── Booking Modal ─── */}
+      {/* ─── Enquiry Modal ─── */}
       {showModal && (
         <div
           className="absolute inset-0 bg-black/35 z-[150] flex items-end"
           onClick={e => { if (e.target === e.currentTarget) setShowModal(false); }}
         >
-          <div className="w-full bg-white rounded-t-[18px] px-5 pt-5 pb-9 animate-slide-up max-h-[85%] overflow-y-auto">
+          <div className="w-full bg-white rounded-t-[18px] px-5 pt-5 pb-9 animate-slide-up max-h-[90%] overflow-y-auto">
             <div className="w-9 h-1 bg-border rounded-full mx-auto mb-4" />
-            <h2 className="font-display text-lg font-medium text-navy mb-4">Book this experience</h2>
+            <h2 className="font-display text-lg font-medium text-navy mb-4">Request this experience</h2>
 
             {/* Activity summary */}
             <div className="flex justify-between items-start py-2.5 border-b border-border-light">
@@ -391,7 +353,7 @@ export default function ActivityDetailPage() {
 
             {/* Pax counter */}
             <div className="flex justify-between items-center py-2.5 border-b border-border-light">
-              <span className="text-[13px] text-tx-mid">Guests</span>
+              <span className="text-[13px] text-tx-mid">Number of people</span>
               <div className="flex items-center gap-3">
                 <button onClick={() => setPax(Math.max(1, pax - 1))} className="w-7 h-7 rounded-full border border-border flex items-center justify-center text-sm active:bg-sand">−</button>
                 <span className="text-[13px] font-semibold text-navy w-4 text-center">{pax}</span>
@@ -399,7 +361,7 @@ export default function ActivityDetailPage() {
               </div>
             </div>
 
-            {/* Guest name (if not in session) */}
+            {/* Guest name */}
             {!session?.first_name && (
               <div className="flex justify-between items-center py-2.5 border-b border-border-light">
                 <span className="text-[13px] text-tx-mid">Your name</span>
@@ -412,6 +374,23 @@ export default function ActivityDetailPage() {
                 />
               </div>
             )}
+
+            {/* Email (required) */}
+            <div className={`py-2.5 border-b ${emailError ? 'border-red-300' : 'border-border-light'}`}>
+              <div className="flex justify-between items-center">
+                <span className="text-[13px] text-tx-mid">Email</span>
+                <input
+                  type="email"
+                  placeholder="your@email.com"
+                  value={guestEmail}
+                  onChange={e => { setGuestEmail(e.target.value); if (emailError) setEmailError(false); }}
+                  className="text-[13px] text-right text-navy bg-transparent outline-none placeholder:text-tx-light w-48"
+                />
+              </div>
+              {emailError && (
+                <p className="text-[11px] text-red-500 mt-1 text-right">Please enter a valid email address</p>
+              )}
+            </div>
 
             {/* WhatsApp number (if not in session) */}
             {!session?.whatsapp_number && (
@@ -438,66 +417,41 @@ export default function ActivityDetailPage() {
               </div>
             )}
 
-            {/* Email (required) */}
-            <div className={`py-2.5 border-b ${emailError ? 'border-red-300' : 'border-border-light'}`}>
-              <div className="flex justify-between items-center">
-                <span className="text-[13px] text-tx-mid">Email</span>
-                <input
-                  type="email"
-                  placeholder="your@email.com"
-                  value={guestEmail}
-                  onChange={e => { setGuestEmail(e.target.value); if (emailError) setEmailError(false); }}
-                  className="text-[13px] text-right text-navy bg-transparent outline-none placeholder:text-tx-light w-48"
-                />
-              </div>
-              {emailError && (
-                <p className="text-[11px] text-red-500 mt-1 text-right">Please enter your email address to receive booking confirmation</p>
-              )}
-            </div>
-
             {/* Accommodation */}
             <div className="flex justify-between items-center py-2.5 border-b border-border-light">
               <span className="text-[13px] text-tx-mid">Accommodation</span>
               <span className="text-[13px] font-semibold text-navy">{session?.property_name || '—'}</span>
             </div>
 
-            {/* Total */}
-            {hasPrice && (
-              <div className="flex justify-between items-center py-3 border-b border-border-light">
-                <span className="text-[15px] font-semibold text-navy">Total</span>
-                <div className="text-right">
-                  <span className="text-xl font-bold text-navy">{formatPrice(total)}</span>
-                  <span className="text-[11px] text-tx-light ml-1">({pax} × {formatPrice(unitPrice)})</span>
-                </div>
-              </div>
+            {/* Optional notes */}
+            <div className="py-2.5 border-b border-border-light">
+              <p className="text-[13px] text-tx-mid mb-2">Anything else we should know?</p>
+              <textarea
+                placeholder="Dietary needs, mobility requirements, special occasion…"
+                value={guestNotes}
+                onChange={e => setGuestNotes(e.target.value)}
+                rows={3}
+                className="w-full text-[13px] text-navy bg-sand rounded px-3 py-2 outline-none resize-none placeholder:text-tx-light"
+              />
+            </div>
+
+            {enquiryError && (
+              <p className="mt-3 text-[12px] text-red-600 text-center">{enquiryError}</p>
             )}
 
-            {bookingError && (
-              <p className="mt-3 text-[12px] text-red-600 text-center">{bookingError}</p>
-            )}
-
-            {/* Buttons */}
-            <div className="flex flex-col gap-2 mt-4">
-              {hasPrice && (
-                <button
-                  onClick={handleStripeBook}
-                  disabled={bookingLoading}
-                  className="w-full py-3.5 bg-navy text-white rounded-sm font-semibold text-sm active:scale-[0.98] disabled:opacity-50"
-                >
-                  {bookingLoading ? 'Redirecting…' : <>Pay with card <span className="text-[10px] font-bold text-terra bg-terra-light px-1.5 py-0.5 rounded ml-1.5">TEST MODE</span></>}
-                </button>
-              )}
+            {/* Submit */}
+            <div className="mt-4">
               <button
-                onClick={handleWhatsApp}
-                disabled={bookingLoading}
-                className="w-full py-3.5 bg-whatsapp text-white rounded-sm font-semibold text-sm flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50"
+                onClick={handleEnquiry}
+                disabled={enquiryLoading}
+                className="w-full py-3.5 bg-teal text-white rounded-sm font-semibold text-sm active:scale-[0.98] disabled:opacity-50"
               >
-                💬 Book via WhatsApp
+                {enquiryLoading ? 'Sending…' : 'Check Availability'}
               </button>
             </div>
 
             <p className="text-center text-[10px] text-tx-light mt-3">
-              {activity.cancellation_policy ?? 'Free cancellation up to 24 hours before'}
+              No payment taken now — your curator will confirm availability first.
             </p>
           </div>
         </div>

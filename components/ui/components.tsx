@@ -48,7 +48,7 @@ export function BookButton({ onClick, className }: { onClick?: () => void; class
         className
       )}
     >
-      Book now
+      Check Availability
     </button>
   );
 }
@@ -194,7 +194,6 @@ export function DealCard({ deal, onClick }: { deal: Deal; onClick?: () => void }
       </span>
       <h3 className="text-[13px] font-semibold text-navy mb-0.5">{deal.title}</h3>
       <div className="flex gap-2.5 text-[10px] text-tx-light mb-1.5">
-        {deal.provider_name && <span>🎯 {deal.provider_name}</span>}
         {deal.available_seats && <span>{deal.available_seats} seats left</span>}
       </div>
       <div className="flex items-baseline gap-2">

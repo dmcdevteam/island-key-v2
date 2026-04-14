@@ -265,7 +265,7 @@ create table public.bookings (
   payment_method text check (payment_method in ('stripe','whatsapp','cash','pending')),
   stripe_payment_id text,
   stripe_session_id text,
-  status text default 'pending' check (status in ('pending','confirmed','cancelled','completed','refunded')),
+  status text default 'pending' check (status in ('enquiry','pending','confirmed','cancelled','completed','refunded')),
   guest_notes text,
   provider_id uuid references public.providers(id),
   created_at timestamptz default now(),
