@@ -8,6 +8,18 @@ import type { Tier, Region } from '@/lib/types';
 
 const APP_URL = 'https://islandkey.gr';
 
+interface Provider {
+  id: string;
+  name: string;
+  type: string;
+  category: string | null;
+  region: string;
+  contact_phone: string | null;
+  whatsapp: string | null;
+  commission_rate: number | null;
+  notes: string | null;
+}
+
 interface PropertyOption {
   id: string;
   slug: string;
@@ -68,9 +80,13 @@ export default function QRAdminPage() {
   const [properties, setProperties] = useState<PropertyOption[]>([]);
   const [selectedId, setSelectedId] = useState('');
   const [loading, setLoading] = useState(true);
+  const [providers, setProviders] = useState<Provider[]>([]);
+  const [providersLoading, setProvidersLoading] = useState(true);
+
   useEffect(() => {
+    const supabase = createClient();
+
     async function fetchProperties() {
-      const supabase = createClient();
       const { data } = await supabase
         .from('properties')
         .select('id, slug, name, tier, region')
@@ -83,7 +99,19 @@ export default function QRAdminPage() {
       }
       setLoading(false);
     }
+
+    async function fetchProviders() {
+      const { data } = await supabase
+        .from('providers')
+        .select('id, name, type, category, region, contact_phone, whatsapp, commission_rate, notes')
+        .eq('is_active', true)
+        .order('name');
+      if (data) setProviders(data as unknown as Provider[]);
+      setProvidersLoading(false);
+    }
+
     fetchProperties();
+    fetchProviders();
   }, []);
 
   const selected = properties.find((p) => p.id === selectedId);
@@ -163,7 +191,7 @@ export default function QRAdminPage() {
 
       {/* Admin UI */}
       <div className="no-print min-h-screen bg-cream px-6 py-12">
-        <div className="max-w-lg mx-auto">
+        <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="mb-8">
             <p className="text-[11px] font-bold text-tx-mid uppercase tracking-[0.2em] mb-1">Island Key Admin</p>
@@ -195,13 +223,13 @@ export default function QRAdminPage() {
           {selected && (
             <>
               {/* Generated URL */}
-              <div className="mb-8 p-4 bg-white border border-border rounded-sm">
+              <div className="mb-8 p-4 bg-white border border-border rounded-sm max-w-lg">
                 <p className="text-[10px] font-bold text-tx-mid uppercase tracking-wide mb-1.5">Generated URL</p>
                 <p className="font-mono text-xs text-teal break-all">{qrUrl}</p>
               </div>
 
               {/* QR preview */}
-              <div className="flex flex-col items-center mb-8 p-8 bg-white border border-border rounded-sm">
+              <div className="flex flex-col items-center mb-8 p-8 bg-white border border-border rounded-sm max-w-lg">
                 {(() => {
                   const s = logoOverlay(240);
                   return (
@@ -224,7 +252,7 @@ export default function QRAdminPage() {
               </div>
 
               {/* Actions */}
-              <div className="flex gap-3">
+              <div className="flex gap-3 max-w-lg">
                 <button
                   onClick={handleDownload}
                   className="flex-1 px-4 py-3 bg-navy text-white text-sm font-semibold rounded-sm hover:bg-navy/90 transition-colors"
@@ -240,6 +268,65 @@ export default function QRAdminPage() {
               </div>
             </>
           )}
+
+          {/* ─── Provider Directory ─── */}
+          <div className="mt-16">
+            <div className="mb-5">
+              <p className="text-[11px] font-bold text-tx-mid uppercase tracking-[0.2em] mb-1">Internal Use Only</p>
+              <h2 className="font-display text-2xl text-navy">Provider Directory</h2>
+            </div>
+
+            {providersLoading ? (
+              <div className="space-y-2">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="h-14 bg-white border border-border rounded-sm animate-pulse" />
+                ))}
+              </div>
+            ) : providers.length === 0 ? (
+              <p className="text-sm text-tx-light">No providers found.</p>
+            ) : (
+              <div className="overflow-x-auto rounded-sm border border-border">
+                <table className="w-full text-sm bg-white border-collapse">
+                  <thead>
+                    <tr className="border-b border-border bg-sand">
+                      <th className="text-left px-4 py-3 text-[11px] font-bold text-tx-mid uppercase tracking-wide">Name</th>
+                      <th className="text-left px-4 py-3 text-[11px] font-bold text-tx-mid uppercase tracking-wide">Type</th>
+                      <th className="text-left px-4 py-3 text-[11px] font-bold text-tx-mid uppercase tracking-wide">Category</th>
+                      <th className="text-left px-4 py-3 text-[11px] font-bold text-tx-mid uppercase tracking-wide">Region</th>
+                      <th className="text-left px-4 py-3 text-[11px] font-bold text-tx-mid uppercase tracking-wide">Commission</th>
+                      <th className="text-left px-4 py-3 text-[11px] font-bold text-tx-mid uppercase tracking-wide">Notes</th>
+                      <th className="px-4 py-3" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {providers.map((p, i) => (
+                      <tr key={p.id} className={`border-b border-border-light last:border-b-0 ${i % 2 === 1 ? 'bg-cream/40' : ''}`}>
+                        <td className="px-4 py-3 font-semibold text-navy whitespace-nowrap">{p.name}</td>
+                        <td className="px-4 py-3 text-tx-mid capitalize whitespace-nowrap">{p.type}</td>
+                        <td className="px-4 py-3 text-tx-mid capitalize whitespace-nowrap">{p.category ?? '—'}</td>
+                        <td className="px-4 py-3 text-tx-mid capitalize whitespace-nowrap">{p.region}</td>
+                        <td className="px-4 py-3 text-tx-mid whitespace-nowrap">{p.commission_rate != null ? `${p.commission_rate}%` : '—'}</td>
+                        <td className="px-4 py-3 text-tx-light text-xs max-w-[280px]">{p.notes ?? '—'}</td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          {(p.whatsapp || p.contact_phone) && (
+                            <a
+                              href={`https://wa.me/${(p.whatsapp || p.contact_phone)!.replace(/\D/g, '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-[#25D366] text-white text-[11px] font-semibold rounded hover:opacity-90 transition-opacity"
+                            >
+                              💬 WhatsApp
+                            </a>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
         </div>
       </div>
 
