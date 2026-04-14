@@ -101,12 +101,11 @@ export default function QRAdminPage() {
     }
 
     async function fetchProviders() {
-      const { data } = await supabase
-        .from('providers')
-        .select('id, name, type, category, region, contact_phone, whatsapp, commission_rate, notes')
-        .eq('is_active', true)
-        .order('name');
-      if (data) setProviders(data as unknown as Provider[]);
+      const res = await fetch('/api/providers');
+      if (res.ok) {
+        const data = await res.json();
+        setProviders(data as Provider[]);
+      }
       setProvidersLoading(false);
     }
 
