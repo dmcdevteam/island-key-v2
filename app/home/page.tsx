@@ -9,17 +9,6 @@ import { createClient } from '@/lib/supabase';
 import type { GuestSession, Deal, Activity, Article, CalendarEvent } from '@/lib/types';
 
 // ─── Style maps (derived from category, since DB doesn't store them) ───
-const ACTIVITY_ICONS: Record<string, string> = {
-  sea: '🌊', land: '⛰️', table: '🍷', culture: '🏛️', adventure: '🧗', wellness: '🧘',
-};
-const ACTIVITY_GRADIENTS: Record<string, string> = {
-  sea:       'linear-gradient(135deg,rgba(26,138,125,0.08),rgba(27,45,79,0.08))',
-  land:      'linear-gradient(135deg,rgba(27,45,79,0.08),rgba(26,138,125,0.08))',
-  table:     'linear-gradient(135deg,rgba(26,138,125,0.08),rgba(212,133,74,0.08))',
-  culture:   'linear-gradient(135deg,rgba(122,107,93,0.08),rgba(196,112,63,0.08))',
-  adventure: 'linear-gradient(135deg,rgba(139,111,71,0.08),rgba(107,123,94,0.08))',
-  wellness:  'linear-gradient(135deg,rgba(26,138,125,0.08),rgba(232,245,243,0.08))',
-};
 const ARTICLE_STYLES: Record<string, { bg: string; tagColor: string }> = {
   guide:   { bg: 'linear-gradient(135deg,rgba(26,138,125,0.12),rgba(107,123,94,0.08))',  tagColor: '#1A8A7D' },
   food:    { bg: 'linear-gradient(135deg,rgba(212,133,74,0.08),rgba(196,112,63,0.08))',  tagColor: '#D4854A' },
@@ -256,8 +245,8 @@ export default function HomePage() {
                 title={a.title}
                 subtitle={[a.duration, a.meeting_point].filter(Boolean).join(' · ')}
                 priceFrom={a.price_from ?? 0}
-                icon={ACTIVITY_ICONS[a.category] ?? '🌟'}
-                bgGradient={ACTIVITY_GRADIENTS[a.category] ?? ACTIVITY_GRADIENTS.culture}
+                category={a.category}
+                imageUrl={a.images?.[0] ?? null}
                 onClick={() => router.push(`/activities/${a.slug}`)}
               />
             ))}

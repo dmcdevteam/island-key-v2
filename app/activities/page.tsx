@@ -8,18 +8,6 @@ import { ACTIVITY_CATEGORIES, getSession } from '@/lib/utils';
 import { createClient } from '@/lib/supabase';
 import type { Activity } from '@/lib/types';
 
-const CATEGORY_ICONS: Record<string, string> = {
-  sea: '🌊', land: '⛰️', table: '🍷', culture: '🏛️', adventure: '🧗', wellness: '🧘',
-};
-
-const CATEGORY_GRADIENTS: Record<string, string> = {
-  sea:       'linear-gradient(135deg,rgba(26,138,125,0.06),rgba(27,45,79,0.06))',
-  land:      'linear-gradient(135deg,rgba(27,45,79,0.06),rgba(26,138,125,0.06))',
-  table:     'linear-gradient(135deg,rgba(26,138,125,0.06),rgba(212,133,74,0.06))',
-  culture:   'linear-gradient(135deg,rgba(122,107,93,0.06),rgba(196,112,63,0.06))',
-  adventure: 'linear-gradient(135deg,rgba(139,111,71,0.06),rgba(107,123,94,0.06))',
-  wellness:  'linear-gradient(135deg,rgba(26,138,125,0.06),rgba(232,245,243,0.06))',
-};
 
 export default function ActivitiesPage() {
   const router = useRouter();
@@ -107,11 +95,10 @@ export default function ActivitiesPage() {
                 key={activity.id}
                 title={activity.title}
                 description={activity.description}
-                category={activity.category as any}
+                category={activity.category}
                 priceFrom={activity.price_from ?? 0}
                 duration={activity.duration ?? ''}
-                icon={CATEGORY_ICONS[activity.category] ?? '🌟'}
-                bgGradient={CATEGORY_GRADIENTS[activity.category] ?? CATEGORY_GRADIENTS.culture}
+                imageUrl={activity.images?.[0] ?? null}
                 onClick={() => router.push(`/activities/${activity.slug}`)}
               />
             ))}

@@ -121,36 +121,50 @@ export function SelectionChip({ label, selected, onClick }: { label: string; sel
 }
 
 // ─── ACTIVITY CARD (List item) ───
-interface ActivityCardProps {
-  title: string;
-  description: string;
-  category: ActivityCategory;
-  priceFrom: number;
-  duration: string;
-  icon: string;
-  bgGradient: string;
-  onClick?: () => void;
-}
-
-const CATEGORY_ICONS: Record<ActivityCategory, string> = {
+const CATEGORY_ICONS: Record<string, string> = {
   sea: '🌊', land: '⛰️', table: '🍷', culture: '🏛️', adventure: '🧗', wellness: '🧘',
 };
 
-export function ActivityCard({ title, description, priceFrom, duration, icon, bgGradient, onClick }: ActivityCardProps) {
+interface ActivityCardProps {
+  title: string;
+  description: string;
+  category: string;
+  priceFrom: number;
+  duration: string;
+  imageUrl?: string | null;
+  // kept for legacy call sites that still pass these — unused when imageUrl is present
+  icon?: string;
+  bgGradient?: string;
+  onClick?: () => void;
+}
+
+export function ActivityCard({ title, description, category, priceFrom, duration, imageUrl, onClick }: ActivityCardProps) {
+  const icon = CATEGORY_ICONS[category] ?? '🌟';
   return (
     <div
       onClick={onClick}
-      className="flex gap-3 p-2.5 bg-white rounded border border-border-light cursor-pointer transition-all active:scale-[0.98] active:bg-sand"
+      className="bg-white rounded border border-border-light cursor-pointer transition-all active:scale-[0.98] active:bg-sand overflow-hidden"
     >
-      <div
-        className="w-[78px] h-[78px] rounded-sm flex-shrink-0 flex items-center justify-center text-2xl"
-        style={{ background: bgGradient }}
-      >
-        {icon}
+      {/* 16:9 image */}
+      <div style={{ aspectRatio: '16/9', overflow: 'hidden', background: '#1B2D4F', position: 'relative' }}>
+        {imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={imageUrl}
+            alt={title}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
+        ) : (
+          <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+            <span style={{ fontSize: 28 }}>{icon}</span>
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#F5F0E8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{category}</span>
+          </div>
+        )}
       </div>
-      <div className="flex-1 flex flex-col justify-center">
+      {/* Text */}
+      <div className="p-2.5">
         <h3 className="font-semibold text-[13px] text-navy mb-0.5">{title}</h3>
-        <p className="text-[11px] text-tx-light leading-snug mb-1 line-clamp-2">{description}</p>
+        <p className="text-[11px] text-tx-light leading-snug mb-1.5 line-clamp-2">{description}</p>
         <div className="flex justify-between items-center">
           <span className="text-xs font-bold text-teal">From {formatPrice(priceFrom)}pp</span>
           <span className="text-[10px] text-tx-light">{duration}</span>
@@ -160,17 +174,34 @@ export function ActivityCard({ title, description, priceFrom, duration, icon, bg
   );
 }
 
-// ─── ACTIVITY MINI CARD (Horizontal scroll) ───
-export function ActivityMiniCard({ title, subtitle, priceFrom, icon, bgGradient, onClick }: {
-  title: string; subtitle: string; priceFrom: number; icon: string; bgGradient: string; onClick?: () => void;
+// ─── ACTIVITY MINI CARD (Horizontal scroll — Home screen) ───
+export function ActivityMiniCard({ title, subtitle, priceFrom, category, imageUrl, onClick }: {
+  title: string; subtitle: string; priceFrom: number; category: string; imageUrl?: string | null;
+  // kept for legacy call sites
+  icon?: string; bgGradient?: string;
+  onClick?: () => void;
 }) {
+  const icon = CATEGORY_ICONS[category] ?? '🌟';
   return (
     <div
       onClick={onClick}
-      className="min-w-[190px] snap-start bg-white rounded overflow-hidden border border-border-light cursor-pointer flex-shrink-0 transition-transform active:scale-[0.97]"
+      className="w-[200px] min-w-[200px] snap-start bg-white rounded overflow-hidden border border-border-light cursor-pointer flex-shrink-0 transition-transform active:scale-[0.97]"
     >
-      <div className="h-[110px] flex items-center justify-center text-3xl" style={{ background: bgGradient }}>
-        {icon}
+      {/* 16:9 image — 200px wide → ~112px tall */}
+      <div style={{ aspectRatio: '16/9', overflow: 'hidden', background: '#1B2D4F', position: 'relative' }}>
+        {imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={imageUrl}
+            alt={title}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
+        ) : (
+          <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+            <span style={{ fontSize: 26 }}>{icon}</span>
+            <span style={{ fontSize: 9, fontWeight: 700, color: '#F5F0E8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{category}</span>
+          </div>
+        )}
       </div>
       <div className="p-2.5">
         <h3 className="font-semibold text-xs text-navy mb-0.5">{title}</h3>
