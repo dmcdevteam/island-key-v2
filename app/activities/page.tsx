@@ -9,9 +9,19 @@ import { createClient } from '@/lib/supabase';
 import type { Activity } from '@/lib/types';
 
 
+const REGIONS = [
+  { key: 'all',      label: 'All' },
+  { key: 'chania',   label: 'Chania' },
+  { key: 'rethymno', label: 'Rethymno' },
+  { key: 'heraklion',label: 'Heraklion' },
+  { key: 'lasithi',  label: 'Agios Nikolaos' },
+];
+
 export default function ActivitiesPage() {
   const router = useRouter();
+  const session = getSession();
   const [activeCategory, setActiveCategory] = useState('all');
+  const [activeRegion, setActiveRegion] = useState(session?.region ?? 'all');
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,11 +41,9 @@ export default function ActivitiesPage() {
       });
   }, []);
 
-  const session = getSession();
-
   const filtered = activities
-    // Region filter: show island-wide + guest's region (skip if no session)
-    .filter(a => !session || a.region === 'island-wide' || a.region === session.region)
+    // Region filter: 'all' shows everything; otherwise match selected region (+ island-wide)
+    .filter(a => activeRegion === 'all' || a.region === 'island-wide' || a.region === activeRegion)
     // Tier filter: guest's tier must be in tier_visibility (skip if no session)
     .filter(a => !session || !a.tier_visibility?.length || a.tier_visibility.includes(session.tier))
     // Category filter
@@ -50,6 +58,18 @@ export default function ActivitiesPage() {
           <h1 className="font-display text-xl font-medium text-navy">Explore Activities</h1>
         </div>
         <p className="text-xs text-tx-light mt-0.5">Curated by locals, vetted for quality</p>
+      </div>
+
+      {/* Region selector */}
+      <div className="flex gap-1.5 px-5 overflow-x-auto no-scrollbar mb-2 flex-shrink-0">
+        {REGIONS.map(r => (
+          <CategoryChip
+            key={r.key}
+            label={r.label}
+            active={activeRegion === r.key}
+            onClick={() => setActiveRegion(r.key)}
+          />
+        ))}
       </div>
 
       {/* Category chips */}
