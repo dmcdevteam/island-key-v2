@@ -89,6 +89,7 @@ create table public.activities (
   currency text default 'EUR',
   duration text,                          -- "5 hours", "Full day", "2.5 hours"
   season text,                            -- "Apr–Nov", "Year-round"
+  availability_text text,                 -- "Daily · check times", "Mon–Sat"
   max_group_size integer,
   languages text[] default '{en}',
   meeting_point text,
