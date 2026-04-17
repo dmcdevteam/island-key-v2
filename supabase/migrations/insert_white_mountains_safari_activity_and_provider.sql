@@ -74,7 +74,7 @@ values (
     'Lunch at Therissos village taverna',
     'Liability insurance and local taxes'
   ],
-  'Adults €95pp · Children aged 7–12 €75pp · Children under 7 not permitted. Pickup from your hotel from 8:00am — if the vehicle cannot reach your exact location you will be notified of the nearest pickup point by email. Bring comfortable trekking shoes or sandals, a camera, sun protection and — in spring or autumn — a jacket. Not suitable for guests with car sickness, mobility or back problems, pregnant guests, or children under 7. Timings may vary based on group size and weather. Reservations must be made at least 24 hours before departure.',
+  'Adults €95pp · Children aged 7–12 €75pp · Children under 7 not permitted. Minimum 4 passengers required to run the tour. Priced for group participation — contact to check if joining a shared departure. Additional charge applies for pickups from remote areas. Not included: beers, refreshments or coffee at the taverna, and gratuities. Vehicles are 7 or 9-seater 4x4s driven by multilingual escort-drivers. Bring comfortable trekking shoes or sandals, a camera, sun protection and — in spring or autumn — a jacket. Reservations at least 24 hours before departure. Not suitable for guests with car sickness, mobility or back problems, pregnant guests, or children under 7.',
   'Contact provider — full refund if cancelled due to insufficient participants or adverse weather.',
   (select id from public.providers where name = 'Uncharted Escapes' limit 1),
   0,
