@@ -101,7 +101,7 @@ export default function ActivitiesPage() {
 
       {activeTab === 'activity' && (
         <>
-          {/* Region selector */}
+          {/* Region selector — disabled for Chania-only pilot; re-enable when expanding island-wide
           <div className="flex gap-1.5 px-5 overflow-x-auto no-scrollbar mb-2 flex-shrink-0">
             {REGIONS.map(r => (
               <CategoryChip
@@ -112,6 +112,7 @@ export default function ActivitiesPage() {
               />
             ))}
           </div>
+          */}
 
           {/* Category chips */}
           <div className="flex gap-1.5 px-5 overflow-x-auto no-scrollbar mb-3 flex-shrink-0">
