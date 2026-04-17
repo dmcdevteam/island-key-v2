@@ -99,6 +99,7 @@ create table public.activities (
   cancellation_policy text default 'Free cancellation up to 24 hours before',
   provider_id uuid references public.providers(id),
   images text[],                          -- Array of Supabase Storage URLs
+  item_type text default 'activity' check (item_type in ('activity','service')),
   sort_order integer default 0,
   is_featured boolean default false,
   is_active boolean default true,

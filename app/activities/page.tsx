@@ -17,9 +17,12 @@ const REGIONS = [
   { key: 'lasithi',  label: 'Agios Nikolaos' },
 ];
 
+type Tab = 'activity' | 'service' | 'deals';
+
 export default function ActivitiesPage() {
   const router = useRouter();
   const session = getSession();
+  const [activeTab, setActiveTab] = useState<Tab>('activity');
   const [activeCategory, setActiveCategory] = useState('all');
   const [activeRegion, setActiveRegion] = useState(session?.region ?? 'all');
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -42,6 +45,8 @@ export default function ActivitiesPage() {
   }, []);
 
   const filtered = activities
+    // Tab filter: activity vs service
+    .filter(a => a.item_type === activeTab)
     // Region filter: 'all' shows everything; otherwise match selected region (+ island-wide)
     .filter(a => activeRegion === 'all' || a.region === 'island-wide' || a.region === activeRegion)
     // Tier filter: guest's tier must be in tier_visibility (skip if no session)
@@ -49,43 +54,87 @@ export default function ActivitiesPage() {
     // Category filter
     .filter(a => activeCategory === 'all' || a.category === activeCategory);
 
+  const emptyMessage = activeTab === 'service'
+    ? 'No services available yet.'
+    : 'No activities in this category yet.';
+
   return (
     <div className="min-h-screen bg-cream flex flex-col pb-[90px]">
       <div className="px-5 pt-[52px] pb-3">
         <div className="flex items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo_icon_navy.png" alt="Island Key" style={{ height: 24, width: 'auto' }} />
-          <h1 className="font-display text-xl font-medium text-navy">Explore Activities</h1>
+          <h1 className="font-display text-xl font-medium text-navy">Explore</h1>
         </div>
         <p className="text-xs text-tx-light mt-0.5">Curated by locals, vetted for quality</p>
       </div>
 
-      {/* Region selector */}
-      <div className="flex gap-1.5 px-5 overflow-x-auto no-scrollbar mb-2 flex-shrink-0">
-        {REGIONS.map(r => (
-          <CategoryChip
-            key={r.key}
-            label={r.label}
-            active={activeRegion === r.key}
-            onClick={() => setActiveRegion(r.key)}
-          />
-        ))}
+      {/* Primary tabs: Activities · Services · Deals */}
+      <div className="flex gap-2 px-5 mb-4 flex-shrink-0">
+        <button
+          onClick={() => setActiveTab('activity')}
+          className={`px-4 py-2 rounded-full text-[13px] font-semibold transition-all border-[1.5px] flex-shrink-0 ${
+            activeTab === 'activity'
+              ? 'bg-navy text-white border-navy'
+              : 'bg-white text-tx-mid border-border hover:border-navy/30'
+          }`}
+        >
+          Activities
+        </button>
+        <button
+          onClick={() => setActiveTab('service')}
+          className={`px-4 py-2 rounded-full text-[13px] font-semibold transition-all border-[1.5px] flex-shrink-0 ${
+            activeTab === 'service'
+              ? 'bg-navy text-white border-navy'
+              : 'bg-white text-tx-mid border-border hover:border-navy/30'
+          }`}
+        >
+          Services
+        </button>
+        <button
+          onClick={() => router.push('/deals')}
+          className="px-4 py-2 rounded-full text-[13px] font-semibold transition-all border-[1.5px] flex-shrink-0 bg-white text-tx-mid border-border hover:border-navy/30"
+        >
+          Deals
+        </button>
       </div>
 
-      {/* Category chips */}
-      <div className="flex gap-1.5 px-5 overflow-x-auto no-scrollbar mb-3 flex-shrink-0">
-        {ACTIVITY_CATEGORIES.map(cat => (
-          <CategoryChip
-            key={cat.key}
-            label={cat.key === 'all' ? 'All' : cat.label}
-            icon={cat.icon || undefined}
-            active={activeCategory === cat.key}
-            onClick={() => setActiveCategory(cat.key)}
-          />
-        ))}
-      </div>
+      {activeTab === 'activity' && (
+        <>
+          {/* Region selector */}
+          <div className="flex gap-1.5 px-5 overflow-x-auto no-scrollbar mb-2 flex-shrink-0">
+            {REGIONS.map(r => (
+              <CategoryChip
+                key={r.key}
+                label={r.label}
+                active={activeRegion === r.key}
+                onClick={() => setActiveRegion(r.key)}
+              />
+            ))}
+          </div>
 
-      {/* Activity list */}
+          {/* Category chips */}
+          <div className="flex gap-1.5 px-5 overflow-x-auto no-scrollbar mb-3 flex-shrink-0">
+            {ACTIVITY_CATEGORIES.map(cat => (
+              <CategoryChip
+                key={cat.key}
+                label={cat.key === 'all' ? 'All' : cat.label}
+                icon={cat.icon || undefined}
+                active={activeCategory === cat.key}
+                onClick={() => setActiveCategory(cat.key)}
+              />
+            ))}
+          </div>
+        </>
+      )}
+
+      {activeTab === 'service' && (
+        <div className="px-5 mb-3 flex-shrink-0">
+          <p className="text-xs text-tx-light">The provider comes to you — at your villa or accommodation.</p>
+        </div>
+      )}
+
+      {/* List */}
       <div className="flex-1 overflow-y-auto px-5">
         {loading && (
           <div className="flex flex-col gap-2.5">
@@ -104,7 +153,7 @@ export default function ActivitiesPage() {
 
         {error && (
           <div className="mt-4 p-4 rounded-2xl bg-red-50 text-red-600 text-sm">
-            Failed to load activities: {error}
+            Failed to load: {error}
           </div>
         )}
 
@@ -123,7 +172,7 @@ export default function ActivitiesPage() {
               />
             ))}
             {filtered.length === 0 && (
-              <p className="text-center text-tx-light text-sm mt-12">No activities in this category yet.</p>
+              <p className="text-center text-tx-light text-sm mt-12">{emptyMessage}</p>
             )}
           </div>
         )}
