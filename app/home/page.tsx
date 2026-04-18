@@ -8,6 +8,75 @@ import { SectionHeader, ActivityMiniCard, ArticleCard } from '@/components/ui/co
 import { createClient } from '@/lib/supabase';
 import type { GuestSession, Deal, Activity, Article, CalendarEvent } from '@/lib/types';
 
+// ─── Weather ──────────────────────────────────────────────────────────────────
+const WEATHER_CACHE_KEY = 'ik_weather_v1'
+const WEATHER_TTL_MS    = 30 * 60 * 1000 // 30 minutes
+
+interface WeatherData {
+  temp:     number
+  code:     number
+  wind:     number
+  cachedAt: number
+}
+
+function wmoIcon(code: number): string {
+  if (code === 0)                    return '☀️'
+  if (code <= 2)                     return '🌤️'
+  if (code === 3)                    return '☁️'
+  if (code <= 48)                    return '🌫️'
+  if (code <= 67)                    return '🌧️'
+  if (code <= 77)                    return '❄️'
+  if (code <= 82)                    return '🌦️'
+  if (code <= 86)                    return '❄️'
+  return '⛈️'
+}
+
+function wmoDesc(code: number): string {
+  if (code === 0)                    return 'Clear sky'
+  if (code === 1)                    return 'Mainly clear'
+  if (code === 2)                    return 'Partly cloudy'
+  if (code === 3)                    return 'Overcast'
+  if (code <= 48)                    return 'Foggy'
+  if (code <= 55)                    return 'Drizzle'
+  if (code <= 65)                    return 'Rainy'
+  if (code <= 67)                    return 'Freezing rain'
+  if (code <= 77)                    return 'Snowing'
+  if (code <= 82)                    return 'Showers'
+  if (code <= 86)                    return 'Snow showers'
+  return 'Thunderstorm'
+}
+
+function loadCachedWeather(): WeatherData | null {
+  try {
+    const raw = localStorage.getItem(WEATHER_CACHE_KEY)
+    if (!raw) return null
+    const parsed: WeatherData = JSON.parse(raw)
+    return parsed
+  } catch { return null }
+}
+
+function saveCachedWeather(data: WeatherData) {
+  try { localStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify(data)) } catch { /* ignore */ }
+}
+
+async function fetchWeather(): Promise<WeatherData> {
+  const url =
+    'https://api.open-meteo.com/v1/forecast' +
+    '?latitude=35.5138&longitude=24.0180' +
+    '&current=temperature_2m,weather_code,wind_speed_10m' +
+    '&wind_speed_unit=kmh&timezone=Europe%2FAthens'
+  const res  = await fetch(url, { cache: 'no-store' })
+  if (!res.ok) throw new Error(`Weather API ${res.status}`)
+  const json = await res.json()
+  const c    = json.current
+  return {
+    temp:     Math.round(c.temperature_2m),
+    code:     c.weather_code,
+    wind:     Math.round(c.wind_speed_10m),
+    cachedAt: Date.now(),
+  }
+}
+
 // ─── Style maps (derived from category, since DB doesn't store them) ───
 const ARTICLE_STYLES: Record<string, { bg: string; tagColor: string }> = {
   guide:   { bg: 'linear-gradient(135deg,rgba(26,138,125,0.12),rgba(107,123,94,0.08))',  tagColor: '#1A8A7D' },
@@ -44,6 +113,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [, setTick] = useState(0); // for live countdown re-render
+  const [weather, setWeather] = useState<WeatherData | null>(null);
 
   // Redirect if no session
   useEffect(() => {
@@ -55,6 +125,27 @@ export default function HomePage() {
   // Live countdown tick every minute
   useEffect(() => {
     const interval = setInterval(() => setTick(t => t + 1), 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Weather — load from cache immediately, then refresh if stale
+  useEffect(() => {
+    async function refresh() {
+      const cached = loadCachedWeather();
+      const stale  = !cached || (Date.now() - cached.cachedAt) > WEATHER_TTL_MS;
+      if (cached) setWeather(cached);
+      if (stale) {
+        try {
+          const fresh = await fetchWeather();
+          saveCachedWeather(fresh);
+          setWeather(fresh);
+        } catch {
+          // Keep cached value if fetch fails; leave null if no cache
+        }
+      }
+    }
+    refresh();
+    const interval = setInterval(refresh, WEATHER_TTL_MS);
     return () => clearInterval(interval);
   }, []);
 
@@ -143,10 +234,19 @@ export default function HomePage() {
         {/* Weather / trip bar */}
         <div className="mx-5 mb-3 p-2.5 px-3.5 bg-white rounded-sm flex items-center justify-between border border-border-light">
           <div className="flex items-center gap-2.5">
-            <span className="text-xl">☀️</span>
+            <span className="text-xl">{weather ? wmoIcon(weather.code) : '🌡️'}</span>
             <div>
-              <p className="text-base font-bold text-navy">26°C</p>
-              <p className="text-[11px] text-tx-light">Sunny, light breeze</p>
+              {weather ? (
+                <>
+                  <p className="text-base font-bold text-navy">{weather.temp}°C</p>
+                  <p className="text-[11px] text-tx-light">{wmoDesc(weather.code)} · {weather.wind} km/h</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-base font-bold text-navy">—°C</p>
+                  <p className="text-[11px] text-tx-light">Weather unavailable</p>
+                </>
+              )}
             </div>
           </div>
           <div className="text-right">
