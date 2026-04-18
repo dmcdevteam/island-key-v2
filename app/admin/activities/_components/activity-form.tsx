@@ -17,6 +17,13 @@ interface ImageItem {
   alt: string
 }
 
+interface ActivitySlim {
+  id: string
+  slug: string
+  title: string
+  category: string
+}
+
 function slugify(str: string): string {
   return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
 }
@@ -32,12 +39,22 @@ function initImages(activity: Activity | null): ImageItem[] {
 }
 
 export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
-  const fileInputRef   = useRef<HTMLInputElement>(null)
+  const fileInputRef         = useRef<HTMLInputElement>(null)
+  const folderInputRef       = useRef<HTMLInputElement>(null)
   const [saving, setSaving]               = useState(false)
   const [uploadingCount, setUploadingCount] = useState(0)
   const [error, setError]                 = useState('')
   const [uploadError, setUploadError]     = useState('')
   const [dragIndex, setDragIndex]         = useState<number | null>(null)
+
+  // Folder upload state
+  const [folderName, setFolderName]           = useState<string | null>(null)
+  const [folderMatch, setFolderMatch]         = useState<ActivitySlim | null | undefined>(undefined) // undefined = not checked yet
+  const [folderFiles, setFolderFiles]         = useState<File[]>([])
+  const [folderUploading, setFolderUploading] = useState(false)
+  const [folderProgress, setFolderProgress]   = useState(0)
+  const [folderError, setFolderError]         = useState('')
+  const [folderSuccess, setFolderSuccess]     = useState('')
 
   const [imageItems, setImageItems] = useState<ImageItem[]>(() => initImages(activity))
 
@@ -130,6 +147,109 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
 
     if (succeeded.length) setImageItems(prev => [...prev, ...succeeded])
     if (failed.length)    setUploadError(failed[0])
+  }
+
+  // ── Folder upload ─────────────────────────────────────────────────────────
+  async function handleFolderSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? [])
+    if (!files.length) return
+    if (folderInputRef.current) folderInputRef.current.value = ''
+
+    setFolderError('')
+    setFolderSuccess('')
+    setFolderMatch(undefined)
+
+    // Extract folder name from first file's webkitRelativePath (e.g. "slug/photo.jpg" → "slug")
+    const firstPath = (files[0] as File & { webkitRelativePath?: string }).webkitRelativePath ?? ''
+    const detectedFolder = firstPath.split('/')[0] || files[0].name.split('.')[0]
+    setFolderName(detectedFolder)
+    setFolderFiles(files)
+
+    // Check if folder name matches any activity slug
+    try {
+      const res = await fetch('/api/admin/activities')
+      if (res.ok) {
+        const all: ActivitySlim[] = await res.json()
+        const matched = all.find(a => a.slug === detectedFolder) ?? null
+        setFolderMatch(matched)
+      }
+    } catch {
+      // Non-fatal — just show no match
+      setFolderMatch(null)
+    }
+  }
+
+  async function handleFolderUpload() {
+    if (!folderFiles.length || !folderName) return
+    setFolderUploading(true)
+    setFolderError('')
+    setFolderSuccess('')
+    setFolderProgress(0)
+
+    const uploadedUrls: string[] = []
+    let done = 0
+
+    for (const file of folderFiles) {
+      try {
+        const fd = new globalThis.FormData()
+        fd.append('file', file)
+        fd.append('slug', folderName)
+        if (form.title) fd.append('title', form.title)
+
+        const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
+        let json: Record<string, string>
+        try { json = await res.json() } catch { json = { error: `Server error ${res.status}` } }
+        if (json.url) uploadedUrls.push(json.url)
+        else if (json.error) { setFolderError(json.error); break }
+      } catch (err) {
+        setFolderError(err instanceof Error ? err.message : 'Upload failed')
+        break
+      }
+      done++
+      setFolderProgress(Math.round((done / folderFiles.length) * 100))
+    }
+
+    setFolderUploading(false)
+
+    if (uploadedUrls.length === 0) return
+
+    // If matched activity, link images via API
+    if (folderMatch) {
+      const alts = uploadedUrls.map((_, i) =>
+        `${folderMatch.title} — ${folderMatch.category} experience, photo ${i + 1}`
+      )
+      const linkRes = await fetch('/api/admin/images/link', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ activityId: folderMatch.id, urls: uploadedUrls, alts }),
+      })
+      const linkJson = await linkRes.json()
+      if (linkRes.ok) {
+        setFolderSuccess(
+          `${uploadedUrls.length} image${uploadedUrls.length > 1 ? 's' : ''} uploaded and linked to "${folderMatch.title}"`
+        )
+      } else {
+        setFolderError(`Uploaded but failed to link: ${linkJson.error}`)
+      }
+    } else {
+      setFolderSuccess(
+        `${uploadedUrls.length} image${uploadedUrls.length > 1 ? 's' : ''} uploaded to activity-images/${folderName}/ — not linked to any activity`
+      )
+    }
+
+    // Reset
+    setFolderFiles([])
+    setFolderName(null)
+    setFolderMatch(undefined)
+  }
+
+  function clearFolderSelection() {
+    setFolderFiles([])
+    setFolderName(null)
+    setFolderMatch(undefined)
+    setFolderError('')
+    setFolderSuccess('')
+    if (folderInputRef.current) folderInputRef.current.value = ''
   }
 
   function updateAlt(index: number, alt: string) {
@@ -503,6 +623,92 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
             </button>
             {uploadError && (
               <p className="mt-2 text-xs text-red-500 bg-red-50 px-3 py-1.5 rounded-sm">{uploadError}</p>
+            )}
+          </section>
+
+          {/* Folder / Bulk Import */}
+          <section>
+            <h3 className="text-[11px] font-bold text-tx-mid uppercase tracking-widest mb-3 border-b border-border pb-1.5">Bulk Import (Folder)</h3>
+            <p className="text-[12px] text-tx-light mb-3">
+              Select a folder named after an activity slug — images upload to Supabase Storage and auto-link to the matching activity.
+            </p>
+
+            <input
+              ref={folderInputRef}
+              type="file"
+              // @ts-expect-error — webkitdirectory is not in HTMLInputElement types
+              webkitdirectory=""
+              multiple
+              accept="image/*"
+              className="hidden"
+              onChange={handleFolderSelect}
+            />
+
+            {!folderName ? (
+              <button
+                type="button"
+                onClick={() => { setFolderSuccess(''); setFolderError(''); folderInputRef.current?.click() }}
+                className="px-4 py-2 border border-dashed border-border rounded-sm text-sm text-tx-mid hover:border-navy hover:text-navy transition-colors"
+              >
+                + Upload Folder
+              </button>
+            ) : (
+              <div className="border border-border rounded-sm p-3 space-y-2.5">
+                {/* Folder name */}
+                <div className="flex items-center justify-between">
+                  <span className="text-[12px] font-semibold text-tx">
+                    📁 {folderName}
+                    <span className="font-normal text-tx-light ml-1.5">({folderFiles.length} images)</span>
+                  </span>
+                  <button type="button" onClick={clearFolderSelection} className="text-[11px] text-tx-light hover:text-red-500">
+                    Clear
+                  </button>
+                </div>
+
+                {/* Match status */}
+                {folderMatch === undefined && (
+                  <p className="text-[12px] text-tx-light">Checking slug match…</p>
+                )}
+                {folderMatch && (
+                  <p className="text-[12px] text-teal bg-teal/10 px-2.5 py-1.5 rounded-sm">
+                    Folder matched to: <strong>{folderMatch.title}</strong> — images will be linked to this activity
+                  </p>
+                )}
+                {folderMatch === null && (
+                  <p className="text-[12px] text-amber-700 bg-amber-50 px-2.5 py-1.5 rounded-sm">
+                    No activity found with slug &ldquo;{folderName}&rdquo; — images will upload but not auto-link
+                  </p>
+                )}
+
+                {/* Progress bar */}
+                {folderUploading && (
+                  <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-teal transition-all duration-300"
+                      style={{ width: `${folderProgress}%` }}
+                    />
+                  </div>
+                )}
+
+                {/* Upload button */}
+                {!folderUploading && folderMatch !== undefined && (
+                  <button
+                    type="button"
+                    onClick={handleFolderUpload}
+                    disabled={folderUploading}
+                    className="px-4 py-1.5 bg-navy text-white text-sm font-medium rounded-sm hover:bg-navy-light transition-colors disabled:opacity-50"
+                  >
+                    {folderUploading ? `Uploading… ${folderProgress}%` : `Upload ${folderFiles.length} images`}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {folderError && (
+              <p className="mt-2 text-xs text-red-500 bg-red-50 px-3 py-1.5 rounded-sm">{folderError}</p>
+            )}
+            {folderSuccess && (
+              <p className="mt-2 text-xs text-teal bg-teal/10 px-3 py-1.5 rounded-sm">{folderSuccess}</p>
             )}
           </section>
 
