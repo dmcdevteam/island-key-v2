@@ -40,9 +40,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No file provided or file is empty' }, { status: 400 })
     }
 
+    // ── Optional SEO metadata params ──────────────────────────────────────────
+    const slug        = (formData.get('slug')        as string | null)?.trim() || null
+    const alt         = (formData.get('alt')         as string | null)?.trim() || null
+    const title       = (formData.get('title')       as string | null)?.trim() || null
+    const description = (formData.get('description') as string | null)?.trim() || null
+
     const contentType = guessMimeType(file.name, file.type)
     const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
-    const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+    const basename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+    // Organise into a folder per activity slug if provided
+    const filename = slug ? `${slug}/${basename}` : basename
 
     // ── Read file buffer ──────────────────────────────────────────────────────
     let buffer: Buffer
@@ -79,12 +87,18 @@ export async function POST(request: Request) {
       console.log(`[upload] Bucket "${BUCKET}" created successfully`)
     }
 
-    // ── Upload ────────────────────────────────────────────────────────────────
+    // ── Upload with SEO metadata ──────────────────────────────────────────────
+    const metadata: Record<string, string> = {}
+    if (alt)         metadata['x-alt']         = alt
+    if (title)       metadata['x-title']       = title
+    if (description) metadata['x-description'] = description
+
     const { data, error: uploadErr } = await supabase.storage
       .from(BUCKET)
       .upload(filename, buffer, {
         contentType,
         upsert: false,
+        metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
       })
 
     if (uploadErr) {
@@ -95,7 +109,7 @@ export async function POST(request: Request) {
     const { data: { publicUrl } } = supabase.storage.from(BUCKET).getPublicUrl(data.path)
     console.log(`[upload] Success: ${publicUrl}`)
 
-    return NextResponse.json({ url: publicUrl })
+    return NextResponse.json({ url: publicUrl, alt: alt ?? '' })
 
   } catch (err) {
     // Catch-all so the route always returns JSON (never HTML error pages)

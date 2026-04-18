@@ -88,6 +88,7 @@ export interface Activity {
   cancellation_policy: string | null;
   provider_id: string | null;
   images: string[] | null;
+  image_alts: string[] | null;
   sort_order: number;
   item_type: 'activity' | 'service';
   is_featured: boolean;

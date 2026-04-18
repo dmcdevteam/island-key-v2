@@ -12,6 +12,11 @@ interface Props {
   onClose: () => void
 }
 
+interface ImageItem {
+  url: string
+  alt: string
+}
+
 function slugify(str: string): string {
   return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
 }
@@ -20,39 +25,47 @@ const INPUT = 'w-full px-3 py-2 border border-border rounded-sm text-sm text-tx 
 const LABEL = 'block text-[11px] font-bold text-tx-mid uppercase tracking-wide mb-1'
 const SELECT = `${INPUT} cursor-pointer`
 
+function initImages(activity: Activity | null): ImageItem[] {
+  const urls  = activity?.images ?? []
+  const alts  = activity?.image_alts ?? []
+  return urls.map((url, i) => ({ url, alt: alts[i] ?? '' }))
+}
+
 export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const [saving, setSaving] = useState(false)
-  const [uploadingImage, setUploadingImage] = useState(false)
-  const [error, setError] = useState('')
-  const [uploadError, setUploadError] = useState('')
+  const fileInputRef   = useRef<HTMLInputElement>(null)
+  const [saving, setSaving]               = useState(false)
+  const [uploadingCount, setUploadingCount] = useState(0)
+  const [error, setError]                 = useState('')
+  const [uploadError, setUploadError]     = useState('')
+  const [dragIndex, setDragIndex]         = useState<number | null>(null)
+
+  const [imageItems, setImageItems] = useState<ImageItem[]>(() => initImages(activity))
 
   const [form, setForm] = useState({
-    title: activity?.title ?? '',
-    slug: activity?.slug ?? '',
-    description: activity?.description ?? '',
-    category: activity?.category ?? 'sea',
-    region: (activity?.region ?? 'chania') as string,
-    tier_visibility: activity?.tier_visibility ?? (['B', 'M', 'P'] as string[]),
-    price_from: activity?.price_from?.toString() ?? '',
-    price_to: activity?.price_to?.toString() ?? '',
-    currency: activity?.currency ?? 'EUR',
-    duration: activity?.duration ?? '',
-    season: activity?.season ?? '',
-    availability_text: activity?.availability_text ?? '',
-    max_group_size: activity?.max_group_size?.toString() ?? '',
-    languages: activity?.languages?.join(', ') ?? 'en',
-    meeting_point: activity?.meeting_point ?? '',
-    meeting_coords: activity?.meeting_coords ?? '',
-    includes: activity?.includes?.join('\n') ?? '',
-    good_to_know: activity?.good_to_know ?? '',
+    title:               activity?.title ?? '',
+    slug:                activity?.slug ?? '',
+    description:         activity?.description ?? '',
+    category:            activity?.category ?? 'sea',
+    region:              (activity?.region ?? 'chania') as string,
+    tier_visibility:     activity?.tier_visibility ?? (['B', 'M', 'P'] as string[]),
+    price_from:          activity?.price_from?.toString() ?? '',
+    price_to:            activity?.price_to?.toString() ?? '',
+    currency:            activity?.currency ?? 'EUR',
+    duration:            activity?.duration ?? '',
+    season:              activity?.season ?? '',
+    availability_text:   activity?.availability_text ?? '',
+    max_group_size:      activity?.max_group_size?.toString() ?? '',
+    languages:           activity?.languages?.join(', ') ?? 'en',
+    meeting_point:       activity?.meeting_point ?? '',
+    meeting_coords:      activity?.meeting_coords ?? '',
+    includes:            activity?.includes?.join('\n') ?? '',
+    good_to_know:        activity?.good_to_know ?? '',
     cancellation_policy: activity?.cancellation_policy ?? 'Free cancellation up to 24 hours',
-    provider_id: activity?.provider_id ?? '',
-    images: activity?.images ?? ([] as string[]),
-    item_type: activity?.item_type ?? 'activity',
-    sort_order: activity?.sort_order?.toString() ?? '0',
-    is_featured: activity?.is_featured ?? false,
-    is_active: activity?.is_active ?? true,
+    provider_id:         activity?.provider_id ?? '',
+    item_type:           activity?.item_type ?? 'activity',
+    sort_order:          activity?.sort_order?.toString() ?? '0',
+    is_featured:         activity?.is_featured ?? false,
+    is_active:           activity?.is_active ?? true,
   })
 
   function set(field: string, value: unknown) {
@@ -74,70 +87,124 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
     )
   }
 
-  async function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setUploadingImage(true)
+  // ── Multi-image upload ────────────────────────────────────────────────────
+  async function handleFilesSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? [])
+    if (!files.length) return
     setUploadError('')
-    try {
-      const fd = new globalThis.FormData()
-      fd.append('file', file)
-      const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
-      let json: Record<string, string>
-      try {
-        json = await res.json()
-      } catch {
-        setUploadError(`Server error ${res.status} — check Vercel logs`)
-        return
-      }
-      if (json.url) {
-        set('images', [...form.images, json.url])
-      } else {
-        setUploadError(json.error ?? `Upload failed (${res.status})`)
-      }
-    } catch (err) {
-      setUploadError(err instanceof Error ? err.message : 'Network error')
-    } finally {
-      setUploadingImage(false)
-      if (fileInputRef.current) fileInputRef.current.value = ''
+
+    const slug = form.slug || slugify(form.title) || undefined
+    const title = form.title || undefined
+
+    setUploadingCount(files.length)
+
+    const results = await Promise.allSettled(
+      files.map(async (file) => {
+        const fd = new globalThis.FormData()
+        fd.append('file', file)
+        if (slug)  fd.append('slug',  slug)
+        if (title) fd.append('title', title)
+        // alt and description left blank — user fills them in after upload
+
+        const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
+        let json: Record<string, string>
+        try {
+          json = await res.json()
+        } catch {
+          throw new Error(`Server error ${res.status} — check Vercel logs`)
+        }
+        if (!json.url) throw new Error(json.error ?? `Upload failed (${res.status})`)
+        return { url: json.url, alt: '' } as ImageItem
+      })
+    )
+
+    setUploadingCount(0)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+
+    const succeeded: ImageItem[] = []
+    const failed: string[] = []
+    for (const r of results) {
+      if (r.status === 'fulfilled') succeeded.push(r.value)
+      else failed.push(r.reason instanceof Error ? r.reason.message : 'Upload failed')
     }
+
+    if (succeeded.length) setImageItems(prev => [...prev, ...succeeded])
+    if (failed.length)    setUploadError(failed[0])
   }
 
-  function removeImage(url: string) {
-    set('images', form.images.filter((u: string) => u !== url))
+  function updateAlt(index: number, alt: string) {
+    setImageItems(prev => prev.map((item, i) => i === index ? { ...item, alt } : item))
   }
 
+  function removeImage(index: number) {
+    setImageItems(prev => prev.filter((_, i) => i !== index))
+  }
+
+  function setCover(index: number) {
+    if (index === 0) return
+    setImageItems(prev => {
+      const next = [...prev]
+      const [item] = next.splice(index, 1)
+      next.unshift(item)
+      return next
+    })
+  }
+
+  // ── Drag-to-reorder ───────────────────────────────────────────────────────
+  function handleDragStart(e: React.DragEvent, index: number) {
+    setDragIndex(index)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  function handleDragOver(e: React.DragEvent, index: number) {
+    e.preventDefault()
+    if (dragIndex === null || dragIndex === index) return
+    setImageItems(prev => {
+      const next = [...prev]
+      const [item] = next.splice(dragIndex, 1)
+      next.splice(index, 0, item)
+      return next
+    })
+    setDragIndex(index)
+  }
+
+  function handleDragEnd() {
+    setDragIndex(null)
+  }
+
+  // ── Submit ────────────────────────────────────────────────────────────────
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
     setSaving(true)
     try {
       const payload: Partial<FormData> = {
-        title: form.title,
-        slug: form.slug || slugify(form.title),
-        description: form.description,
-        category: form.category as Activity['category'],
-        region: form.region as Activity['region'],
-        tier_visibility: form.tier_visibility as Activity['tier_visibility'],
-        price_from: form.price_from ? parseFloat(form.price_from) : null,
-        price_to: form.price_to ? parseFloat(form.price_to) : null,
-        currency: form.currency,
-        duration: form.duration || null,
-        season: form.season || null,
-        availability_text: form.availability_text || null,
-        max_group_size: form.max_group_size ? parseInt(form.max_group_size) : null,
-        languages: form.languages.split(',').map((l: string) => l.trim()).filter(Boolean),
-        meeting_point: form.meeting_point || null,
-        meeting_coords: form.meeting_coords || null,
-        includes: form.includes ? form.includes.split('\n').map((l: string) => l.trim()).filter(Boolean) : null,
-        good_to_know: form.good_to_know || null,
+        title:               form.title,
+        slug:                form.slug || slugify(form.title),
+        description:         form.description,
+        category:            form.category as Activity['category'],
+        region:              form.region as Activity['region'],
+        tier_visibility:     form.tier_visibility as Activity['tier_visibility'],
+        price_from:          form.price_from ? parseFloat(form.price_from) : null,
+        price_to:            form.price_to ? parseFloat(form.price_to) : null,
+        currency:            form.currency,
+        duration:            form.duration || null,
+        season:              form.season || null,
+        availability_text:   form.availability_text || null,
+        max_group_size:      form.max_group_size ? parseInt(form.max_group_size) : null,
+        languages:           form.languages.split(',').map((l: string) => l.trim()).filter(Boolean),
+        meeting_point:       form.meeting_point || null,
+        meeting_coords:      form.meeting_coords || null,
+        includes:            form.includes ? form.includes.split('\n').map((l: string) => l.trim()).filter(Boolean) : null,
+        good_to_know:        form.good_to_know || null,
         cancellation_policy: form.cancellation_policy || null,
-        provider_id: form.provider_id || null,
-        images: form.images,
-        item_type: form.item_type as 'activity' | 'service',
-        sort_order: parseInt(form.sort_order) || 0,
-        is_featured: form.is_featured,
-        is_active: form.is_active,
+        provider_id:         form.provider_id || null,
+        images:              imageItems.map(i => i.url),
+        image_alts:          imageItems.map(i => i.alt),
+        item_type:           form.item_type as 'activity' | 'service',
+        sort_order:          parseInt(form.sort_order) || 0,
+        is_featured:         form.is_featured,
+        is_active:           form.is_active,
       }
       await onSave(payload)
     } catch (err) {
@@ -336,36 +403,103 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
 
           {/* Images */}
           <section>
-            <h3 className="text-[11px] font-bold text-tx-mid uppercase tracking-widest mb-3 border-b border-border pb-1.5">Images</h3>
-            <div className="flex flex-wrap gap-2 mb-3">
-              {form.images.map((url: string) => (
-                <div key={url} className="relative group w-24 h-24">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={url} alt="" className="w-24 h-24 object-cover rounded-sm border border-border" />
-                  <button
-                    type="button"
-                    onClick={() => removeImage(url)}
-                    className="absolute top-0.5 right-0.5 w-5 h-5 bg-black/60 text-white text-xs rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+            <h3 className="text-[11px] font-bold text-tx-mid uppercase tracking-widest mb-3 border-b border-border pb-1.5">
+              Images
+              {imageItems.length > 0 && (
+                <span className="ml-2 font-normal normal-case tracking-normal text-tx-light">
+                  — drag to reorder · first image is cover
+                </span>
+              )}
+            </h3>
+
+            {/* Image grid */}
+            {imageItems.length > 0 && (
+              <div className="space-y-2 mb-3">
+                {imageItems.map((item, i) => (
+                  <div
+                    key={item.url}
+                    draggable
+                    onDragStart={e => handleDragStart(e, i)}
+                    onDragOver={e => handleDragOver(e, i)}
+                    onDragEnd={handleDragEnd}
+                    className={`flex gap-3 items-start p-2 border rounded-sm cursor-grab active:cursor-grabbing transition-colors ${
+                      dragIndex === i ? 'border-navy bg-sand' : 'border-border bg-white hover:border-navy/40'
+                    }`}
                   >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
+                    {/* Thumbnail */}
+                    <div className="relative flex-shrink-0">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={item.url}
+                        alt={item.alt}
+                        className="w-20 h-14 object-cover rounded-sm"
+                      />
+                      {i === 0 && (
+                        <span className="absolute top-0.5 left-0.5 bg-navy text-white text-[9px] font-bold px-1 py-0.5 rounded leading-none">
+                          COVER
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Alt text */}
+                    <div className="flex-1 min-w-0">
+                      <label className="block text-[10px] font-bold text-tx-light uppercase tracking-wide mb-1">
+                        Alt text (SEO)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Describe this image…"
+                        value={item.alt}
+                        onChange={e => updateAlt(i, e.target.value)}
+                        className="w-full px-2 py-1.5 border border-border rounded-sm text-sm text-tx bg-white outline-none focus:border-navy transition-colors"
+                        onClick={e => e.stopPropagation()}
+                      />
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex flex-col gap-1 flex-shrink-0">
+                      {i !== 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setCover(i)}
+                          title="Set as cover"
+                          className="text-[11px] text-tx-mid hover:text-navy px-1.5 py-1 border border-border rounded-sm hover:border-navy transition-colors"
+                        >
+                          ★
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeImage(i)}
+                        title="Remove"
+                        className="text-[11px] text-tx-light hover:text-red-500 px-1.5 py-1 border border-border rounded-sm hover:border-red-300 transition-colors"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Upload button */}
             <input
               ref={fileInputRef}
               type="file"
               accept="image/*"
+              multiple
               className="hidden"
-              onChange={handleImageSelect}
+              onChange={handleFilesSelect}
             />
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              disabled={uploadingImage}
+              disabled={uploadingCount > 0}
               className="px-4 py-2 border border-dashed border-border rounded-sm text-sm text-tx-mid hover:border-navy hover:text-navy transition-colors disabled:opacity-50"
             >
-              {uploadingImage ? 'Uploading…' : '+ Upload Image'}
+              {uploadingCount > 0
+                ? `Uploading ${uploadingCount} image${uploadingCount > 1 ? 's' : ''}…`
+                : '+ Upload Images'}
             </button>
             {uploadError && (
               <p className="mt-2 text-xs text-red-500 bg-red-50 px-3 py-1.5 rounded-sm">{uploadError}</p>

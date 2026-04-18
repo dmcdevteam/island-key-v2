@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { BookButton, WhatsAppButton } from '@/components/ui/components';
 import { formatPrice, getSession } from '@/lib/utils';
@@ -46,6 +46,88 @@ function formatDateLong(dateStr: string) {
   return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-GB', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   });
+}
+
+// ─── Image Carousel ───────────────────────────────────────────────────────────
+interface CarouselProps {
+  images: string[]
+  alts: string[]
+  category: string
+  categoryIcon: string
+  onBack: () => void
+}
+
+function ImageCarousel({ images, alts, category, categoryIcon, onBack }: CarouselProps) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [activeIndex, setActiveIndex] = useState(0)
+
+  function handleScroll() {
+    const el = scrollRef.current
+    if (!el) return
+    const index = Math.round(el.scrollLeft / el.clientWidth)
+    setActiveIndex(index)
+  }
+
+  function scrollTo(index: number) {
+    const el = scrollRef.current
+    if (!el) return
+    el.scrollTo({ left: el.clientWidth * index, behavior: 'smooth' })
+  }
+
+  return (
+    <div className="h-[210px] relative flex-shrink-0 overflow-hidden">
+      {/* Scrollable carousel */}
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="flex h-full overflow-x-auto snap-x snap-mandatory scroll-smooth"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+        {images.map((url, i) => (
+          <div key={url} className="flex-shrink-0 w-full h-full snap-start relative">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={url}
+              alt={alts[i] || `${category} activity`}
+              className="w-full h-full object-cover"
+              draggable={false}
+            />
+            {/* Gradient overlay for readability */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/10 pointer-events-none" />
+          </div>
+        ))}
+      </div>
+
+      {/* Back button */}
+      <button
+        onClick={onBack}
+        className="absolute top-[52px] left-4 w-[34px] h-[34px] bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-base z-10 active:scale-90"
+      >←</button>
+
+      {/* Category badge */}
+      <span className="absolute bottom-10 left-4 text-[10px] font-bold text-white bg-black/30 backdrop-blur-sm px-2 py-1 rounded uppercase z-10">
+        {categoryIcon} {category}
+      </span>
+
+      {/* Dot indicators — only when more than 1 image */}
+      {images.length > 1 && (
+        <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-10">
+          {images.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => scrollTo(i)}
+              aria-label={`Image ${i + 1}`}
+              className={`rounded-full transition-all ${
+                i === activeIndex
+                  ? 'w-4 h-1.5 bg-white'
+                  : 'w-1.5 h-1.5 bg-white/50'
+              }`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function ActivityDetailPage() {
@@ -240,19 +322,32 @@ export default function ActivityDetailPage() {
 
   const heroBg = CATEGORY_GRADIENTS[activity.category] ?? CATEGORY_GRADIENTS.culture;
   const categoryIcon = CATEGORY_ICONS[activity.category] ?? '🌟';
+  const images = activity.images ?? [];
+  const alts   = activity.image_alts ?? [];
+  const hasImages = images.length > 0;
 
   return (
     <div className="min-h-screen bg-cream flex flex-col relative">
-      {/* Hero */}
-      <div className="h-[210px] relative flex items-end p-4 flex-shrink-0" style={{ background: heroBg }}>
-        <button
-          onClick={() => router.back()}
-          className="absolute top-[52px] left-4 w-[34px] h-[34px] bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-base z-10 active:scale-90"
-        >←</button>
-        <span className="text-[10px] font-bold text-white bg-black/30 backdrop-blur-sm px-2 py-1 rounded uppercase">
-          {categoryIcon} {activity.category}
-        </span>
-      </div>
+      {/* Hero — image carousel or gradient fallback */}
+      {hasImages ? (
+        <ImageCarousel
+          images={images}
+          alts={alts}
+          category={activity.category}
+          categoryIcon={categoryIcon}
+          onBack={() => router.back()}
+        />
+      ) : (
+        <div className="h-[210px] relative flex items-end p-4 flex-shrink-0" style={{ background: heroBg }}>
+          <button
+            onClick={() => router.back()}
+            className="absolute top-[52px] left-4 w-[34px] h-[34px] bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-base z-10 active:scale-90"
+          >←</button>
+          <span className="text-[10px] font-bold text-white bg-black/30 backdrop-blur-sm px-2 py-1 rounded uppercase">
+            {categoryIcon} {activity.category}
+          </span>
+        </div>
+      )}
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto px-5 pt-4 pb-[100px]">
