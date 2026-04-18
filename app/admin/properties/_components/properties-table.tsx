@@ -30,7 +30,11 @@ export function PropertiesSection() {
 
   const fetchProperties = useCallback(async () => {
     const res = await fetch('/api/admin/properties')
-    if (!res.ok) { setError('Failed to load properties'); return }
+    if (!res.ok) {
+      setError(`Failed to load properties (${res.status})`)
+      setLoading(false)
+      return
+    }
     setProperties(await res.json())
     setLoading(false)
   }, [])

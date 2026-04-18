@@ -30,7 +30,11 @@ export function ProvidersSection() {
 
   const fetchProviders = useCallback(async () => {
     const res = await fetch('/api/admin/providers')
-    if (!res.ok) { setError('Failed to load providers'); return }
+    if (!res.ok) {
+      setError(`Failed to load providers (${res.status})`)
+      setLoading(false)
+      return
+    }
     setProviders(await res.json())
     setLoading(false)
   }, [])

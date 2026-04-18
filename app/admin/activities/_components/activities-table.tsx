@@ -48,7 +48,11 @@ export function ActivitiesSection() {
 
   const fetchActivities = useCallback(async () => {
     const res = await fetch('/api/admin/activities')
-    if (!res.ok) { setError('Failed to load activities'); return }
+    if (!res.ok) {
+      setError(`Failed to load activities (${res.status})`)
+      setLoading(false)
+      return
+    }
     setActivities(await res.json())
     setLoading(false)
   }, [])
@@ -167,12 +171,18 @@ export function ActivitiesSection() {
 
   if (loading) {
     return (
-      <div className="p-8">
-        <div className="space-y-2">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-12 bg-white rounded-sm border border-border animate-pulse" />
-          ))}
-        </div>
+      <div className="space-y-2">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="h-12 bg-white rounded-sm border border-border animate-pulse" />
+        ))}
+      </div>
+    )
+  }
+
+  if (error && activities.length === 0) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-sm px-4 py-3 text-sm text-red-600">
+        {error}
       </div>
     )
   }
@@ -192,10 +202,6 @@ export function ActivitiesSection() {
           + New Activity
         </button>
       </div>
-
-      {error && (
-        <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-sm mb-4">{error}</p>
-      )}
 
       {/* Table */}
       <div className="overflow-x-auto rounded-sm border border-border bg-white">

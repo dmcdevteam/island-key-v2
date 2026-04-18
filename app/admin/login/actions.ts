@@ -27,17 +27,15 @@ export async function loginAction(formData: FormData): Promise<{ error: string }
   const email = (formData.get('email') as string).trim().toLowerCase()
   const password = formData.get('password') as string
 
-  const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase().trim() ?? ''
-
-  if (email !== adminEmail) {
-    return { error: `DEBUG: email mismatch — got "${email}", expected "${adminEmail}"` }
+  if (email !== process.env.ADMIN_EMAIL?.toLowerCase().trim()) {
+    return { error: 'Invalid credentials' }
   }
 
   const supabase = getSupabase()
   const { error } = await supabase.auth.signInWithPassword({ email, password })
 
   if (error) {
-    return { error: `DEBUG: Supabase error — ${error.message}` }
+    return { error: 'Invalid credentials' }
   }
 
   redirect('/admin')

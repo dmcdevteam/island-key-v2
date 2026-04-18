@@ -15,5 +15,5 @@ export async function isAdminAuthed(): Promise<boolean> {
     }
   )
   const { data: { user } } = await supabase.auth.getUser()
-  return user?.email === process.env.ADMIN_EMAIL
+  return user?.email?.toLowerCase().trim() === process.env.ADMIN_EMAIL?.toLowerCase().trim()
 }
