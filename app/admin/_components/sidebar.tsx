@@ -30,6 +30,7 @@ function NavContent({ onNavClick }: { onNavClick?: () => void }) {
         <button
           type="button"
           onClick={() => {
+            document.cookie = 'ik_access=1; path=/; max-age=7776000; SameSite=Lax';
             localStorage.setItem('ik_admin_preview', '1');
             window.open('/home', '_blank');
           }}
@@ -84,6 +85,19 @@ function NavContent({ onNavClick }: { onNavClick?: () => void }) {
         >
           View live app ↗
         </a>
+        <button
+          type="button"
+          onClick={() => {
+            document.cookie = 'ik_access=; path=/; max-age=0; SameSite=Lax';
+            localStorage.removeItem('ik_session');
+            localStorage.removeItem('ik_access_granted');
+            localStorage.removeItem('ik_admin_preview');
+            window.open('/', '_blank');
+          }}
+          className="w-full text-left px-3 py-2 text-[13px] font-medium text-white/55 hover:text-white hover:bg-white/10 rounded transition-colors"
+        >
+          Test as Guest
+        </button>
         <form action={logoutAction}>
           <button
             type="submit"

@@ -70,14 +70,8 @@ export async function middleware(request: NextRequest) {
   }
 
   // ── 5. Gate check for all remaining guest paths ───────────────────────────
-  // Fast path: ik_access cookie present
+  // Only the ik_access cookie grants entry (admins must set it via "Preview App")
   if (request.cookies.get('ik_access')?.value === '1') {
-    return NextResponse.next()
-  }
-
-  // Slow path: check if this is an admin previewing the guest app
-  const { user } = await getUser(request)
-  if (isAdminEmail(user?.email)) {
     return NextResponse.next()
   }
 
