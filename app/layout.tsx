@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import { AdminPreviewPill } from './_components/admin-preview-pill';
 
 export const metadata: Metadata = {
   title: 'Island Key — Your island. Unlocked.',
@@ -20,6 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className="font-body text-tx bg-cream min-h-screen">
+        <AdminPreviewPill />
         {children}
       </body>
     </html>

@@ -21,12 +21,22 @@ function NavContent({ onNavClick }: { onNavClick?: () => void }) {
   const pathname = usePathname()
   return (
     <>
-      {/* Logo */}
+      {/* Logo + Preview button */}
       <div className="px-5 pt-5 pb-4 border-b border-white/10 flex-shrink-0">
         <div className="flex items-center gap-2">
           <span className="font-display text-lg text-white font-bold tracking-tight">Island Key</span>
         </div>
         <span className="text-[9px] font-bold text-white/40 tracking-[0.25em] uppercase">Admin Panel</span>
+        <button
+          type="button"
+          onClick={() => {
+            localStorage.setItem('ik_admin_preview', '1');
+            window.open('/home', '_blank');
+          }}
+          className="mt-3 w-full flex items-center justify-center gap-1.5 px-3 py-1.5 border border-white/25 rounded text-[12px] font-semibold text-white/70 hover:text-white hover:border-white/50 transition-colors"
+        >
+          ⚙ Preview App
+        </button>
       </div>
 
       {/* Navigation */}
@@ -64,8 +74,16 @@ function NavContent({ onNavClick }: { onNavClick?: () => void }) {
         </div>
       </nav>
 
-      {/* Logout */}
-      <div className="px-2.5 pb-4 pt-2 border-t border-white/10 flex-shrink-0">
+      {/* Footer: live app link + logout */}
+      <div className="px-2.5 pb-4 pt-2 border-t border-white/10 flex-shrink-0 space-y-0.5">
+        <a
+          href="https://islandkey.gr"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center px-3 py-2 rounded text-[13px] font-medium text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+        >
+          View live app ↗
+        </a>
         <form action={logoutAction}>
           <button
             type="submit"

@@ -179,6 +179,8 @@ export default function OnboardPage() {
     };
 
     setSession(session);
+    // Ensure the access cookie is present so middleware allows /home through
+    document.cookie = 'ik_access=1; path=/; max-age=7776000; SameSite=Lax';
     localStorage.removeItem('ik_qr');
 
     if (waOptIn && whatsappNumber) {

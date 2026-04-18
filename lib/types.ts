@@ -221,6 +221,17 @@ export interface Booking {
   updated_at: string;
 }
 
+export interface AccessKey {
+  id: string;
+  key: string;
+  label: string | null;
+  uses_remaining: number | null;
+  expires_at: string | null;
+  is_active: boolean;
+  created_at: string;
+  total_uses: number;
+}
+
 export interface InfoPage {
   id: string;
   title: string;
@@ -278,7 +289,8 @@ export interface Database {
       events:     TableDef<CalendarEvent>;
       articles:   TableDef<Article>;
       bookings:   TableDef<Booking>;
-      info_pages: TableDef<InfoPage>;
+      info_pages:  TableDef<InfoPage>;
+      access_keys: TableDef<AccessKey>;
     };
     Views:          Record<string, never>;
     Functions:      Record<string, never>;
