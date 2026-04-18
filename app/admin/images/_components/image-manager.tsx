@@ -56,11 +56,63 @@ function buildFolderViews(
   })
 }
 
+// ── Slug Reference Panel ──────────────────────────────────────────────────────
+function SlugReference({ activities }: { activities: ActivitySummary[] }) {
+  const [open, setOpen] = useState(false)
+  const [filter, setFilter] = useState('')
+
+  const filtered = activities.filter(a =>
+    !filter || a.title.toLowerCase().includes(filter.toLowerCase()) || a.slug.includes(filter.toLowerCase())
+  )
+
+  return (
+    <div className="mb-5 border border-border rounded-sm bg-white overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-sand transition-colors"
+      >
+        <span className="text-[12px] font-semibold text-tx-mid uppercase tracking-wide">
+          Activity slug reference
+          <span className="ml-2 font-normal normal-case text-tx-light">({activities.length} activities — folder name must match slug exactly)</span>
+        </span>
+        <span className="text-tx-light text-sm">{open ? '▲' : '▼'}</span>
+      </button>
+
+      {open && (
+        <div className="border-t border-border">
+          <div className="px-4 py-2 border-b border-border">
+            <input
+              type="text"
+              placeholder="Filter by title or slug…"
+              value={filter}
+              onChange={e => setFilter(e.target.value)}
+              className="w-full px-2 py-1.5 border border-border rounded-sm text-sm text-tx bg-white outline-none focus:border-navy transition-colors"
+            />
+          </div>
+          <div className="max-h-64 overflow-y-auto divide-y divide-border-light">
+            {filtered.map(a => (
+              <div key={a.id} className="flex items-center justify-between px-4 py-2 hover:bg-sand/50">
+                <span className="text-[13px] text-tx">{a.title}</span>
+                <span className="text-[12px] font-mono text-tx-mid bg-sand px-2 py-0.5 rounded select-all">{a.slug}</span>
+              </div>
+            ))}
+            {filtered.length === 0 && (
+              <p className="px-4 py-4 text-sm text-tx-light text-center">No matches</p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Main Component ────────────────────────────────────────────────────────────
 export function ImageManager() {
-  const [views, setViews]     = useState<FolderView[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError]     = useState('')
+  const [views, setViews]           = useState<FolderView[]>([])
+  const [activities, setActivities] = useState<ActivitySummary[]>([])
+  const [loading, setLoading]       = useState(true)
+  const [error, setError]           = useState('')
 
   // Per-folder saving state
   const [saving, setSaving]     = useState<Record<string, boolean>>({})
@@ -76,6 +128,7 @@ export function ImageManager() {
       const res = await fetch('/api/admin/images')
       if (!res.ok) { setError(`Failed to load (${res.status})`); setLoading(false); return }
       const { folders, activities } = await res.json()
+      setActivities(activities)
       setViews(buildFolderViews(folders, activities))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Network error')
@@ -283,6 +336,8 @@ export function ImageManager() {
         </div>
       )}
 
+      <SlugReference activities={activities} />
+
       {/* Unlinked warning banner */}
       {unlinked.length > 0 && (
         <div className="mb-5 px-4 py-3 bg-amber-50 border border-amber-200 rounded-sm text-sm text-amber-800">
@@ -314,7 +369,10 @@ export function ImageManager() {
                     )}
                   </div>
                   {activity && (
-                    <p className="text-[12px] text-tx-mid mt-0.5">{activity.title}</p>
+                    <p className="text-[12px] text-tx-mid mt-0.5">
+                      {activity.title}
+                      <span className="ml-1.5 text-[11px] text-tx-light font-mono">{activity.slug}</span>
+                    </p>
                   )}
                   <p className="text-[11px] text-tx-light mt-0.5">
                     {orderedUrls.length} image{orderedUrls.length !== 1 ? 's' : ''}
@@ -414,7 +472,7 @@ export function ImageManager() {
               {/* Unlinked hint */}
               {isUnlinked && (
                 <div className="px-4 py-2.5 border-t border-amber-200 bg-amber-50/60 text-[11px] text-amber-700">
-                  Rename the folder to match an activity slug to enable auto-linking.
+                  Folder name must match an activity slug to auto-link. Current name: <span className="font-mono font-semibold">{folder.name}</span>
                 </div>
               )}
             </div>
