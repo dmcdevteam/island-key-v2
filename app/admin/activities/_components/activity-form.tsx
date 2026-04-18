@@ -25,6 +25,7 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
   const [saving, setSaving] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
   const [error, setError] = useState('')
+  const [uploadError, setUploadError] = useState('')
 
   const [form, setForm] = useState({
     title: activity?.title ?? '',
@@ -77,18 +78,25 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
     const file = e.target.files?.[0]
     if (!file) return
     setUploadingImage(true)
+    setUploadError('')
     try {
-      const fd = new FormData()
+      const fd = new globalThis.FormData()
       fd.append('file', file)
       const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
-      const json = await res.json()
+      let json: Record<string, string>
+      try {
+        json = await res.json()
+      } catch {
+        setUploadError(`Server error ${res.status} — check Vercel logs`)
+        return
+      }
       if (json.url) {
         set('images', [...form.images, json.url])
       } else {
-        setError(json.error ?? 'Upload failed')
+        setUploadError(json.error ?? `Upload failed (${res.status})`)
       }
-    } catch {
-      setError('Upload failed')
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Network error')
     } finally {
       setUploadingImage(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
@@ -359,6 +367,9 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
             >
               {uploadingImage ? 'Uploading…' : '+ Upload Image'}
             </button>
+            {uploadError && (
+              <p className="mt-2 text-xs text-red-500 bg-red-50 px-3 py-1.5 rounded-sm">{uploadError}</p>
+            )}
           </section>
 
           {/* Settings */}
