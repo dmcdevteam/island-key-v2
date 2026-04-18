@@ -7,11 +7,19 @@ export async function POST() {
 
   const supabase = createServerClient()
 
-  // Delete all guest rows (UUID PK so RESTART IDENTITY is a no-op)
+  // Null out bookings.guest_id first to satisfy the FK constraint
+  const { error: fkError } = await supabase
+    .from('bookings')
+    .update({ guest_id: null })
+    .not('guest_id', 'is', null)
+
+  if (fkError) return NextResponse.json({ error: fkError.message }, { status: 500 })
+
+  // Now safe to delete all guest rows
   const { error } = await supabase
     .from('guests')
     .delete()
-    .gte('created_at', '1970-01-01T00:00:00Z') // matches every row
+    .gte('created_at', '1970-01-01T00:00:00Z')
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
