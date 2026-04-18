@@ -1,4 +1,4 @@
-import { Sidebar } from './_components/sidebar'
+import { AdminShell } from './_components/sidebar'
 
 export const metadata = {
   title: 'Island Key Admin',
@@ -6,12 +6,5 @@ export const metadata = {
 }
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
-      <main className="flex-1 min-h-screen" style={{ marginLeft: 210 }}>
-        {children}
-      </main>
-    </div>
-  )
+  return <AdminShell>{children}</AdminShell>
 }

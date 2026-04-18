@@ -139,9 +139,9 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-end bg-black/40" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-start md:justify-end bg-black/40" onClick={onClose}>
       <div
-        className="relative w-full max-w-2xl h-full bg-white shadow-modal flex flex-col"
+        className="relative w-full md:max-w-2xl h-full bg-white shadow-modal flex flex-col"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}

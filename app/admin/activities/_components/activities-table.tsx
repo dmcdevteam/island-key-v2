@@ -25,11 +25,6 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void 
   )
 }
 
-function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
-  if (!active) return <span className="ml-1 text-tx-light opacity-0 group-hover:opacity-50">↕</span>
-  return <span className="ml-1">{dir === 'asc' ? '↑' : '↓'}</span>
-}
-
 export function ActivitiesSection() {
   const [activities, setActivities] = useState<Activity[]>([])
   const [providers, setProviders] = useState<Provider[]>([])
@@ -37,14 +32,9 @@ export function ActivitiesSection() {
   const [error, setError] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('sort_order')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
-  const [editActivity, setEditActivity] = useState<Activity | null | 'new'>('new' as const)
+  const [editActivity, setEditActivity] = useState<Activity | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
-
-  // Reset the sentinel so form default is 'closed'
-  useEffect(() => {
-    setEditActivity(null)
-  }, [])
 
   const fetchActivities = useCallback(async () => {
     const res = await fetch('/api/admin/activities')
@@ -68,12 +58,8 @@ export function ActivitiesSection() {
   }, [fetchActivities, fetchProviders])
 
   function sortBy(key: SortKey) {
-    if (sortKey === key) {
-      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortKey(key)
-      setSortDir('asc')
-    }
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortKey(key); setSortDir('asc') }
   }
 
   const sorted = [...activities].sort((a, b) => {
@@ -93,128 +79,102 @@ export function ActivitiesSection() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ field, value }),
     })
-    if (!res.ok) {
-      // revert
-      setActivities(prev => prev.map(a => a.id === id ? { ...a, [field]: !value } : a))
-    }
+    if (!res.ok) setActivities(prev => prev.map(a => a.id === id ? { ...a, [field]: !value } : a))
   }
 
   async function handleDelete(id: string, title: string) {
     if (!confirm(`Delete "${title}"? This cannot be undone.`)) return
     setDeletingId(id)
     const res = await fetch(`/api/admin/activities/${id}`, { method: 'DELETE' })
-    if (res.ok) {
-      setActivities(prev => prev.filter(a => a.id !== id))
-    } else {
-      setError('Delete failed')
-    }
+    if (res.ok) setActivities(prev => prev.filter(a => a.id !== id))
+    else setError('Delete failed')
     setDeletingId(null)
   }
 
   async function handleSave(data: Partial<Activity>) {
-    const isEdit = editActivity && editActivity !== 'new' && 'id' in editActivity
-    const url = isEdit ? `/api/admin/activities/${(editActivity as Activity).id}` : '/api/admin/activities'
-    const method = isEdit ? 'PUT' : 'POST'
-
+    const url = editActivity ? `/api/admin/activities/${editActivity.id}` : '/api/admin/activities'
+    const method = editActivity ? 'PUT' : 'POST'
     const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     })
-    if (!res.ok) {
-      const err = await res.json()
-      throw new Error(err.error ?? 'Save failed')
-    }
+    if (!res.ok) { const e = await res.json(); throw new Error(e.error ?? 'Save failed') }
     const saved = await res.json()
     setActivities(prev =>
-      isEdit
-        ? prev.map(a => a.id === saved.id ? saved : a)
-        : [saved, ...prev]
+      editActivity ? prev.map(a => a.id === saved.id ? saved : a) : [saved, ...prev]
     )
     setShowForm(false)
     setEditActivity(null)
   }
 
-  function openNew() {
-    setEditActivity(null)
-    setShowForm(true)
-  }
+  function openNew() { setEditActivity(null); setShowForm(true) }
+  function openEdit(a: Activity) { setEditActivity(a); setShowForm(true) }
+  function closeForm() { setShowForm(false); setEditActivity(null) }
 
-  function openEdit(activity: Activity) {
-    setEditActivity(activity)
-    setShowForm(true)
-  }
-
-  function closeForm() {
-    setShowForm(false)
-    setEditActivity(null)
-  }
-
-  function Th({ label, sortable, col }: { label: string; sortable?: SortKey; col?: string }) {
-    if (!sortable) {
-      return (
-        <th className={`px-3 py-2.5 text-left text-[10px] font-bold text-tx-mid uppercase tracking-wide whitespace-nowrap ${col ?? ''}`}>
-          {label}
-        </th>
-      )
-    }
-    return (
-      <th
-        className={`px-3 py-2.5 text-left text-[10px] font-bold text-tx-mid uppercase tracking-wide whitespace-nowrap cursor-pointer select-none hover:text-tx group ${col ?? ''}`}
-        onClick={() => sortBy(sortable)}
-      >
-        {label}
-        <SortIcon active={sortKey === sortable} dir={sortDir} />
-      </th>
-    )
-  }
-
+  // ── Loading skeleton ──
   if (loading) {
     return (
       <div className="space-y-2">
         {[...Array(5)].map((_, i) => (
-          <div key={i} className="h-12 bg-white rounded-sm border border-border animate-pulse" />
+          <div key={i} className="h-14 bg-white rounded border border-border animate-pulse" />
         ))}
       </div>
     )
   }
 
+  // ── Fetch error ──
   if (error && activities.length === 0) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-sm px-4 py-3 text-sm text-red-600">
-        {error}
-      </div>
+      <div className="bg-red-50 border border-red-200 rounded-sm px-4 py-3 text-sm text-red-600">{error}</div>
+    )
+  }
+
+  function Th({ label, s }: { label: string; s?: SortKey }) {
+    if (!s) return <th className="px-3 py-2.5 text-left text-[10px] font-bold text-tx-mid uppercase tracking-wide whitespace-nowrap">{label}</th>
+    const active = sortKey === s
+    return (
+      <th
+        className="px-3 py-2.5 text-left text-[10px] font-bold text-tx-mid uppercase tracking-wide whitespace-nowrap cursor-pointer select-none hover:text-tx"
+        onClick={() => sortBy(s)}
+      >
+        {label} {active ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+      </th>
     )
   }
 
   return (
     <div>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5">
+      {/* ── Page header — stacks on mobile ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
         <div>
           <h1 className="font-display text-2xl text-navy">Activities</h1>
           <p className="text-sm text-tx-mid mt-0.5">{activities.length} total</p>
         </div>
         <button
           onClick={openNew}
-          className="px-4 py-2 bg-navy text-white text-sm font-semibold rounded-sm hover:bg-navy-light transition-colors"
+          className="w-full sm:w-auto px-4 py-2.5 bg-navy text-white text-sm font-semibold rounded-sm hover:bg-navy-light transition-colors"
         >
           + New Activity
         </button>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto rounded-sm border border-border bg-white">
+      {error && (
+        <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-sm mb-4">{error}</p>
+      )}
+
+      {/* ── Desktop table ── */}
+      <div className="hidden md:block overflow-x-auto rounded-sm border border-border bg-white">
         <table className="w-full text-sm border-collapse">
           <thead className="bg-sand border-b border-border">
             <tr>
-              <Th label="Title" sortable="title" />
-              <Th label="Category" sortable="category" />
-              <Th label="Region" sortable="region" />
-              <Th label="Price" sortable="price_from" />
+              <Th label="Title" s="title" />
+              <Th label="Category" s="category" />
+              <Th label="Region" s="region" />
+              <Th label="Price" s="price_from" />
               <Th label="Tier" />
-              <Th label="Featured" sortable="is_featured" />
-              <Th label="Active" sortable="is_active" />
+              <Th label="Featured" s="is_featured" />
+              <Th label="Active" s="is_active" />
               <Th label="Actions" />
             </tr>
           </thead>
@@ -233,42 +193,22 @@ export function ActivitiesSection() {
                 <td className="px-3 py-2.5">
                   <div className="flex gap-1 flex-wrap">
                     {(activity.tier_visibility ?? []).map(t => (
-                      <span
-                        key={t}
-                        className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                          t === 'P' ? 'bg-navy text-white' : t === 'M' ? 'bg-teal/15 text-teal-dark' : 'bg-sand text-tx-mid'
-                        }`}
-                      >
-                        {t}
-                      </span>
+                      <span key={t} className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                        t === 'P' ? 'bg-navy text-white' : t === 'M' ? 'bg-teal/15 text-teal-dark' : 'bg-sand text-tx-mid'
+                      }`}>{t}</span>
                     ))}
                   </div>
                 </td>
                 <td className="px-3 py-2.5">
-                  <Toggle
-                    checked={activity.is_featured}
-                    onChange={() => handleToggle(activity.id, 'is_featured', !activity.is_featured)}
-                  />
+                  <Toggle checked={activity.is_featured} onChange={() => handleToggle(activity.id, 'is_featured', !activity.is_featured)} />
                 </td>
                 <td className="px-3 py-2.5">
-                  <Toggle
-                    checked={activity.is_active}
-                    onChange={() => handleToggle(activity.id, 'is_active', !activity.is_active)}
-                  />
+                  <Toggle checked={activity.is_active} onChange={() => handleToggle(activity.id, 'is_active', !activity.is_active)} />
                 </td>
                 <td className="px-3 py-2.5 whitespace-nowrap">
                   <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => openEdit(activity)}
-                      className="text-xs font-medium text-navy hover:underline"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(activity.id, activity.title)}
-                      disabled={deletingId === activity.id}
-                      className="text-xs font-medium text-red-500 hover:underline disabled:opacity-40"
-                    >
+                    <button onClick={() => openEdit(activity)} className="text-xs font-medium text-navy hover:underline">Edit</button>
+                    <button onClick={() => handleDelete(activity.id, activity.title)} disabled={deletingId === activity.id} className="text-xs font-medium text-red-500 hover:underline disabled:opacity-40">
                       {deletingId === activity.id ? '…' : 'Delete'}
                     </button>
                   </div>
@@ -277,18 +217,56 @@ export function ActivitiesSection() {
             ))}
           </tbody>
         </table>
-
         {sorted.length === 0 && (
-          <div className="text-center py-12 text-tx-mid text-sm">
-            No activities yet. Click "+ New Activity" to get started.
-          </div>
+          <div className="text-center py-12 text-tx-mid text-sm">No activities yet. Click "+ New Activity" to get started.</div>
         )}
       </div>
 
-      {/* Form modal */}
+      {/* ── Mobile card list ── */}
+      <div className="md:hidden space-y-2">
+        {sorted.length === 0 && (
+          <div className="text-center py-12 text-tx-mid text-sm">No activities yet.</div>
+        )}
+        {sorted.map(activity => (
+          <div key={activity.id} className="bg-white rounded border border-border px-4 py-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="font-medium text-navy text-sm leading-snug">{activity.title}</div>
+                <div className="text-[11px] text-tx-light mt-0.5 truncate">{activity.slug}</div>
+              </div>
+              <Toggle
+                checked={activity.is_active}
+                onChange={() => handleToggle(activity.id, 'is_active', !activity.is_active)}
+              />
+            </div>
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              <span className="text-[11px] bg-sand text-tx-mid px-2 py-0.5 rounded capitalize">{activity.category}</span>
+              <span className="text-[11px] bg-sand text-tx-mid px-2 py-0.5 rounded capitalize">{activity.region}</span>
+              {activity.price_from != null && (
+                <span className="text-[11px] text-tx-mid font-medium">€{activity.price_from}</span>
+              )}
+              {activity.is_featured && (
+                <span className="text-[11px] bg-teal/10 text-teal px-2 py-0.5 rounded font-medium">Featured</span>
+              )}
+            </div>
+            <div className="flex items-center gap-4 mt-2.5 pt-2.5 border-t border-border-light">
+              <button onClick={() => openEdit(activity)} className="text-xs font-semibold text-navy">Edit</button>
+              <button
+                onClick={() => handleDelete(activity.id, activity.title)}
+                disabled={deletingId === activity.id}
+                className="text-xs font-semibold text-red-500 disabled:opacity-40"
+              >
+                {deletingId === activity.id ? '…' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Form */}
       {showForm && (
         <ActivityForm
-          activity={editActivity !== 'new' ? editActivity : null}
+          activity={editActivity}
           providers={providers}
           onSave={handleSave}
           onClose={closeForm}

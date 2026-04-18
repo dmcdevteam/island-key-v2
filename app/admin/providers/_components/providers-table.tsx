@@ -11,7 +11,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void 
     <button
       type="button"
       onClick={onChange}
-      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${checked ? 'bg-teal' : 'bg-gray-300'}`}
+      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 ${checked ? 'bg-teal' : 'bg-gray-300'}`}
     >
       <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${checked ? 'translate-x-5' : 'translate-x-0.5'}`} />
     </button>
@@ -85,38 +85,44 @@ export function ProvidersSection() {
     })
     if (!res.ok) { const e = await res.json(); throw new Error(e.error ?? 'Save failed') }
     const saved = await res.json()
-    setProviders(prev =>
-      editProvider ? prev.map(p => p.id === saved.id ? saved : p) : [saved, ...prev]
-    )
+    setProviders(prev => editProvider ? prev.map(p => p.id === saved.id ? saved : p) : [saved, ...prev])
     setShowForm(false)
     setEditProvider(null)
   }
 
+  if (loading) {
+    return (
+      <div className="space-y-2">
+        {[...Array(5)].map((_, i) => <div key={i} className="h-14 bg-white rounded border border-border animate-pulse" />)}
+      </div>
+    )
+  }
+
+  if (error && providers.length === 0) {
+    return <div className="bg-red-50 border border-red-200 rounded-sm px-4 py-3 text-sm text-red-600">{error}</div>
+  }
+
   function Th({ label, s }: { label: string; s?: SortKey }) {
-    if (!s) return <th className="px-3 py-2.5 text-left text-[10px] font-bold text-tx-mid uppercase tracking-wide">{label}</th>
+    if (!s) return <th className="px-3 py-2.5 text-left text-[10px] font-bold text-tx-mid uppercase tracking-wide whitespace-nowrap">{label}</th>
     const active = sortKey === s
     return (
-      <th
-        className="px-3 py-2.5 text-left text-[10px] font-bold text-tx-mid uppercase tracking-wide cursor-pointer select-none hover:text-tx"
-        onClick={() => sortBy(s)}
-      >
+      <th className="px-3 py-2.5 text-left text-[10px] font-bold text-tx-mid uppercase tracking-wide whitespace-nowrap cursor-pointer select-none hover:text-tx" onClick={() => sortBy(s)}>
         {label} {active ? (sortDir === 'asc' ? '↑' : '↓') : ''}
       </th>
     )
   }
 
-  if (loading) return <div className="space-y-2">{[...Array(5)].map((_, i) => <div key={i} className="h-12 bg-white rounded-sm border border-border animate-pulse" />)}</div>
-
   return (
     <div>
-      <div className="flex items-center justify-between mb-5">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
         <div>
           <h1 className="font-display text-2xl text-navy">Providers</h1>
           <p className="text-sm text-tx-mid mt-0.5">{providers.length} total</p>
         </div>
         <button
           onClick={() => { setEditProvider(null); setShowForm(true) }}
-          className="px-4 py-2 bg-navy text-white text-sm font-semibold rounded-sm hover:bg-navy-light transition-colors"
+          className="w-full sm:w-auto px-4 py-2.5 bg-navy text-white text-sm font-semibold rounded-sm hover:bg-navy-light transition-colors"
         >
           + New Provider
         </button>
@@ -124,7 +130,8 @@ export function ProvidersSection() {
 
       {error && <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-sm mb-4">{error}</p>}
 
-      <div className="overflow-x-auto rounded-sm border border-border bg-white">
+      {/* Desktop table */}
+      <div className="hidden md:block overflow-x-auto rounded-sm border border-border bg-white">
         <table className="w-full text-sm border-collapse">
           <thead className="bg-sand border-b border-border">
             <tr>
@@ -167,6 +174,34 @@ export function ProvidersSection() {
           </tbody>
         </table>
         {sorted.length === 0 && <div className="text-center py-12 text-tx-mid text-sm">No providers yet.</div>}
+      </div>
+
+      {/* Mobile card list */}
+      <div className="md:hidden space-y-2">
+        {sorted.length === 0 && <div className="text-center py-12 text-tx-mid text-sm">No providers yet.</div>}
+        {sorted.map(provider => (
+          <div key={provider.id} className="bg-white rounded border border-border px-4 py-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="font-medium text-navy text-sm">{provider.name}</div>
+                <div className="text-[11px] text-tx-light mt-0.5">{provider.contact_phone ?? provider.email ?? '—'}</div>
+              </div>
+              <Toggle checked={provider.is_active} onChange={() => handleToggle(provider.id, !provider.is_active)} />
+            </div>
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              <span className="text-[11px] bg-sand text-tx-mid px-2 py-0.5 rounded capitalize">{provider.type}</span>
+              {provider.category && <span className="text-[11px] bg-sand text-tx-mid px-2 py-0.5 rounded capitalize">{provider.category}</span>}
+              <span className="text-[11px] bg-sand text-tx-mid px-2 py-0.5 rounded capitalize">{provider.region}</span>
+              <span className="text-[11px] text-tx-mid font-medium">{provider.commission_rate}% commission</span>
+            </div>
+            <div className="flex items-center gap-4 mt-2.5 pt-2.5 border-t border-border-light">
+              <button onClick={() => { setEditProvider(provider); setShowForm(true) }} className="text-xs font-semibold text-navy">Edit</button>
+              <button onClick={() => handleDelete(provider.id, provider.name)} disabled={deletingId === provider.id} className="text-xs font-semibold text-red-500 disabled:opacity-40">
+                {deletingId === provider.id ? '…' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
 
       {showForm && (

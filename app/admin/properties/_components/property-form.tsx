@@ -64,9 +64,9 @@ export function PropertyForm({ property, onSave, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-end bg-black/40" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-start md:justify-end bg-black/40" onClick={onClose}>
       <div
-        className="relative w-full max-w-xl h-full bg-white shadow-modal flex flex-col"
+        className="relative w-full md:max-w-xl h-full bg-white shadow-modal flex flex-col"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0">
