@@ -154,6 +154,86 @@ function CreateForm({ onCreated, onClose }: CreateFormProps) {
   )
 }
 
+// ── Testing Tools section ─────────────────────────────────────────────────────
+function TestingTools() {
+  const [clearing, setClearing]   = useState(false)
+  const [clearMsg, setClearMsg]   = useState('')
+  const [clearError, setClearError] = useState('')
+
+  async function handleClearSessions() {
+    if (!confirm('Delete ALL guest records from the database? This cannot be undone.')) return
+    setClearing(true)
+    setClearMsg('')
+    setClearError('')
+    try {
+      const res = await fetch('/api/admin/clear-sessions', { method: 'POST' })
+      const json = await res.json()
+      if (res.ok) setClearMsg('All guest sessions cleared.')
+      else setClearError(json.error ?? 'Failed to clear sessions')
+    } catch {
+      setClearError('Network error')
+    }
+    setClearing(false)
+  }
+
+  return (
+    <div className="mt-10 border border-border rounded-sm bg-white overflow-hidden">
+      <div className="px-5 py-3 bg-sand border-b border-border">
+        <h2 className="font-semibold text-navy text-[15px]">Testing Tools</h2>
+      </div>
+      <div className="px-5 py-5 space-y-5">
+
+        {/* Clear all sessions */}
+        <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-tx">Clear all sessions</p>
+            <p className="text-[12px] text-tx-light mt-0.5">
+              Deletes every row in the <code className="font-mono bg-sand px-1 rounded">guests</code> table — useful for resetting between test runs.
+            </p>
+            {clearMsg   && <p className="mt-2 text-[12px] text-teal">{clearMsg}</p>}
+            {clearError && <p className="mt-2 text-[12px] text-red-500">{clearError}</p>}
+          </div>
+          <button
+            onClick={handleClearSessions}
+            disabled={clearing}
+            className="flex-shrink-0 px-4 py-2 border border-red-200 text-red-600 text-sm font-semibold rounded-sm hover:bg-red-50 disabled:opacity-50 transition-colors"
+          >
+            {clearing ? 'Clearing…' : 'Clear all sessions'}
+          </button>
+        </div>
+
+        {/* Divider */}
+        <div className="border-t border-border-light" />
+
+        {/* Reset my session */}
+        <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-tx">Reset my session</p>
+            <p className="text-[12px] text-tx-light mt-0.5">
+              Clears the <code className="font-mono bg-sand px-1 rounded">ik_access</code> cookie and redirects to the gate page — lets you test the access flow without opening DevTools.
+            </p>
+          </div>
+          <a
+            href="/api/reset-session"
+            className="flex-shrink-0 px-4 py-2 border border-border text-tx-mid text-sm font-semibold rounded-sm hover:border-navy hover:text-navy transition-colors text-center"
+          >
+            Reset my session
+          </a>
+        </div>
+
+        {/* Divider */}
+        <div className="border-t border-border-light" />
+
+        {/* DevTools note */}
+        <p className="text-[12px] text-tx-light leading-relaxed">
+          <span className="font-semibold text-tx-mid">Full browser reset:</span> to clear localStorage and all cookies at once, go to DevTools → Application → Storage → Clear site data for islandkey.gr.
+        </p>
+
+      </div>
+    </div>
+  )
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 export function AccessKeyManager() {
   const [keys, setKeys]           = useState<AccessKey[]>([])
@@ -289,6 +369,8 @@ export function AccessKeyManager() {
       </div>
 
       {showCreate && <CreateForm onCreated={handleCreated} onClose={() => setShowCreate(false)} />}
+
+      <TestingTools />
     </div>
   )
 }
