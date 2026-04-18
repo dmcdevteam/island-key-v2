@@ -32,7 +32,7 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user || user.email !== process.env.ADMIN_EMAIL) {
+  if (!user || user.email?.toLowerCase().trim() !== process.env.ADMIN_EMAIL?.toLowerCase().trim()) {
     return NextResponse.redirect(new URL('/admin/login', request.url))
   }
 
