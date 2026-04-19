@@ -14,8 +14,8 @@ export function AdminPreviewPill() {
     setActive(localStorage.getItem('ik_admin_preview') === '1');
   }, [pathname]);
 
-  // Don't render on admin pages or when not in preview mode
-  if (!active || pathname.startsWith('/admin')) return null;
+  // Don't render on admin pages, the onboard page (has its own bar), or when not in preview mode
+  if (!active || pathname.startsWith('/admin') || pathname.startsWith('/onboard')) return null;
 
   function resetPreview() {
     localStorage.removeItem('ik_session');

@@ -222,20 +222,20 @@ export default function OnboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-cream flex flex-col px-6 pt-[72px] pb-8 relative">
-      {/* Admin Skip — top right, only in preview mode */}
+    <div className="min-h-screen bg-cream flex flex-col">
+      {/* Admin preview bar — full-width, top of page, in normal flow (no overlap issues) */}
       {isAdminPreview && (
         <button
           type="button"
           onClick={handleAdminSkip}
-          className="absolute top-4 right-4 z-10 flex items-center gap-1.5 text-tx-light text-[12px] hover:text-tx transition-colors"
+          className="w-full flex items-center justify-center gap-2 bg-gray-100 border-b border-gray-200 px-4 py-2.5 text-[12px] text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors flex-shrink-0"
         >
-          <span className="text-[9px] font-bold bg-tx-light/20 text-tx-light px-1.5 py-0.5 rounded uppercase tracking-wide">Admin</span>
-          Skip →
+          <span className="text-[9px] font-bold bg-gray-300 text-gray-500 px-1.5 py-0.5 rounded uppercase tracking-wide">Admin</span>
+          ⚙ Admin Preview — Skip onboarding →
         </button>
       )}
 
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col px-6 pt-[72px] pb-8">
         {/* Header */}
         <h1 className="font-display text-[26px] font-normal text-navy mb-1">Welcome to</h1>
         <p className="text-sm font-semibold text-teal mb-5">{REGION_LABELS[region]}</p>
@@ -417,8 +417,6 @@ export default function OnboardPage() {
             </div>
           </div>
         </div>
-      </div>
-
       {/* Submit */}
       <Button
         variant="primary"
@@ -430,6 +428,7 @@ export default function OnboardPage() {
       >
         {submitting ? 'Saving...' : "Let's go →"}
       </Button>
+    </div>{/* end padded content area */}
 
       {/* WhatsApp success message */}
       {showSuccess && (
