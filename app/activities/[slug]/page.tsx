@@ -327,7 +327,7 @@ export default function ActivityDetailPage() {
   const rawAlts   = activity.image_alts ?? [];
   const filteredPairs = rawImages
     .map((url, i) => ({ url, alt: rawAlts[i] ?? '' }))
-    .filter(({ url }) => /\.(jpg|jpeg|png|webp)(\?.*)?$/i.test(url));
+    .filter(({ url }) => /\.(jpg|jpeg|png|webp|avif)(\?.*)?$/i.test(url));
   const images = filteredPairs.map(p => p.url);
   const alts   = filteredPairs.map(p => p.alt);
   const hasImages = images.length > 0;

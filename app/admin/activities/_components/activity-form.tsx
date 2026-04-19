@@ -25,9 +25,9 @@ interface ActivitySlim {
 }
 
 // ── File type validation ──────────────────────────────────────────────────
-const SUPPORTED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp'])
+const SUPPORTED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif'])
 const EXT_MIME: Record<string, string> = {
-  jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp',
+  jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', avif: 'image/avif',
 }
 
 function getEffectiveMime(file: File): string {
@@ -129,7 +129,7 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
       const mime = getEffectiveMime(file)
       if (!SUPPORTED_MIME.has(mime)) {
         const ext = file.name.split('.').pop()?.toUpperCase() ?? 'unknown'
-        rejected.push(`${file.name} — ${ext} format is not supported. Please convert to JPG or WebP.`)
+        rejected.push(`${file.name} — ${ext} format is not supported. Please convert to JPG, WebP, or AVIF.`)
       } else {
         toUpload.push(file)
       }
@@ -226,7 +226,7 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
       const mime = getEffectiveMime(file)
       if (!SUPPORTED_MIME.has(mime)) {
         const ext = file.name.split('.').pop()?.toUpperCase() ?? 'unknown'
-        rejectedFiles.push(`${file.name} — ${ext} not supported`)
+        rejectedFiles.push(`${file.name} — ${ext} not supported (use JPG, WebP, or AVIF)`)
       } else {
         validFiles.push(file)
       }

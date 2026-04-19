@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 
 // ── Format support ─────────────────────────────────────────────────────────────
-const SUPPORTED_EXTS = new Set(['jpg', 'jpeg', 'png', 'webp'])
+const SUPPORTED_EXTS = new Set(['jpg', 'jpeg', 'png', 'webp', 'avif'])
 
 function getUrlExt(url: string): string {
   return url.split('?')[0].split('.').pop()?.toLowerCase() ?? ''

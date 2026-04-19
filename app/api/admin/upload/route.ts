@@ -7,15 +7,20 @@ const BUCKET = 'activity-images'
 // Increase Vercel serverless body limit for image uploads
 export const maxDuration = 30
 
-const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif'])
 
 /** Detect real format from magic bytes — more reliable than declared MIME or extension */
 function detectMimeFromBuffer(buf: Buffer): string | null {
   if (buf.length >= 3 && buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF) return 'image/jpeg'
   if (buf.length >= 4 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) return 'image/png'
   if (buf.length >= 12 && buf.slice(0, 4).toString('ascii') === 'RIFF' && buf.slice(8, 12).toString('ascii') === 'WEBP') return 'image/webp'
-  // AVIF / HEIC / MP4 container family all start with 'ftyp' at byte offset 4
-  if (buf.length >= 8 && buf.slice(4, 8).toString('ascii') === 'ftyp') return 'image/avif-family'
+  // AVIF starts with 'ftyp' at byte offset 4 — HEIC/MP4 share this container but are excluded below
+  if (buf.length >= 12 && buf.slice(4, 8).toString('ascii') === 'ftyp') {
+    const brand = buf.slice(8, 12).toString('ascii')
+    // avif / avis / av01 brands → AVIF; heic / mif1 / msf1 → HEIC/HEIF
+    if (brand === 'avif' || brand === 'avis') return 'image/avif'
+    return 'image/heic-family' // HEIC, MP4, MOV etc — blocked
+  }
   return null
 }
 
@@ -24,7 +29,7 @@ function guessMimeType(filename: string, declared: string): string {
   const ext = filename.split('.').pop()?.toLowerCase()
   const map: Record<string, string> = {
     jpg: 'image/jpeg', jpeg: 'image/jpeg',
-    png: 'image/png', webp: 'image/webp',
+    png: 'image/png', webp: 'image/webp', avif: 'image/avif',
   }
   return map[ext ?? ''] ?? 'application/octet-stream'
 }
@@ -82,7 +87,7 @@ export async function POST(request: Request) {
       const detected = detectedMime ? ` (detected: ${detectedMime})` : ''
       return NextResponse.json(
         {
-          error: `${file.name} — ${ext} format is not supported${detected}. Please convert to JPG or WebP before uploading.`,
+          error: `${file.name} — ${ext} format is not supported${detected}. Please convert to JPG, WebP, or AVIF before uploading.`,
           rejected: true,
         },
         { status: 422 }
