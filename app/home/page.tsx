@@ -331,39 +331,37 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* What's happening — hidden entirely if no events after load */}
-        {(loading || data.events.length > 0) && (
-          <>
-            <SectionHeader title="What's happening" linkText="See calendar →" onLink={() => router.push('/events')} />
-            {loading ? (
-              <div className="mx-5 mb-5 space-y-2">
-                {Array.from({ length: 2 }).map((_, i) => (
-                  <div key={i} className="h-[52px] rounded-sm bg-navy/5 animate-pulse" />
-                ))}
+        {/* What's happening */}
+        <SectionHeader title="What's happening" linkText="See calendar →" onLink={() => router.push('/events')} />
+        {loading ? (
+          <div className="mx-5 mb-5 space-y-2">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <div key={i} className="h-[52px] rounded-sm bg-navy/5 animate-pulse" />
+            ))}
+          </div>
+        ) : data.events.length > 0 ? (
+          <div className="mb-5">
+            {data.events.map(ev => (
+              <div
+                key={ev.id}
+                onClick={() => router.push('/events')}
+                className="mx-5 mb-2.5 flex gap-2.5 p-2.5 px-3 bg-white rounded-sm border border-border-light items-center cursor-pointer active:bg-sand"
+              >
+                <span className="text-lg">{EVENT_ICONS[ev.category] ?? '📅'}</span>
+                <div className="flex-1">
+                  <p className="text-xs font-semibold text-navy">{ev.title}</p>
+                  <p className="text-[10px] text-tx-light">
+                    {formatEventWhen(ev.date, ev.time_start)}
+                    {ev.location ? ` · ${ev.location}` : ''}
+                    {ev.is_free ? ' · Free entry' : ''}
+                  </p>
+                </div>
+                <span className="text-[11px] text-teal">→</span>
               </div>
-            ) : (
-              <div className="mb-5">
-                {data.events.map(ev => (
-                  <div
-                    key={ev.id}
-                    onClick={() => router.push('/events')}
-                    className="mx-5 mb-2.5 flex gap-2.5 p-2.5 px-3 bg-white rounded-sm border border-border-light items-center cursor-pointer active:bg-sand"
-                  >
-                    <span className="text-lg">{EVENT_ICONS[ev.category] ?? '📅'}</span>
-                    <div className="flex-1">
-                      <p className="text-xs font-semibold text-navy">{ev.title}</p>
-                      <p className="text-[10px] text-tx-light">
-                        {formatEventWhen(ev.date, ev.time_start)}
-                        {ev.location ? ` · ${ev.location}` : ''}
-                        {ev.is_free ? ' · Free entry' : ''}
-                      </p>
-                    </div>
-                    <span className="text-[11px] text-teal">→</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
+            ))}
+          </div>
+        ) : (
+          <p className="mx-5 mb-5 text-xs text-tx-light">No upcoming events in the next 30 days.</p>
         )}
 
         {/* Today's Deal */}
