@@ -10,6 +10,8 @@ const navItems = [
   { href: '/admin/images',     label: 'Images' },
   { href: '/admin/providers',  label: 'Providers' },
   { href: '/admin/properties', label: 'Properties' },
+  { href: '/admin/rentals',    label: 'Rentals' },
+  { href: '/admin/transfers',  label: 'Transfers' },
   { href: '/admin/deals', label: 'Deals' },
   { href: '/admin/events', label: 'Events' },
   { href: '/admin/articles', label: 'Articles' },
