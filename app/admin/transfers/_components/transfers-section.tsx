@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -14,6 +14,7 @@ type TransferRoute = {
   id: string; from_location: string; to_location: string
   from_type: string | null; to_type: string | null
   distance_km: number | null; duration_minutes: number | null
+  image: string | null
   is_active: boolean; sort_order: number; created_at: string
 }
 
@@ -88,12 +89,14 @@ type RouteFormData = {
   to_location: string; to_type: string
   distance_km: string; duration_minutes: string
   sort_order: string; is_active: boolean
+  image: string
 }
 const ROUTE_DEFAULTS: RouteFormData = {
   from_location: '', from_type: 'airport',
   to_location: '', to_type: 'city',
   distance_km: '', duration_minutes: '',
   sort_order: '0', is_active: true,
+  image: '',
 }
 
 function RouteForm({ initial, onClose, onSaved }: {
@@ -107,12 +110,35 @@ function RouteForm({ initial, onClose, onSaved }: {
       distance_km: initial.distance_km != null ? String(initial.distance_km) : '',
       duration_minutes: initial.duration_minutes != null ? String(initial.duration_minutes) : '',
       sort_order: String(initial.sort_order), is_active: initial.is_active,
+      image: initial.image ?? '',
     }
   })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [imageUploading, setImageUploading] = useState(false)
+  const [imageError, setImageError] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   function set<K extends keyof RouteFormData>(k: K, v: RouteFormData[K]) { setForm(f => ({ ...f, [k]: v })) }
+
+  async function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImageUploading(true); setImageError('')
+    const fromSlug = form.from_location.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+    const toSlug = form.to_location.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+    const routeSlug = `${fromSlug}-to-${toSlug}`
+    const fd = new globalThis.FormData()
+    fd.append('file', file)
+    fd.append('bucket', 'transfer-images')
+    fd.append('slug', routeSlug)
+    const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
+    const json = await res.json()
+    if (json.url) set('image', json.url)
+    else setImageError(json.error ?? 'Upload failed')
+    setImageUploading(false)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
 
   async function handleSave() {
     setSaving(true); setError('')
@@ -122,6 +148,7 @@ function RouteForm({ initial, onClose, onSaved }: {
       distance_km: form.distance_km ? Number(form.distance_km) : null,
       duration_minutes: form.duration_minutes ? Number(form.duration_minutes) : null,
       sort_order: Number(form.sort_order) || 0, is_active: form.is_active,
+      image: form.image || null,
     }
     const url = initial ? `/api/admin/transfers/${initial.id}` : '/api/admin/transfers'
     const method = initial ? 'PUT' : 'POST'
@@ -174,6 +201,22 @@ function RouteForm({ initial, onClose, onSaved }: {
       <div className="flex items-center justify-between">
         <span className={LABEL}>Active</span>
         <Toggle checked={form.is_active} onChange={() => set('is_active', !form.is_active)} />
+      </div>
+      <div>
+        <label className={LABEL}>Route Image</label>
+        {form.image && (
+          <div className="mb-2 relative inline-block">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={form.image} alt="" className="w-40 h-24 object-cover rounded-sm border border-border" />
+            <button type="button" onClick={() => set('image', '')} className="absolute top-0.5 right-0.5 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center hover:bg-red-600">×</button>
+          </div>
+        )}
+        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
+        <button type="button" onClick={() => fileInputRef.current?.click()} disabled={imageUploading}
+          className="px-3 py-1.5 border border-dashed border-border rounded-sm text-sm text-tx-mid hover:border-navy hover:text-navy transition-colors disabled:opacity-50">
+          {imageUploading ? 'Uploading…' : form.image ? 'Replace Image' : '+ Upload Image'}
+        </button>
+        {imageError && <p className="mt-1 text-xs text-red-500">{imageError}</p>}
       </div>
     </Drawer>
   )

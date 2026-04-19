@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
 import { isAdminAuthed } from '../_lib/auth'
 
-const BUCKET = 'activity-images'
+const ALLOWED_BUCKETS = new Set(['activity-images', 'rental-images', 'transfer-images'])
 
 // Increase Vercel serverless body limit for image uploads
 export const maxDuration = 30
@@ -60,6 +60,9 @@ export async function POST(request: Request) {
     const alt         = (formData.get('alt')         as string | null)?.trim() || null
     const title       = (formData.get('title')       as string | null)?.trim() || null
     const description = (formData.get('description') as string | null)?.trim() || null
+
+    const bucketParam = (formData.get('bucket') as string | null)?.trim() || 'activity-images'
+    const BUCKET = ALLOWED_BUCKETS.has(bucketParam) ? bucketParam : 'activity-images'
 
     // ── Read file buffer ──────────────────────────────────────────────────────
     let buffer: Buffer

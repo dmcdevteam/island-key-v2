@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -28,13 +28,20 @@ type RentalExtra = {
 
 type Provider = { id: string; name: string }
 
+type ImageItem = { url: string }
+
+type RentalSlim = { id: string; slug: string; name: string }
+
+type RentalImageFolder = { name: string; urls: string[]; fileNames: string[]; storagePaths: string[] }
+type RentalSummary = { id: string; slug: string | null; name: string; images: string[] | null }
+
 // ── Constants ──────────────────────────────────────────────────────────────────
 
 const INPUT = 'w-full px-3 py-2 border border-border rounded-sm text-sm text-tx bg-white outline-none focus:border-navy transition-colors'
 const LABEL = 'block text-[11px] font-bold text-tx-mid uppercase tracking-wide mb-1'
 const SELECT = `${INPUT} cursor-pointer`
 
-const TABS = ['Vehicles', 'Vehicle Types', 'Extras & Essentials']
+const TABS = ['Vehicles', 'Vehicle Types', 'Extras & Essentials', 'Images']
 
 const VEHICLE_CATEGORIES = ['car', 'motorcycle', 'bike', 'buggy', 'boat', 'scooter', 'atv', 'other']
 const REGIONS = ['chania', 'rethymno', 'heraklion', 'lasithi']
@@ -47,6 +54,18 @@ const EXTRA_BADGE_COLORS: Record<string, string> = {
   sport: 'bg-orange-100 text-orange-700',
   comfort: 'bg-purple-100 text-purple-700',
   other: 'bg-gray-100 text-gray-600',
+}
+
+const SUPPORTED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif'])
+const EXT_MIME: Record<string, string> = {
+  jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', avif: 'image/avif',
+}
+const SUPPORTED_EXTS = new Set(['jpg', 'jpeg', 'png', 'webp', 'avif'])
+
+function getEffectiveMime(file: File): string {
+  if (file.type && file.type !== 'application/octet-stream') return file.type
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
+  return EXT_MIME[ext] ?? 'application/octet-stream'
 }
 
 function slugify(str: string) {
@@ -100,6 +119,7 @@ type RentalFormData = {
   delivery_fee: string; region: string; tier_visibility: string[]
   features: string[]; requirements: string; provider_id: string
   is_featured: boolean; is_active: boolean; sort_order: string
+  images: string[]
 }
 
 const RENTAL_DEFAULTS: RentalFormData = {
@@ -109,6 +129,7 @@ const RENTAL_DEFAULTS: RentalFormData = {
   delivery_fee: '', region: 'chania', tier_visibility: ['B', 'M', 'P'],
   features: [], requirements: '', provider_id: '',
   is_featured: false, is_active: true, sort_order: '0',
+  images: [],
 }
 
 function VehicleForm({
@@ -142,11 +163,31 @@ function VehicleForm({
       is_featured: initial.is_featured,
       is_active: initial.is_active,
       sort_order: String(initial.sort_order),
+      images: initial.images ?? [],
     }
   })
   const [featureInput, setFeatureInput] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
+  // Image state
+  const [imageItems, setImageItems] = useState<ImageItem[]>(
+    () => (initial?.images ?? []).map(url => ({ url }))
+  )
+  const [uploadingCount, setUploadingCount] = useState(0)
+  const [uploadError, setUploadError] = useState('')
+  const [dragIndex, setDragIndex] = useState<number | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const folderInputRef = useRef<HTMLInputElement>(null)
+
+  // Folder upload state
+  const [folderName, setFolderName] = useState<string | null>(null)
+  const [folderFiles, setFolderFiles] = useState<File[]>([])
+  const [folderUploading, setFolderUploading] = useState(false)
+  const [folderProgress, setFolderProgress] = useState(0)
+  const [folderError, setFolderError] = useState('')
+  const [folderSuccess, setFolderSuccess] = useState('')
+  const [folderMatch, setFolderMatch] = useState<RentalSlim | null | undefined>(undefined)
 
   function set<K extends keyof RentalFormData>(k: K, v: RentalFormData[K]) {
     setForm(f => ({ ...f, [k]: v }))
@@ -175,6 +216,118 @@ function VehicleForm({
     set('features', form.features.filter(x => x !== f))
   }
 
+  async function handleFilesSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []).filter(f => SUPPORTED_MIME.has(getEffectiveMime(f)))
+    if (!files.length) return
+    setUploadError('')
+    setUploadingCount(c => c + files.length)
+    const slug = form.slug || slugify(form.name) || 'rental'
+    const results = await Promise.all(files.map(async file => {
+      const fd = new globalThis.FormData()
+      fd.append('file', file)
+      fd.append('bucket', 'rental-images')
+      fd.append('slug', slug)
+      const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
+      return res.json()
+    }))
+    setUploadingCount(c => c - files.length)
+    const errors: string[] = []
+    const newItems: ImageItem[] = []
+    results.forEach(json => {
+      if (json.url) newItems.push({ url: json.url })
+      else errors.push(json.error ?? 'Upload failed')
+    })
+    if (newItems.length) setImageItems(prev => [...prev, ...newItems])
+    if (errors.length) setUploadError(errors[0])
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  async function handleFolderSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []).filter(f => SUPPORTED_MIME.has(getEffectiveMime(f)))
+    if (!files.length) return
+    setFolderError(''); setFolderSuccess(''); setFolderMatch(undefined)
+    // Detect folder name from first file's webkitRelativePath
+    const firstPath = (files[0] as { webkitRelativePath?: string }).webkitRelativePath ?? ''
+    const detectedFolder = firstPath.split('/')[0] || slugify(files[0].name.split('.')[0])
+    setFolderName(detectedFolder)
+    setFolderFiles(files)
+    setFolderProgress(0)
+    // Check if this folder matches a rental
+    const res = await fetch('/api/admin/rentals')
+    if (res.ok) {
+      const rentals: RentalSlim[] = await res.json()
+      const match = rentals.find(a => a.slug === detectedFolder) ?? null
+      setFolderMatch(match)
+    } else {
+      setFolderMatch(null)
+    }
+  }
+
+  async function handleFolderUpload() {
+    if (!folderFiles.length || !folderName) return
+    setFolderUploading(true); setFolderError(''); setFolderSuccess('')
+    let done = 0
+    const uploadedUrls: string[] = []
+    for (const file of folderFiles) {
+      const fd = new globalThis.FormData()
+      fd.append('file', file)
+      fd.append('bucket', 'rental-images')
+      fd.append('slug', folderName)
+      const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
+      const json = await res.json()
+      if (json.url) uploadedUrls.push(json.url)
+      else { setFolderError(json.error ?? 'Upload failed'); setFolderUploading(false); return }
+      done++
+      setFolderProgress(Math.round((done / folderFiles.length) * 100))
+    }
+    // Link to rental if matched
+    if (folderMatch && uploadedUrls.length) {
+      await fetch(`/api/admin/rentals/${folderMatch.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ images: uploadedUrls }),
+      })
+      const count = uploadedUrls.length
+      setFolderSuccess(`${count} image${count > 1 ? 's' : ''} uploaded and linked to "${folderMatch.name}"`)
+    } else {
+      const count = uploadedUrls.length
+      setFolderSuccess(`${count} image${count > 1 ? 's' : ''} uploaded to rental-images/${folderName}/ — not linked to any rental`)
+    }
+    setFolderUploading(false)
+    clearFolderSelection()
+  }
+
+  function clearFolderSelection() {
+    setFolderName(null); setFolderFiles([]); setFolderProgress(0); setFolderMatch(undefined)
+    if (folderInputRef.current) folderInputRef.current.value = ''
+  }
+
+  function removeImage(i: number) {
+    setImageItems(prev => prev.filter((_, idx) => idx !== i))
+  }
+
+  function setCover(i: number) {
+    setImageItems(prev => {
+      const next = [...prev]
+      const [item] = next.splice(i, 1)
+      return [item, ...next]
+    })
+  }
+
+  function handleDragStart(i: number) { setDragIndex(i) }
+  function handleDragOver(e: React.DragEvent, i: number) {
+    e.preventDefault()
+    if (dragIndex === null || dragIndex === i) return
+    setImageItems(prev => {
+      const next = [...prev]
+      const [item] = next.splice(dragIndex, 1)
+      next.splice(i, 0, item)
+      return next
+    })
+    setDragIndex(i)
+  }
+  function handleDragEnd() { setDragIndex(null) }
+
   async function handleSave() {
     setSaving(true); setError('')
     const body = {
@@ -197,6 +350,7 @@ function VehicleForm({
       is_featured: form.is_featured,
       is_active: form.is_active,
       sort_order: Number(form.sort_order) || 0,
+      images: imageItems.map(i => i.url),
     }
     const url = initial ? `/api/admin/rentals/${initial.id}` : '/api/admin/rentals'
     const method = initial ? 'PUT' : 'POST'
@@ -326,6 +480,87 @@ function VehicleForm({
         <span className={LABEL}>Active</span>
         <Toggle checked={form.is_active} onChange={() => set('is_active', !form.is_active)} />
       </div>
+
+      {/* ── Images ── */}
+      <div>
+        <label className={LABEL}>Images</label>
+
+        {/* Multi-file upload */}
+        <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFilesSelect} />
+        <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadingCount > 0}
+          className="w-full px-3 py-2 border border-dashed border-border rounded-sm text-sm text-tx-mid hover:border-navy hover:text-navy transition-colors disabled:opacity-50 mb-3">
+          {uploadingCount > 0 ? `Uploading ${uploadingCount} file${uploadingCount > 1 ? 's' : ''}…` : '+ Upload Images'}
+        </button>
+        {uploadError && <p className="mb-2 text-xs text-red-500">{uploadError}</p>}
+
+        {/* Image preview grid */}
+        {imageItems.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-3">
+            {imageItems.map((item, i) => (
+              <div
+                key={item.url}
+                draggable
+                onDragStart={() => handleDragStart(i)}
+                onDragOver={e => handleDragOver(e, i)}
+                onDragEnd={handleDragEnd}
+                className={`relative w-20 h-14 rounded-sm overflow-hidden border cursor-move ${dragIndex === i ? 'opacity-50 border-navy' : 'border-border'}`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={item.url} alt="" className="w-full h-full object-cover" />
+                {i === 0 && (
+                  <span className="absolute bottom-0 left-0 right-0 bg-navy/70 text-white text-[9px] text-center py-0.5">Cover</span>
+                )}
+                <button type="button" onClick={() => setCover(i)} title="Set as cover"
+                  className="absolute top-0.5 left-0.5 text-yellow-400 text-xs leading-none hover:text-yellow-300">★</button>
+                <button type="button" onClick={() => removeImage(i)}
+                  className="absolute top-0.5 right-0.5 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center hover:bg-red-600">×</button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Folder upload */}
+        <div className="border border-border rounded-sm p-3 bg-gray-50">
+          <p className="text-xs font-bold text-tx-mid uppercase tracking-wide mb-2">Folder Upload</p>
+          <input ref={folderInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFolderSelect}
+            // @ts-expect-error webkitdirectory is not in React types
+            webkitdirectory="" />
+          {!folderName ? (
+            <button type="button" onClick={() => folderInputRef.current?.click()}
+              className="px-3 py-1.5 border border-dashed border-border rounded-sm text-sm text-tx-mid hover:border-navy hover:text-navy transition-colors">
+              Select Folder
+            </button>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-xs text-tx">
+                <span className="font-medium">{folderName}/</span> — {folderFiles.length} image{folderFiles.length !== 1 ? 's' : ''}
+              </p>
+              {folderMatch !== undefined && (
+                <p className={`text-xs font-medium ${folderMatch ? 'text-teal' : 'text-orange-500'}`}>
+                  {folderMatch ? `Will link to: "${folderMatch.name}"` : 'No matching rental found — will upload unlinked'}
+                </p>
+              )}
+              {folderUploading && (
+                <div className="w-full bg-gray-200 rounded-full h-1.5">
+                  <div className="bg-navy h-1.5 rounded-full transition-all" style={{ width: `${folderProgress}%` }} />
+                </div>
+              )}
+              <div className="flex gap-2">
+                <button type="button" onClick={handleFolderUpload} disabled={folderUploading}
+                  className="px-3 py-1.5 bg-navy text-white text-xs rounded-sm hover:bg-navy-light disabled:opacity-50">
+                  {folderUploading ? `Uploading… ${folderProgress}%` : 'Upload Folder'}
+                </button>
+                <button type="button" onClick={clearFolderSelection}
+                  className="px-3 py-1.5 border border-border rounded-sm text-xs text-tx-mid hover:bg-sand">
+                  Clear
+                </button>
+              </div>
+              {folderError && <p className="text-xs text-red-500">{folderError}</p>}
+            </div>
+          )}
+          {folderSuccess && <p className="mt-2 text-xs text-teal font-medium">{folderSuccess}</p>}
+        </div>
+      </div>
     </Drawer>
   )
 }
@@ -416,11 +651,13 @@ type ExtraFormData = {
   name: string; description: string; category: string
   pricingMode: 'day' | 'unit'; price_per_day: string; price_per_unit: string
   unit_label: string; is_active: boolean; sort_order: string
+  image: string
 }
 const EXTRA_DEFAULTS: ExtraFormData = {
   name: '', description: '', category: 'beach',
   pricingMode: 'day', price_per_day: '', price_per_unit: '', unit_label: 'item',
   is_active: true, sort_order: '0',
+  image: '',
 }
 
 function ExtraForm({ initial, onClose, onSaved }: {
@@ -435,12 +672,33 @@ function ExtraForm({ initial, onClose, onSaved }: {
       price_per_unit: initial.price_per_unit != null ? String(initial.price_per_unit) : '',
       unit_label: initial.unit_label ?? 'item',
       is_active: initial.is_active, sort_order: String(initial.sort_order),
+      image: initial.image ?? '',
     }
   })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [imageUploading, setImageUploading] = useState(false)
+  const [imageError, setImageError] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   function set<K extends keyof ExtraFormData>(k: K, v: ExtraFormData[K]) { setForm(f => ({ ...f, [k]: v })) }
+
+  async function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImageUploading(true); setImageError('')
+    const extraSlug = slugify(form.name || 'extra')
+    const fd = new globalThis.FormData()
+    fd.append('file', file)
+    fd.append('bucket', 'rental-images')
+    fd.append('slug', `extras/${extraSlug}`)
+    const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
+    const json = await res.json()
+    if (json.url) set('image', json.url)
+    else setImageError(json.error ?? 'Upload failed')
+    setImageUploading(false)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
 
   async function handleSave() {
     setSaving(true); setError('')
@@ -450,6 +708,7 @@ function ExtraForm({ initial, onClose, onSaved }: {
       price_per_unit: form.pricingMode === 'unit' && form.price_per_unit ? Number(form.price_per_unit) : null,
       unit_label: form.unit_label || 'item',
       is_active: form.is_active, sort_order: Number(form.sort_order) || 0,
+      image: form.image || null,
     }
     const url = initial ? `/api/admin/extras/${initial.id}` : '/api/admin/extras'
     const method = initial ? 'PUT' : 'POST'
@@ -468,6 +727,22 @@ function ExtraForm({ initial, onClose, onSaved }: {
       <div>
         <label className={LABEL}>Description</label>
         <textarea className={INPUT} rows={3} value={form.description} onChange={e => set('description', e.target.value)} />
+      </div>
+      <div>
+        <label className={LABEL}>Image</label>
+        {form.image && (
+          <div className="mb-2 relative inline-block">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={form.image} alt="" className="w-32 h-24 object-cover rounded-sm border border-border" />
+            <button type="button" onClick={() => set('image', '')} className="absolute top-0.5 right-0.5 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center hover:bg-red-600">×</button>
+          </div>
+        )}
+        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
+        <button type="button" onClick={() => fileInputRef.current?.click()} disabled={imageUploading}
+          className="px-3 py-1.5 border border-dashed border-border rounded-sm text-sm text-tx-mid hover:border-navy hover:text-navy transition-colors disabled:opacity-50">
+          {imageUploading ? 'Uploading…' : form.image ? 'Replace Image' : '+ Upload Image'}
+        </button>
+        {imageError && <p className="mt-1 text-xs text-red-500">{imageError}</p>}
       </div>
       <div>
         <label className={LABEL}>Category</label>
@@ -512,6 +787,130 @@ function ExtraForm({ initial, onClose, onSaved }: {
         <input className={INPUT} type="number" value={form.sort_order} onChange={e => set('sort_order', e.target.value)} />
       </div>
     </Drawer>
+  )
+}
+
+// ── Rental Image Manager ───────────────────────────────────────────────────────
+
+function RentalImageManager() {
+  const [folders, setFolders] = useState<RentalImageFolder[]>([])
+  const [rentals, setRentals] = useState<RentalSummary[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  async function fetchData() {
+    setLoading(true); setError('')
+    const res = await fetch('/api/admin/rental-images')
+    if (!res.ok) { setError('Failed to load'); setLoading(false); return }
+    const data = await res.json()
+    setFolders(data.folders ?? [])
+    setRentals(data.rentals ?? [])
+    setLoading(false)
+  }
+
+  useEffect(() => { fetchData() }, [])
+
+  function getLinkedRental(folderName: string): RentalSummary | undefined {
+    return rentals.find(r => r.slug === folderName)
+  }
+
+  async function handleDeleteImage(path: string, folderName: string) {
+    if (!confirm(`Delete image "${path.split('/').pop()}"?`)) return
+    const res = await fetch('/api/admin/rental-images', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path }),
+    })
+    if (!res.ok) { alert('Failed to delete image'); return }
+    const rental = getLinkedRental(folderName)
+    if (rental) {
+      const publicUrlPrefix = path
+      const updatedImages = (rental.images ?? []).filter(url => !url.includes(publicUrlPrefix.split('/').pop()!))
+      await fetch(`/api/admin/rentals/${rental.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ images: updatedImages }),
+      })
+    }
+    fetchData()
+  }
+
+  async function handleDeleteFolder(folderName: string) {
+    if (!confirm(`Delete all images in folder "${folderName}"?`)) return
+    const res = await fetch('/api/admin/rental-images', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ folder: folderName }),
+    })
+    if (!res.ok) { alert('Failed to delete folder'); return }
+    const rental = getLinkedRental(folderName)
+    if (rental) {
+      await fetch(`/api/admin/rentals/${rental.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ images: [] }),
+      })
+    }
+    fetchData()
+  }
+
+  if (loading) return <p className="text-tx-mid text-sm">Loading images…</p>
+  if (error) return <p className="text-red-500 text-sm">{error}</p>
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-display text-xl text-navy">Rental Images</h2>
+        <button onClick={fetchData} className="px-3 py-1.5 border border-border rounded-sm text-xs text-tx-mid hover:bg-sand">Refresh</button>
+      </div>
+      {folders.length === 0 && (
+        <p className="text-tx-mid text-sm py-8 text-center">No images uploaded yet</p>
+      )}
+      <div className="space-y-6">
+        {folders.map(folder => {
+          const rental = getLinkedRental(folder.name)
+          const isLinked = !!rental
+          return (
+            <div key={folder.name} className="bg-white border border-border rounded-sm p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-tx text-sm">📁 {folder.name}</span>
+                  {isLinked
+                    ? <span className="px-1.5 py-0.5 bg-teal/10 text-teal text-[10px] font-bold uppercase rounded">Linked: {rental.name}</span>
+                    : <span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-bold uppercase rounded">Unlinked</span>
+                  }
+                </div>
+                <button onClick={() => handleDeleteFolder(folder.name)}
+                  className="text-xs text-red-500 hover:text-red-700 underline">Delete Folder</button>
+              </div>
+              {folder.urls.length === 0 ? (
+                <p className="text-xs text-tx-mid">Empty folder</p>
+              ) : (
+                <div className="flex flex-wrap gap-3">
+                  {folder.urls.map((url, i) => {
+                    const fileName = folder.fileNames[i]
+                    const ext = fileName.split('.').pop()?.toLowerCase() ?? ''
+                    const isSupported = SUPPORTED_EXTS.has(ext)
+                    return (
+                      <div key={url} className="relative group">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={url} alt={fileName} className="w-28 h-20 object-cover rounded-sm border border-border" />
+                        <span className={`absolute top-0.5 left-0.5 px-1 py-0.5 text-[9px] font-bold uppercase rounded ${isSupported ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
+                          {ext}
+                        </span>
+                        <button onClick={() => handleDeleteImage(folder.storagePaths[i], folder.name)}
+                          className="absolute top-0.5 right-0.5 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full items-center justify-center hidden group-hover:flex hover:bg-red-600">×</button>
+                        <p className="mt-1 text-[10px] text-tx-mid truncate w-28">{fileName}</p>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
   )
 }
 
@@ -632,6 +1031,7 @@ export function RentalsSection() {
                   <th className="text-left px-4 py-2.5 font-medium text-tx-mid">Type</th>
                   <th className="text-left px-4 py-2.5 font-medium text-tx-mid">Price/day</th>
                   <th className="text-left px-4 py-2.5 font-medium text-tx-mid">Region</th>
+                  <th className="text-center px-4 py-2.5 font-medium text-tx-mid">Photos</th>
                   <th className="text-center px-4 py-2.5 font-medium text-tx-mid">Featured</th>
                   <th className="text-center px-4 py-2.5 font-medium text-tx-mid">Active</th>
                   <th className="px-4 py-2.5" />
@@ -639,7 +1039,7 @@ export function RentalsSection() {
               </thead>
               <tbody>
                 {rentals.length === 0 && (
-                  <tr><td colSpan={7} className="px-4 py-8 text-center text-tx-mid">No vehicles yet</td></tr>
+                  <tr><td colSpan={8} className="px-4 py-8 text-center text-tx-mid">No vehicles yet</td></tr>
                 )}
                 {rentals.map(r => (
                   <tr key={r.id} className="border-b border-border last:border-0 hover:bg-gray-50">
@@ -647,6 +1047,12 @@ export function RentalsSection() {
                     <td className="px-4 py-3 text-tx-mid">{vtName(r.vehicle_type_id)}</td>
                     <td className="px-4 py-3 text-tx-mid">{r.price_per_day != null ? `€${r.price_per_day}` : '—'}</td>
                     <td className="px-4 py-3 text-tx-mid capitalize">{r.region}</td>
+                    <td className="px-4 py-3 text-center">
+                      {(r.images?.length ?? 0) > 0
+                        ? <span className="text-teal text-xs font-medium">📷 {r.images!.length}</span>
+                        : <span className="text-[10px] text-red-400 font-medium bg-red-50 px-1.5 py-0.5 rounded">No photos</span>
+                      }
+                    </td>
                     <td className="px-4 py-3 text-center">
                       <Toggle checked={r.is_featured} onChange={() => handleToggleRental(r, 'is_featured')} />
                     </td>
@@ -735,6 +1141,10 @@ export function RentalsSection() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredExtras.map(extra => (
               <div key={extra.id} className="bg-white border border-border rounded-sm p-4 flex flex-col gap-2">
+                {extra.image && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={extra.image} alt={extra.name} className="w-full h-24 object-cover rounded-sm border border-border mb-1" />
+                )}
                 <div className="flex items-start justify-between gap-2">
                   <span className="font-medium text-tx">{extra.name}</span>
                   <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded-full flex-shrink-0 ${EXTRA_BADGE_COLORS[extra.category] ?? EXTRA_BADGE_COLORS.other}`}>
@@ -760,6 +1170,9 @@ export function RentalsSection() {
           </div>
         </div>
       )}
+
+      {/* ── Tab 3: Images ── */}
+      {!loading && tab === 3 && <RentalImageManager />}
 
       {/* ── Drawers ── */}
       {rentalForm !== null && (
