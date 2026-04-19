@@ -4,12 +4,11 @@ import { usePathname, useRouter } from 'next/navigation';
 import { clsx } from 'clsx';
 
 const NAV_ITEMS = [
-  { href: '/home', icon: '🏠', label: 'Home' },
-  { href: '/activities', icon: '🧭', label: 'Explore' },
-  { href: '/deals', icon: '⚡', label: 'Deals' },
-  { href: '/rentals', icon: '🚙', label: 'Rentals' },
-  { href: '/insights', icon: '📝', label: 'Insights' },
-  { href: '/info', icon: 'ℹ️', label: 'Info' },
+  { href: '/home',       icon: '🏠',  label: 'Home' },
+  { href: '/activities', icon: '🧭',  label: 'Activities' },
+  { href: '/rentals',    icon: '🚙',  label: 'Rentals' },
+  { href: '/transfers',  icon: '🚐',  label: 'Transfers' },
+  { href: '/info',       icon: 'ℹ️',  label: 'Info' },
 ];
 
 export function BottomNav() {

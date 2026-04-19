@@ -9,13 +9,15 @@ import { createClient } from '@/lib/supabase';
 import type { GuestSession, Deal, Activity, Article, CalendarEvent } from '@/lib/types';
 
 // ─── Weather ──────────────────────────────────────────────────────────────────
-const WEATHER_CACHE_KEY = 'ik_weather_v1'
+const WEATHER_CACHE_KEY = 'ik_weather_v2'
 const WEATHER_TTL_MS    = 30 * 60 * 1000 // 30 minutes
 
 interface WeatherData {
   temp:     number
   code:     number
   wind:     number
+  windDir:  number
+  uv:       number
   cachedAt: number
 }
 
@@ -46,6 +48,31 @@ function wmoDesc(code: number): string {
   return 'Thunderstorm'
 }
 
+function windCompass(deg: number): string {
+  const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
+  return dirs[Math.round(deg / 45) % 8]
+}
+
+function uvBadge(uv: number): { bg: string; text: string; label: string } {
+  if (uv <= 2)  return { bg: '#4CAF50', text: 'white',  label: `UV ${uv}` }
+  if (uv <= 5)  return { bg: '#FFC107', text: '#555',   label: `UV ${uv}` }
+  if (uv <= 7)  return { bg: '#FF9800', text: 'white',  label: `UV ${uv}` }
+  if (uv <= 10) return { bg: '#F44336', text: 'white',  label: `UV ${uv}` }
+  return          { bg: '#9C27B0', text: 'white',  label: `UV ${uv}` }
+}
+
+function WindArrow({ degrees }: { degrees: number }) {
+  return (
+    <svg
+      width="9" height="9"
+      viewBox="0 0 10 10"
+      style={{ transform: `rotate(${degrees}deg)`, display: 'inline-block', flexShrink: 0 }}
+    >
+      <path d="M5 1 L8 8.5 L5 6.8 L2 8.5 Z" fill="currentColor" />
+    </svg>
+  )
+}
+
 function loadCachedWeather(): WeatherData | null {
   try {
     const raw = localStorage.getItem(WEATHER_CACHE_KEY)
@@ -63,7 +90,7 @@ async function fetchWeather(): Promise<WeatherData> {
   const url =
     'https://api.open-meteo.com/v1/forecast' +
     '?latitude=35.5138&longitude=24.0180' +
-    '&current=temperature_2m,weather_code,wind_speed_10m' +
+    '&current=temperature_2m,weather_code,wind_speed_10m,wind_direction_10m,uv_index' +
     '&wind_speed_unit=kmh&timezone=Europe%2FAthens'
   const res  = await fetch(url, { cache: 'no-store' })
   if (!res.ok) throw new Error(`Weather API ${res.status}`)
@@ -73,11 +100,13 @@ async function fetchWeather(): Promise<WeatherData> {
     temp:     Math.round(c.temperature_2m),
     code:     c.weather_code,
     wind:     Math.round(c.wind_speed_10m),
+    windDir:  Math.round(c.wind_direction_10m ?? 0),
+    uv:       Math.round(c.uv_index ?? 0),
     cachedAt: Date.now(),
   }
 }
 
-// ─── Style maps (derived from category, since DB doesn't store them) ───
+// ─── Style maps ───────────────────────────────────────────────────────────────
 const ARTICLE_STYLES: Record<string, { bg: string; tagColor: string }> = {
   guide:   { bg: 'linear-gradient(135deg,rgba(26,138,125,0.12),rgba(107,123,94,0.08))',  tagColor: '#1A8A7D' },
   food:    { bg: 'linear-gradient(135deg,rgba(212,133,74,0.08),rgba(196,112,63,0.08))',  tagColor: '#D4854A' },
@@ -100,35 +129,33 @@ function formatEventWhen(dateStr: string, timeStart: string | null): string {
 }
 
 interface HomeData {
-  deals: Deal[];
-  activities: Activity[];
-  articles: Article[];
-  events: CalendarEvent[];
+  deals:         Deal[];
+  activities:    Activity[];   // featured
+  allActivities: Activity[];   // all active (for Explore section)
+  articles:      Article[];
+  events:        CalendarEvent[];
 }
 
 export default function HomePage() {
   const router = useRouter();
   const [session, setSession] = useState<GuestSession | null>(null);
-  const [data, setData] = useState<HomeData>({ deals: [], activities: [], articles: [], events: [] });
+  const [data, setData] = useState<HomeData>({ deals: [], activities: [], allActivities: [], articles: [], events: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [, setTick] = useState(0); // for live countdown re-render
+  const [, setTick] = useState(0);
   const [weather, setWeather] = useState<WeatherData | null>(null);
 
-  // Redirect if no session
   useEffect(() => {
     const s = getSession();
     if (!s) { router.replace('/splash'); return; }
     setSession(s);
   }, [router]);
 
-  // Live countdown tick every minute
   useEffect(() => {
     const interval = setInterval(() => setTick(t => t + 1), 60000);
     return () => clearInterval(interval);
   }, []);
 
-  // Weather — load from cache immediately, then refresh if stale
   useEffect(() => {
     async function refresh() {
       const cached = loadCachedWeather();
@@ -139,9 +166,7 @@ export default function HomePage() {
           const fresh = await fetchWeather();
           saveCachedWeather(fresh);
           setWeather(fresh);
-        } catch {
-          // Keep cached value if fetch fails; leave null if no cache
-        }
+        } catch { /* keep cached */ }
       }
     }
     refresh();
@@ -149,27 +174,22 @@ export default function HomePage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch all four in parallel once session is available
   useEffect(() => {
     const s = getSession();
     if (!s) return;
     const supabase = createClient();
 
     Promise.all([
-      // 1. Featured deals — filter by tier + region in JS (view already filters active/unexpired)
       supabase.from('active_deals').select('*').limit(10),
-      // 2. Featured activities
       supabase.from('activities').select('*').eq('is_featured', true).eq('is_active', true).limit(10),
-      // 3. Latest articles
+      supabase.from('activities').select('*').eq('is_active', true).limit(30),
       supabase.from('published_articles').select('*').limit(3),
-      // 4. Upcoming events
       supabase.from('upcoming_events').select('*').limit(3),
-    ]).then(([dealsRes, activitiesRes, articlesRes, eventsRes]) => {
-      const err = dealsRes.error || activitiesRes.error || articlesRes.error || eventsRes.error;
+    ]).then(([dealsRes, featuredRes, allRes, articlesRes, eventsRes]) => {
+      const err = dealsRes.error || featuredRes.error || allRes.error || articlesRes.error || eventsRes.error;
       if (err) { setError(err.message); setLoading(false); return; }
 
-      // Apply tier + region filters
-      const tier = s.tier;
+      const tier   = s.tier;
       const region = s.region;
 
       const deals = (dealsRes.data ?? [])
@@ -177,16 +197,22 @@ export default function HomePage() {
         .filter(d => d.region === region)
         .slice(0, 3);
 
-      const activities = (activitiesRes.data ?? [])
+      const activities = (featuredRes.data ?? [])
         .filter(a => !a.tier_visibility?.length || a.tier_visibility.includes(tier))
         .filter(a => a.region === 'island-wide' || a.region === region)
         .slice(0, 5);
 
+      const allActivities = (allRes.data ?? [])
+        .filter(a => !a.tier_visibility?.length || a.tier_visibility.includes(tier))
+        .filter(a => a.region === 'island-wide' || a.region === region)
+        .slice(0, 12);
+
       setData({
         deals,
         activities,
+        allActivities,
         articles: articlesRes.data ?? [],
-        events: eventsRes.data ?? [],
+        events:   eventsRes.data ?? [],
       });
       setLoading(false);
     });
@@ -194,7 +220,6 @@ export default function HomePage() {
 
   if (!session) return null;
 
-  // Use UTC date strings throughout to avoid timezone-shift bugs with date-only values
   const todayStr = new Date().toISOString().slice(0, 10);
   const checkIn  = session.check_in  ?? '';
   const checkOut = session.check_out ?? '';
@@ -231,68 +256,72 @@ export default function HomePage() {
       </div>
 
       <div className="flex-1 overflow-y-auto">
+
         {/* Weather / trip bar */}
-        <div className="mx-5 mb-3 p-2.5 px-3.5 bg-white rounded-sm flex items-center justify-between border border-border-light">
-          <div className="flex items-center gap-2.5">
-            <span className="text-xl">{weather ? wmoIcon(weather.code) : '🌡️'}</span>
-            <div>
-              {weather ? (
+        <div className="mx-5 mb-5 p-2.5 px-3.5 bg-white rounded-sm border border-border-light">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <span className="text-xl">{weather ? wmoIcon(weather.code) : '🌡️'}</span>
+              <div>
+                {weather ? (
+                  <>
+                    <p className="text-base font-bold text-navy">{weather.temp}°C</p>
+                    <p className="text-[11px] text-tx-light">{wmoDesc(weather.code)}</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-base font-bold text-navy">—°C</p>
+                    <p className="text-[11px] text-tx-light">Weather unavailable</p>
+                  </>
+                )}
+              </div>
+            </div>
+            <div className="text-right">
+              {tripStatus.type === 'before' && (
                 <>
-                  <p className="text-base font-bold text-navy">{weather.temp}°C</p>
-                  <p className="text-[11px] text-tx-light">{wmoDesc(weather.code)} · {weather.wind} km/h</p>
+                  <p className="text-xs font-semibold text-tx-mid">Trip starts in {tripStatus.daysUntil} {tripStatus.daysUntil === 1 ? 'day' : 'days'}</p>
+                  <p className="text-[11px] text-tx-light">
+                    {new Date(checkIn + 'T00:00:00').toLocaleDateString('en', { weekday: 'short', day: 'numeric', month: 'short' })}
+                  </p>
                 </>
-              ) : (
+              )}
+              {tripStatus.type === 'during' && (
                 <>
-                  <p className="text-base font-bold text-navy">—°C</p>
-                  <p className="text-[11px] text-tx-light">Weather unavailable</p>
+                  <p className="text-xs font-semibold text-tx-mid">Day {tripStatus.dayNum} of {tripStatus.length}</p>
+                  <p className="text-[11px] text-tx-light">
+                    {new Date(checkIn + 'T00:00:00').toLocaleDateString('en', { weekday: 'short', day: 'numeric', month: 'short' })}
+                  </p>
                 </>
+              )}
+              {tripStatus.type === 'after' && (
+                <p className="text-xs font-semibold text-tx-mid">We hope you enjoyed your stay!</p>
+              )}
+              {tripStatus.type === 'unknown' && (
+                <p className="text-xs font-semibold text-tx-mid">Welcome to Crete</p>
               )}
             </div>
           </div>
-          <div className="text-right">
-            {tripStatus.type === 'before' && (
-              <>
-                <p className="text-xs font-semibold text-tx-mid">Trip starts in {tripStatus.daysUntil} {tripStatus.daysUntil === 1 ? 'day' : 'days'}</p>
-                <p className="text-[11px] text-tx-light">
-                  {new Date(checkIn + 'T00:00:00').toLocaleDateString('en', { weekday: 'short', day: 'numeric', month: 'short' })}
-                </p>
-              </>
-            )}
-            {tripStatus.type === 'during' && (
-              <>
-                <p className="text-xs font-semibold text-tx-mid">Day {tripStatus.dayNum} of {tripStatus.length}</p>
-                <p className="text-[11px] text-tx-light">
-                  {new Date(checkIn + 'T00:00:00').toLocaleDateString('en', { weekday: 'short', day: 'numeric', month: 'short' })}
-                </p>
-              </>
-            )}
-            {tripStatus.type === 'after' && (
-              <p className="text-xs font-semibold text-tx-mid">We hope you enjoyed your stay!</p>
-            )}
-            {tripStatus.type === 'unknown' && (
-              <p className="text-xs font-semibold text-tx-mid">Welcome to Crete</p>
-            )}
-          </div>
-        </div>
 
-        {/* Quick actions */}
-        <div className="grid grid-cols-5 gap-[7px] mx-5 mb-5">
-          {[
-            { icon: '🧭', label: 'Activities', href: '/activities' },
-            { icon: '⚡', label: 'Deals', href: '/deals' },
-            { icon: '🚙', label: 'Rentals', href: '/rentals' },
-            { icon: '🚐', label: 'Transfers', href: '/transfers' },
-            { icon: 'ℹ️', label: 'Info', href: '/info' },
-          ].map(action => (
-            <button
-              key={action.href}
-              onClick={() => router.push(action.href)}
-              className="flex flex-col items-center gap-1.5 py-3 px-1 bg-white rounded border border-border-light transition-all active:scale-[0.94] active:bg-sand"
-            >
-              <span className="text-lg">{action.icon}</span>
-              <span className="text-[9px] font-bold text-tx-mid text-center leading-tight">{action.label}</span>
-            </button>
-          ))}
+          {/* Wind + UV row */}
+          {weather && (
+            <div className="flex items-center gap-3 mt-1.5 pt-1.5 border-t border-border-light">
+              <span className="flex items-center gap-1 text-[11px] text-tx-light">
+                <WindArrow degrees={weather.windDir} />
+                {windCompass(weather.windDir)} {weather.wind} km/h
+              </span>
+              {(() => {
+                const b = uvBadge(weather.uv)
+                return (
+                  <span
+                    className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+                    style={{ background: b.bg, color: b.text }}
+                  >
+                    {b.label}
+                  </span>
+                )
+              })()}
+            </div>
+          )}
         </div>
 
         {/* Error */}
@@ -302,34 +331,71 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Today's Deal spotlight */}
-        <SectionHeader title="Today's Deal" linkText="View all →" onLink={() => router.push('/deals')} />
-        {loading ? (
-          <div className="mx-5 mb-5 h-[90px] rounded bg-navy/5 animate-pulse" />
-        ) : featuredDeal ? (
-          <div
-            onClick={() => router.push('/deals')}
-            className="mx-5 mb-5 p-3.5 rounded cursor-pointer relative overflow-hidden border border-[#F0D9C4] transition-all active:scale-[0.98]"
-            style={{ background: 'linear-gradient(135deg, #FDF3EB, #FFF8F2)' }}
-          >
-            <span className="absolute top-2.5 right-2.5 bg-deal text-white text-[10px] font-bold px-2 py-0.5 rounded">
-              {timeRemaining(featuredDeal.expires_at)}
-            </span>
-            <h3 className="font-semibold text-sm text-navy mb-0.5 pr-20">{featuredDeal.title}</h3>
-            <p className="text-[11px] text-tx-light mb-1.5">
-              {featuredDeal.provider_name ?? ''}
-              {featuredDeal.available_seats ? ` · ${featuredDeal.available_seats} seats left` : ''}
-            </p>
-            <div className="flex items-baseline gap-2">
-              <span className="text-xs text-tx-light line-through">{formatPrice(featuredDeal.original_price)}</span>
-              <span className="text-base font-bold text-terra">{formatPrice(featuredDeal.deal_price)}</span>
-            </div>
-          </div>
-        ) : (
-          <p className="mx-5 mb-5 text-xs text-tx-light">No active deals right now — check back soon.</p>
+        {/* What's happening — hidden if empty after load */}
+        {(loading || data.events.length > 0) && (
+          <>
+            <SectionHeader title="What's happening" linkText="See calendar →" onLink={() => router.push('/events')} />
+            {loading ? (
+              <div className="mx-5 mb-5 space-y-2">
+                {Array.from({ length: 2 }).map((_, i) => (
+                  <div key={i} className="h-[52px] rounded-sm bg-navy/5 animate-pulse" />
+                ))}
+              </div>
+            ) : (
+              <div className="mb-5">
+                {data.events.map(ev => (
+                  <div
+                    key={ev.id}
+                    onClick={() => router.push('/events')}
+                    className="mx-5 mb-2.5 flex gap-2.5 p-2.5 px-3 bg-white rounded-sm border border-border-light items-center cursor-pointer active:bg-sand"
+                  >
+                    <span className="text-lg">{EVENT_ICONS[ev.category] ?? '📅'}</span>
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-navy">{ev.title}</p>
+                      <p className="text-[10px] text-tx-light">
+                        {formatEventWhen(ev.date, ev.time_start)}
+                        {ev.location ? ` · ${ev.location}` : ''}
+                        {ev.is_free ? ' · Free entry' : ''}
+                      </p>
+                    </div>
+                    <span className="text-[11px] text-teal">→</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
         )}
 
-        {/* Recommended activities */}
+        {/* Today's Deal — hidden if empty after load */}
+        {(loading || featuredDeal) && (
+          <>
+            <SectionHeader title="Today's Deal" linkText="View all →" onLink={() => router.push('/deals')} />
+            {loading ? (
+              <div className="mx-5 mb-5 h-[90px] rounded bg-navy/5 animate-pulse" />
+            ) : featuredDeal ? (
+              <div
+                onClick={() => router.push('/deals')}
+                className="mx-5 mb-5 p-3.5 rounded cursor-pointer relative overflow-hidden border border-[#F0D9C4] transition-all active:scale-[0.98]"
+                style={{ background: 'linear-gradient(135deg, #FDF3EB, #FFF8F2)' }}
+              >
+                <span className="absolute top-2.5 right-2.5 bg-deal text-white text-[10px] font-bold px-2 py-0.5 rounded">
+                  {timeRemaining(featuredDeal.expires_at)}
+                </span>
+                <h3 className="font-semibold text-sm text-navy mb-0.5 pr-20">{featuredDeal.title}</h3>
+                <p className="text-[11px] text-tx-light mb-1.5">
+                  {featuredDeal.provider_name ?? ''}
+                  {featuredDeal.available_seats ? ` · ${featuredDeal.available_seats} seats left` : ''}
+                </p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-xs text-tx-light line-through">{formatPrice(featuredDeal.original_price)}</span>
+                  <span className="text-base font-bold text-terra">{formatPrice(featuredDeal.deal_price)}</span>
+                </div>
+              </div>
+            ) : null}
+          </>
+        )}
+
+        {/* Recommended for you */}
         <SectionHeader title="Recommended for you" linkText="See all →" onLink={() => router.push('/activities')} />
         {loading ? (
           <div className="flex gap-2.5 px-5 mb-5">
@@ -353,6 +419,32 @@ export default function HomePage() {
           </div>
         ) : (
           <p className="px-5 mb-5 text-xs text-tx-light">No featured activities yet.</p>
+        )}
+
+        {/* Explore Activities */}
+        <SectionHeader title="Explore Activities" linkText="Browse all →" onLink={() => router.push('/activities')} />
+        {loading ? (
+          <div className="flex gap-2.5 px-5 mb-5">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="min-w-[190px] h-[155px] rounded bg-navy/5 animate-pulse flex-shrink-0" />
+            ))}
+          </div>
+        ) : data.allActivities.length > 0 ? (
+          <div className="flex gap-2.5 px-5 overflow-x-auto snap-x snap-mandatory no-scrollbar mb-5">
+            {data.allActivities.map(a => (
+              <ActivityMiniCard
+                key={a.id}
+                title={a.title}
+                subtitle={[a.duration, a.meeting_point].filter(Boolean).join(' · ')}
+                priceFrom={a.price_from ?? 0}
+                category={a.category}
+                imageUrl={a.images?.[0] ?? null}
+                onClick={() => router.push(`/activities/${a.slug}`)}
+              />
+            ))}
+          </div>
+        ) : (
+          <p className="px-5 mb-5 text-xs text-tx-light">No activities yet.</p>
         )}
 
         {/* Local Insights */}
@@ -385,38 +477,6 @@ export default function HomePage() {
           <p className="px-5 mb-5 text-xs text-tx-light">No articles published yet.</p>
         )}
 
-        {/* What's happening */}
-        <SectionHeader title="What's happening" linkText="See calendar →" onLink={() => router.push('/events')} />
-        {loading ? (
-          <div className="mx-5 mb-5 space-y-2">
-            {Array.from({ length: 2 }).map((_, i) => (
-              <div key={i} className="h-[52px] rounded-sm bg-navy/5 animate-pulse" />
-            ))}
-          </div>
-        ) : data.events.length > 0 ? (
-          <div className="mb-5">
-            {data.events.map(ev => (
-              <div
-                key={ev.id}
-                onClick={() => router.push('/events')}
-                className="mx-5 mb-2.5 flex gap-2.5 p-2.5 px-3 bg-white rounded-sm border border-border-light items-center cursor-pointer active:bg-sand"
-              >
-                <span className="text-lg">{EVENT_ICONS[ev.category] ?? '📅'}</span>
-                <div className="flex-1">
-                  <p className="text-xs font-semibold text-navy">{ev.title}</p>
-                  <p className="text-[10px] text-tx-light">
-                    {formatEventWhen(ev.date, ev.time_start)}
-                    {ev.location ? ` · ${ev.location}` : ''}
-                    {ev.is_free ? ' · Free entry' : ''}
-                  </p>
-                </div>
-                <span className="text-[11px] text-teal">→</span>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="px-5 mb-5 text-xs text-tx-light">No upcoming events in the next 30 days.</p>
-        )}
       </div>
 
       <BottomNav />

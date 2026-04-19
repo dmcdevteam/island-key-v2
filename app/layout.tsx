@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { AdminPreviewPill } from './_components/admin-preview-pill';
+import { WhatsAppFAB } from './_components/whatsapp-fab';
 
 export const metadata: Metadata = {
   title: 'Island Key — Your island. Unlocked.',
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="font-body text-tx bg-cream min-h-screen">
         <AdminPreviewPill />
+        <WhatsAppFAB />
         {children}
       </body>
     </html>
