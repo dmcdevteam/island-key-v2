@@ -17,6 +17,13 @@ export function AdminPreviewPill() {
   // Don't render on admin pages or when not in preview mode
   if (!active || pathname.startsWith('/admin')) return null;
 
+  function resetPreview() {
+    localStorage.removeItem('ik_session');
+    setOpen(false);
+    // Gate page detects ik_admin_preview and routes straight to /splash
+    router.push('/');
+  }
+
   return (
     <>
       {/* Backdrop to close dropdown */}
@@ -41,12 +48,18 @@ export function AdminPreviewPill() {
               Go to Admin Panel
             </button>
             <button
+              onClick={resetPreview}
+              className="w-full text-left px-4 py-2.5 text-[13px] text-tx hover:bg-sand transition-colors border-t border-border-light"
+            >
+              Reset Preview
+            </button>
+            <button
               onClick={() => {
                 localStorage.removeItem('ik_admin_preview');
                 setActive(false);
                 setOpen(false);
               }}
-              className="w-full text-left px-4 py-2.5 text-[13px] text-tx hover:bg-sand transition-colors border-t border-border-light"
+              className="w-full text-left px-4 py-2.5 text-[13px] text-tx-mid hover:bg-sand transition-colors border-t border-border-light"
             >
               Exit Preview
             </button>

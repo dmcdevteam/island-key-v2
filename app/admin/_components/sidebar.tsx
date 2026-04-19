@@ -32,7 +32,8 @@ function NavContent({ onNavClick }: { onNavClick?: () => void }) {
           onClick={() => {
             document.cookie = 'ik_access=1; path=/; max-age=7776000; SameSite=Lax';
             localStorage.setItem('ik_admin_preview', '1');
-            window.open('/home', '_blank');
+            localStorage.removeItem('ik_session'); // fresh preview — start from gate
+            window.open('/', '_blank');
           }}
           className="mt-3 w-full flex items-center justify-center gap-1.5 px-3 py-1.5 border border-white/25 rounded text-[12px] font-semibold text-white/70 hover:text-white hover:border-white/50 transition-colors"
         >

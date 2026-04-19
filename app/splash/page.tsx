@@ -1,9 +1,15 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function SplashPage() {
   const router = useRouter();
+  const [isAdminPreview, setIsAdminPreview] = useState(false);
+
+  useEffect(() => {
+    setIsAdminPreview(localStorage.getItem('ik_admin_preview') === '1');
+  }, []);
 
   return (
     <div
@@ -15,6 +21,17 @@ export default function SplashPage() {
       <div className="absolute inset-0 opacity-[0.04]" style={{
         backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`
       }} />
+
+      {/* Admin Skip — top right, only in preview mode */}
+      {isAdminPreview && (
+        <button
+          onClick={e => { e.stopPropagation(); router.push('/onboard'); }}
+          className="absolute top-4 right-4 z-10 flex items-center gap-1.5 text-white/40 text-[12px] hover:text-white/70 transition-colors"
+        >
+          <span className="text-[9px] font-bold bg-white/15 text-white/50 px-1.5 py-0.5 rounded uppercase tracking-wide">Admin</span>
+          Skip →
+        </button>
+      )}
 
       {/* Content */}
       <div className="relative text-center z-10 animate-fade-up">

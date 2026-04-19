@@ -27,6 +27,13 @@ function GatePage() {
       const t = searchParams.get('t') as Tier | null;
       const r = searchParams.get('r') as Region | null;
 
+      // ── Admin preview: bypass gate entirely ──────────────────────────────
+      if (localStorage.getItem('ik_admin_preview') === '1') {
+        grantAccessCookie();
+        router.replace('/splash');
+        return;
+      }
+
       // ── QR path: valid short params present ──────────────────────────────
       if (
         p && t && r &&
