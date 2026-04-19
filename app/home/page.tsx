@@ -331,7 +331,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* What's happening — hidden if empty after load */}
+        {/* What's happening — hidden entirely if no events after load */}
         {(loading || data.events.length > 0) && (
           <>
             <SectionHeader title="What's happening" linkText="See calendar →" onLink={() => router.push('/events')} />
@@ -366,33 +366,31 @@ export default function HomePage() {
           </>
         )}
 
-        {/* Today's Deal — hidden if empty after load */}
-        {(loading || featuredDeal) && (
-          <>
-            <SectionHeader title="Today's Deal" linkText="View all →" onLink={() => router.push('/deals')} />
-            {loading ? (
-              <div className="mx-5 mb-5 h-[90px] rounded bg-navy/5 animate-pulse" />
-            ) : featuredDeal ? (
-              <div
-                onClick={() => router.push('/deals')}
-                className="mx-5 mb-5 p-3.5 rounded cursor-pointer relative overflow-hidden border border-[#F0D9C4] transition-all active:scale-[0.98]"
-                style={{ background: 'linear-gradient(135deg, #FDF3EB, #FFF8F2)' }}
-              >
-                <span className="absolute top-2.5 right-2.5 bg-deal text-white text-[10px] font-bold px-2 py-0.5 rounded">
-                  {timeRemaining(featuredDeal.expires_at)}
-                </span>
-                <h3 className="font-semibold text-sm text-navy mb-0.5 pr-20">{featuredDeal.title}</h3>
-                <p className="text-[11px] text-tx-light mb-1.5">
-                  {featuredDeal.provider_name ?? ''}
-                  {featuredDeal.available_seats ? ` · ${featuredDeal.available_seats} seats left` : ''}
-                </p>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-xs text-tx-light line-through">{formatPrice(featuredDeal.original_price)}</span>
-                  <span className="text-base font-bold text-terra">{formatPrice(featuredDeal.deal_price)}</span>
-                </div>
-              </div>
-            ) : null}
-          </>
+        {/* Today's Deal */}
+        <SectionHeader title="Today's Deal" linkText="View all →" onLink={() => router.push('/deals')} />
+        {loading ? (
+          <div className="mx-5 mb-5 h-[90px] rounded bg-navy/5 animate-pulse" />
+        ) : featuredDeal ? (
+          <div
+            onClick={() => router.push('/deals')}
+            className="mx-5 mb-5 p-3.5 rounded cursor-pointer relative overflow-hidden border border-[#F0D9C4] transition-all active:scale-[0.98]"
+            style={{ background: 'linear-gradient(135deg, #FDF3EB, #FFF8F2)' }}
+          >
+            <span className="absolute top-2.5 right-2.5 bg-deal text-white text-[10px] font-bold px-2 py-0.5 rounded">
+              {timeRemaining(featuredDeal.expires_at)}
+            </span>
+            <h3 className="font-semibold text-sm text-navy mb-0.5 pr-20">{featuredDeal.title}</h3>
+            <p className="text-[11px] text-tx-light mb-1.5">
+              {featuredDeal.provider_name ?? ''}
+              {featuredDeal.available_seats ? ` · ${featuredDeal.available_seats} seats left` : ''}
+            </p>
+            <div className="flex items-baseline gap-2">
+              <span className="text-xs text-tx-light line-through">{formatPrice(featuredDeal.original_price)}</span>
+              <span className="text-base font-bold text-terra">{formatPrice(featuredDeal.deal_price)}</span>
+            </div>
+          </div>
+        ) : (
+          <p className="mx-5 mb-5 text-xs text-tx-light">No active deals right now — check back soon.</p>
         )}
 
         {/* Recommended for you */}
