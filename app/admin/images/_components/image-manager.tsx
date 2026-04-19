@@ -141,6 +141,8 @@ export function ImageManager() {
   // Bulk delete selection (storage paths)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [bulkDeleting, setBulkDeleting] = useState(false)
+  const [syncing, setSyncing] = useState(false)
+  const [syncResult, setSyncResult] = useState<string>('')
 
   // Ref for "View unsupported" scroll target
   const unsupportedRef = useRef<HTMLDivElement>(null)
@@ -162,6 +164,27 @@ export function ImageManager() {
   }, [])
 
   useEffect(() => { load() }, [load])
+
+  // ── Sync Storage → DB ────────────────────────────────────────────────────────
+  async function syncFromStorage() {
+    setSyncing(true)
+    setSyncResult('')
+    try {
+      const res = await fetch('/api/admin/images/sync', { method: 'POST' })
+      const json = await res.json()
+      if (!res.ok) {
+        setSyncResult(`Sync failed: ${json.error}`)
+      } else {
+        const msg = `Synced ${json.updated} folder${json.updated !== 1 ? 's' : ''} from Storage.` +
+          (json.noMatch?.length ? ` (${json.noMatch.length} folder${json.noMatch.length !== 1 ? 's' : ''} with no matching activity: ${json.noMatch.join(', ')})` : '')
+        setSyncResult(msg)
+        await load()
+      }
+    } catch (err) {
+      setSyncResult(err instanceof Error ? err.message : 'Sync failed')
+    }
+    setSyncing(false)
+  }
 
   // ── Totals ───────────────────────────────────────────────────────────────────
   const totalUnsupported = views.reduce(
@@ -405,12 +428,25 @@ export function ImageManager() {
             {unlinked.length > 0 && ` · ${unlinked.length} unlinked`}
           </p>
         </div>
-        <button
-          onClick={load}
-          className="w-full sm:w-auto px-4 py-2 border border-border rounded-sm text-sm text-tx-mid hover:text-navy hover:border-navy transition-colors"
-        >
-          Refresh
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={syncFromStorage}
+            disabled={syncing}
+            title="Rebuild each activity's images array from what's actually in Storage"
+            className="w-full sm:w-auto px-4 py-2 border border-teal/40 text-teal rounded-sm text-sm font-medium hover:bg-teal/10 disabled:opacity-50 transition-colors"
+          >
+            {syncing ? 'Syncing…' : '↻ Sync from Storage'}
+          </button>
+          <button
+            onClick={load}
+            className="w-full sm:w-auto px-4 py-2 border border-border rounded-sm text-sm text-tx-mid hover:text-navy hover:border-navy transition-colors"
+          >
+            Refresh
+          </button>
+        </div>
+        {syncResult && (
+          <p className="mt-2 text-xs text-teal bg-teal/10 px-3 py-2 rounded-sm sm:col-span-2">{syncResult}</p>
+        )}
       </div>
 
       {views.length === 0 && (
