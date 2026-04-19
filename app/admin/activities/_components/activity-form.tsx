@@ -24,6 +24,18 @@ interface ActivitySlim {
   category: string
 }
 
+// ── File type validation ──────────────────────────────────────────────────
+const SUPPORTED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp'])
+const EXT_MIME: Record<string, string> = {
+  jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp',
+}
+
+function getEffectiveMime(file: File): string {
+  if (file.type && file.type !== 'application/octet-stream') return file.type
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
+  return EXT_MIME[ext] ?? 'application/octet-stream'
+}
+
 function slugify(str: string): string {
   return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
 }
@@ -110,18 +122,36 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
     if (!files.length) return
     setUploadError('')
 
+    // Filter by MIME type client-side before sending to server
+    const rejected: string[] = []
+    const toUpload: File[] = []
+    for (const file of files) {
+      const mime = getEffectiveMime(file)
+      if (!SUPPORTED_MIME.has(mime)) {
+        const ext = file.name.split('.').pop()?.toUpperCase() ?? 'unknown'
+        rejected.push(`${file.name} — ${ext} format is not supported. Please convert to JPG or WebP.`)
+      } else {
+        toUpload.push(file)
+      }
+    }
+
+    if (rejected.length) setUploadError(rejected.join('\n'))
+    if (!toUpload.length) {
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      return
+    }
+
     const slug = form.slug || slugify(form.title) || undefined
     const title = form.title || undefined
 
-    setUploadingCount(files.length)
+    setUploadingCount(toUpload.length)
 
     const results = await Promise.allSettled(
-      files.map(async (file) => {
+      toUpload.map(async (file) => {
         const fd = new globalThis.FormData()
         fd.append('file', file)
         if (slug)  fd.append('slug',  slug)
         if (title) fd.append('title', title)
-        // alt and description left blank — user fills them in after upload
 
         const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
         let json: Record<string, string>
@@ -139,14 +169,17 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
     if (fileInputRef.current) fileInputRef.current.value = ''
 
     const succeeded: ImageItem[] = []
-    const failed: string[] = []
+    const uploadFailed: string[] = []
     for (const r of results) {
       if (r.status === 'fulfilled') succeeded.push(r.value)
-      else failed.push(r.reason instanceof Error ? r.reason.message : 'Upload failed')
+      else uploadFailed.push(r.reason instanceof Error ? r.reason.message : 'Upload failed')
     }
 
     if (succeeded.length) setImageItems(prev => [...prev, ...succeeded])
-    if (failed.length)    setUploadError(failed[0])
+    if (uploadFailed.length) {
+      const existing = rejected.length ? rejected.join('\n') + '\n' : ''
+      setUploadError(existing + uploadFailed.join('\n'))
+    }
   }
 
   // ── Folder upload ─────────────────────────────────────────────────────────
@@ -186,10 +219,32 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
     setFolderSuccess('')
     setFolderProgress(0)
 
+    // Filter unsupported types before uploading
+    const rejectedFiles: string[] = []
+    const validFiles: File[] = []
+    for (const file of folderFiles) {
+      const mime = getEffectiveMime(file)
+      if (!SUPPORTED_MIME.has(mime)) {
+        const ext = file.name.split('.').pop()?.toUpperCase() ?? 'unknown'
+        rejectedFiles.push(`${file.name} — ${ext} not supported`)
+      } else {
+        validFiles.push(file)
+      }
+    }
+
+    if (rejectedFiles.length) {
+      setFolderError(`${rejectedFiles.length} file${rejectedFiles.length > 1 ? 's' : ''} skipped (unsupported format — convert to JPG or WebP): ${rejectedFiles.join(', ')}`)
+    }
+
+    if (validFiles.length === 0) {
+      setFolderUploading(false)
+      return
+    }
+
     const uploadedUrls: string[] = []
     let done = 0
 
-    for (const file of folderFiles) {
+    for (const file of validFiles) {
       try {
         const fd = new globalThis.FormData()
         fd.append('file', file)
@@ -200,13 +255,14 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
         let json: Record<string, string>
         try { json = await res.json() } catch { json = { error: `Server error ${res.status}` } }
         if (json.url) uploadedUrls.push(json.url)
-        else if (json.error) { setFolderError(json.error); break }
+        else if (json.error) { setFolderError(e => e ? `${e}\n${json.error}` : json.error); break }
       } catch (err) {
-        setFolderError(err instanceof Error ? err.message : 'Upload failed')
+        const msg = err instanceof Error ? err.message : 'Upload failed'
+        setFolderError(e => e ? `${e}\n${msg}` : msg)
         break
       }
       done++
-      setFolderProgress(Math.round((done / folderFiles.length) * 100))
+      setFolderProgress(Math.round((done / validFiles.length) * 100))
     }
 
     setFolderUploading(false)
@@ -658,7 +714,7 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
                 <div className="flex items-center justify-between">
                   <span className="text-[12px] font-semibold text-tx">
                     📁 {folderName}
-                    <span className="font-normal text-tx-light ml-1.5">({folderFiles.length} images)</span>
+                    <span className="font-normal text-tx-light ml-1.5">({folderFiles.length} files)</span>
                   </span>
                   <button type="button" onClick={clearFolderSelection} className="text-[11px] text-tx-light hover:text-red-500">
                     Clear

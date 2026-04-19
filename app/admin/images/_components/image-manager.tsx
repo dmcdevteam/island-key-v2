@@ -1,6 +1,27 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+
+// ── Format support ─────────────────────────────────────────────────────────────
+const SUPPORTED_EXTS = new Set(['jpg', 'jpeg', 'png', 'webp'])
+
+function getUrlExt(url: string): string {
+  return url.split('?')[0].split('.').pop()?.toLowerCase() ?? ''
+}
+
+function isUrlSupported(url: string): boolean {
+  return SUPPORTED_EXTS.has(getUrlExt(url))
+}
+
+function getExtBadge(url: string) {
+  const ext = getUrlExt(url).toUpperCase() || '?'
+  const supported = isUrlSupported(url)
+  return { ext, supported }
+}
+
+function getFileName(url: string): string {
+  return url.split('?')[0].split('/').pop() ?? url
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface FolderData {
@@ -22,29 +43,24 @@ interface ActivitySummary {
 interface FolderView {
   folder: FolderData
   activity: ActivitySummary | null
-  // Ordered URLs: use activity.images order when matched (so guest sees same order),
-  // otherwise storage order. Build a merged list: linked first (in activity order),
-  // then any storage URLs not yet in activity.images at the end.
   orderedUrls: string[]
   orderedAlts: string[]
-  isDirty: boolean // local reorder not yet saved
+  isDirty: boolean
 }
 
+type FilterMode = 'all' | 'supported' | 'unsupported'
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function buildFolderViews(
-  folders: FolderData[],
-  activities: ActivitySummary[],
-): FolderView[] {
+function buildFolderViews(folders: FolderData[], activities: ActivitySummary[]): FolderView[] {
   return folders.map(folder => {
     const activity = activities.find(a => a.slug === folder.name) ?? null
     let orderedUrls: string[]
     let orderedAlts: string[]
 
     if (activity && activity.images && activity.images.length > 0) {
-      // Use activity order; append any storage URLs not yet linked
-      const linkedUrls  = activity.images
-      const linkedAlts  = activity.image_alts ?? []
-      const extraUrls   = folder.urls.filter(u => !linkedUrls.includes(u))
+      const linkedUrls = activity.images
+      const linkedAlts = activity.image_alts ?? []
+      const extraUrls  = folder.urls.filter(u => !linkedUrls.includes(u))
       orderedUrls = [...linkedUrls, ...extraUrls]
       orderedAlts = [...linkedAlts, ...extraUrls.map(() => '')]
     } else {
@@ -113,13 +129,21 @@ export function ImageManager() {
   const [activities, setActivities] = useState<ActivitySummary[]>([])
   const [loading, setLoading]       = useState(true)
   const [error, setError]           = useState('')
+  const [filterMode, setFilterMode] = useState<FilterMode>('all')
 
-  // Per-folder saving state
+  // Per-folder saving/deleting state
   const [saving, setSaving]     = useState<Record<string, boolean>>({})
   const [deleting, setDeleting] = useState<Record<string, boolean>>({})
 
   // Per-folder drag state
   const [dragState, setDragState] = useState<{ folder: string; fromIndex: number } | null>(null)
+
+  // Bulk delete selection (storage paths)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [bulkDeleting, setBulkDeleting] = useState(false)
+
+  // Ref for "View unsupported" scroll target
+  const unsupportedRef = useRef<HTMLDivElement>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -130,6 +154,7 @@ export function ImageManager() {
       const { folders, activities } = await res.json()
       setActivities(activities)
       setViews(buildFolderViews(folders, activities))
+      setSelected(new Set())
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Network error')
     }
@@ -137,6 +162,33 @@ export function ImageManager() {
   }, [])
 
   useEffect(() => { load() }, [load])
+
+  // ── Totals ───────────────────────────────────────────────────────────────────
+  const totalUnsupported = views.reduce(
+    (acc, v) => acc + v.orderedUrls.filter(u => !isUrlSupported(u)).length, 0
+  )
+  const allUnsupportedPaths = views.flatMap(v =>
+    v.orderedUrls
+      .filter(u => !isUrlSupported(u))
+      .map(u => `${v.folder.name}/${getFileName(u)}`)
+  )
+
+  // ── Selection helpers ────────────────────────────────────────────────────────
+  function toggleSelect(storagePath: string) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      next.has(storagePath) ? next.delete(storagePath) : next.add(storagePath)
+      return next
+    })
+  }
+
+  function selectAllUnsupported() {
+    setSelected(new Set(allUnsupportedPaths))
+  }
+
+  function clearSelection() {
+    setSelected(new Set())
+  }
 
   // ── Reorder ─────────────────────────────────────────────────────────────────
   function handleDragStart(folderName: string, fromIndex: number) {
@@ -176,7 +228,7 @@ export function ImageManager() {
     }))
   }
 
-  // ── Save order (PATCH activity) ───────────────────────────────────────────────
+  // ── Save order ───────────────────────────────────────────────────────────────
   async function saveOrder(view: FolderView) {
     if (!view.activity) return
     setSaving(s => ({ ...s, [view.folder.name]: true }))
@@ -184,10 +236,7 @@ export function ImageManager() {
       const res = await fetch(`/api/admin/activities/${view.activity.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          images:     view.orderedUrls,
-          image_alts: view.orderedAlts,
-        }),
+        body: JSON.stringify({ images: view.orderedUrls, image_alts: view.orderedAlts }),
       })
       if (!res.ok) {
         const j = await res.json()
@@ -203,18 +252,16 @@ export function ImageManager() {
     setSaving(s => ({ ...s, [view.folder.name]: false }))
   }
 
-  // ── Delete image ─────────────────────────────────────────────────────────────
-  async function deleteImage(view: FolderView, urlIndex: number) {
-    const url  = view.orderedUrls[urlIndex]
-    // Derive storage path from folder name and filename (last path segment of URL)
-    const fileName = url.split('/').pop() ?? ''
+  // ── Delete single image ──────────────────────────────────────────────────────
+  async function deleteImage(view: FolderView, urlIndex: number, skipConfirm = false) {
+    const url = view.orderedUrls[urlIndex]
+    const fileName = getFileName(url)
     const storagePath = `${view.folder.name}/${fileName}`
 
-    if (!confirm(`Delete this image? This cannot be undone.`)) return
+    if (!skipConfirm && !confirm('Delete this image? This cannot be undone.')) return
     setDeleting(d => ({ ...d, [storagePath]: true }))
 
     try {
-      // Remove from storage
       const storageRes = await fetch('/api/admin/images', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
@@ -227,7 +274,6 @@ export function ImageManager() {
         return
       }
 
-      // Update activity if matched
       if (view.activity) {
         const newUrls = view.orderedUrls.filter((_, i) => i !== urlIndex)
         const newAlts = view.orderedAlts.filter((_, i) => i !== urlIndex)
@@ -238,7 +284,6 @@ export function ImageManager() {
         })
       }
 
-      // Update local state
       setViews(prev => prev.map(v => {
         if (v.folder.name !== view.folder.name) return v
         const newUrls = v.orderedUrls.filter((_, i) => i !== urlIndex)
@@ -251,6 +296,47 @@ export function ImageManager() {
     setDeleting(d => ({ ...d, [storagePath]: false }))
   }
 
+  // ── Bulk delete selected ─────────────────────────────────────────────────────
+  async function deleteSelected() {
+    if (selected.size === 0) return
+    if (!confirm(`Permanently delete ${selected.size} unsupported image${selected.size > 1 ? 's' : ''}? This cannot be undone.`)) return
+
+    setBulkDeleting(true)
+    const paths = Array.from(selected)
+
+    // Delete from storage
+    await Promise.all(paths.map(path =>
+      fetch('/api/admin/images', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path }),
+      })
+    ))
+
+    // Update affected activities — group paths by folder
+    const byFolder: Record<string, string[]> = {}
+    for (const path of paths) {
+      const [folder, ...rest] = path.split('/')
+      const file = rest.join('/')
+      ;(byFolder[folder] ??= []).push(file)
+    }
+
+    for (const [folderName, fileNames] of Object.entries(byFolder)) {
+      const view = views.find(v => v.folder.name === folderName)
+      if (!view?.activity) continue
+      const newUrls = view.orderedUrls.filter(u => !fileNames.includes(getFileName(u)))
+      const newAlts = view.orderedAlts.filter((_, i) => !fileNames.includes(getFileName(view.orderedUrls[i])))
+      await fetch(`/api/admin/activities/${view.activity.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ images: newUrls, image_alts: newAlts }),
+      })
+    }
+
+    await load()
+    setBulkDeleting(false)
+  }
+
   // ── Delete folder ─────────────────────────────────────────────────────────────
   async function deleteFolder(view: FolderView) {
     const { name } = view.folder
@@ -258,7 +344,6 @@ export function ImageManager() {
     setDeleting(d => ({ ...d, [`folder:${name}`]: true }))
 
     try {
-      // Remove from storage
       const storageRes = await fetch('/api/admin/images', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
@@ -271,7 +356,6 @@ export function ImageManager() {
         return
       }
 
-      // Clear activity images if matched
       if (view.activity) {
         await fetch(`/api/admin/activities/${view.activity.id}`, {
           method: 'PUT',
@@ -280,7 +364,6 @@ export function ImageManager() {
         })
       }
 
-      // Remove folder from local state
       setViews(prev => prev.filter(v => v.folder.name !== name))
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Delete failed')
@@ -336,21 +419,107 @@ export function ImageManager() {
         </div>
       )}
 
+      {/* Unsupported files banner */}
+      {totalUnsupported > 0 && (
+        <div className="mb-5 px-4 py-3 bg-red-50 border border-red-200 rounded-sm text-sm text-red-700 flex items-center justify-between gap-3">
+          <span>
+            <strong>{totalUnsupported} image{totalUnsupported > 1 ? 's' : ''}</strong> have unsupported formats and won&apos;t appear in the app.
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              setFilterMode('unsupported')
+              setTimeout(() => unsupportedRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+            }}
+            className="text-red-700 font-semibold underline whitespace-nowrap hover:text-red-800"
+          >
+            View unsupported ↓
+          </button>
+        </div>
+      )}
+
       <SlugReference activities={activities} />
 
-      {/* Unlinked warning banner */}
+      {/* Unlinked warning */}
       {unlinked.length > 0 && (
         <div className="mb-5 px-4 py-3 bg-amber-50 border border-amber-200 rounded-sm text-sm text-amber-800">
           {unlinked.length} folder{unlinked.length !== 1 ? 's' : ''} not matched to any activity slug — upload the images and link them manually, or rename the folder to match an activity slug.
         </div>
       )}
 
+      {/* Filter toggle */}
+      {views.length > 0 && (
+        <div className="mb-5 flex items-center gap-1">
+          {(['all', 'supported', 'unsupported'] as FilterMode[]).map(mode => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => setFilterMode(mode)}
+              className={`px-3 py-1.5 text-[12px] font-semibold rounded-sm border transition-colors capitalize ${
+                filterMode === mode
+                  ? mode === 'unsupported'
+                    ? 'bg-red-600 border-red-600 text-white'
+                    : 'bg-navy border-navy text-white'
+                  : 'bg-white border-border text-tx-mid hover:border-navy hover:text-navy'
+              }`}
+            >
+              {mode}
+              {mode === 'unsupported' && totalUnsupported > 0 && (
+                <span className={`ml-1.5 text-[10px] font-bold px-1 py-0.5 rounded ${filterMode === 'unsupported' ? 'bg-white/20' : 'bg-red-100 text-red-600'}`}>
+                  {totalUnsupported}
+                </span>
+              )}
+            </button>
+          ))}
+
+          {/* Bulk delete controls — only in unsupported mode */}
+          {filterMode === 'unsupported' && totalUnsupported > 0 && (
+            <div className="ml-auto flex items-center gap-2">
+              {selected.size === 0 ? (
+                <button
+                  type="button"
+                  onClick={selectAllUnsupported}
+                  className="text-[12px] font-semibold text-tx-mid hover:text-navy underline"
+                >
+                  Select all ({totalUnsupported})
+                </button>
+              ) : (
+                <>
+                  <span className="text-[12px] text-tx-mid">{selected.size} selected</span>
+                  <button type="button" onClick={clearSelection} className="text-[11px] text-tx-light hover:text-tx underline">
+                    Clear
+                  </button>
+                  <button
+                    type="button"
+                    onClick={deleteSelected}
+                    disabled={bulkDeleting}
+                    className="px-3 py-1.5 bg-red-600 text-white text-[12px] font-semibold rounded-sm hover:bg-red-700 disabled:opacity-50 transition-colors"
+                  >
+                    {bulkDeleting ? 'Deleting…' : `Delete ${selected.size}`}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Folder cards */}
-      <div className="space-y-6">
+      <div className="space-y-6" ref={unsupportedRef}>
         {views.map(view => {
           const { folder, activity, orderedUrls, orderedAlts, isDirty } = view
           const isUnlinked = !activity
           const isFolderDeleting = deleting[`folder:${folder.name}`]
+
+          // Apply filter
+          const displayIndices = orderedUrls.reduce<number[]>((acc, url, i) => {
+            if (filterMode === 'supported'   &&  isUrlSupported(url)) acc.push(i)
+            else if (filterMode === 'unsupported' && !isUrlSupported(url)) acc.push(i)
+            else if (filterMode === 'all') acc.push(i)
+            return acc
+          }, [])
+
+          if (displayIndices.length === 0) return null
 
           return (
             <div
@@ -376,6 +545,7 @@ export function ImageManager() {
                   )}
                   <p className="text-[11px] text-tx-light mt-0.5">
                     {orderedUrls.length} image{orderedUrls.length !== 1 ? 's' : ''}
+                    {filterMode !== 'all' && ` · showing ${displayIndices.length}`}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -399,75 +569,116 @@ export function ImageManager() {
               </div>
 
               {/* Image grid */}
-              {orderedUrls.length === 0 ? (
-                <div className="px-4 py-8 text-center text-sm text-tx-light">No images in this folder</div>
-              ) : (
-                <div className="p-3 flex flex-wrap gap-2">
-                  {orderedUrls.map((url, i) => {
-                    const fileName  = url.split('/').pop() ?? ''
-                    const storagePath = `${folder.name}/${fileName}`
-                    const isDeleting  = deleting[storagePath]
-                    const isDragging  = dragState?.folder === folder.name && dragState.fromIndex === i
+              <div className="p-3 flex flex-wrap gap-2">
+                {displayIndices.map(i => {
+                  const url       = orderedUrls[i]
+                  const fileName  = getFileName(url)
+                  const storagePath = `${folder.name}/${fileName}`
+                  const isDeleting  = deleting[storagePath]
+                  const isDragging  = dragState?.folder === folder.name && dragState.fromIndex === i
+                  const { ext, supported } = getExtBadge(url)
+                  const isChecked = selected.has(storagePath)
 
-                    return (
-                      <div
-                        key={url}
-                        draggable
-                        onDragStart={() => handleDragStart(folder.name, i)}
-                        onDragOver={e => handleDragOver(e, folder.name, i)}
-                        onDragEnd={handleDragEnd}
-                        className={`relative group cursor-grab active:cursor-grabbing transition-all ${
-                          isDragging ? 'opacity-50 scale-95' : 'opacity-100'
+                  return (
+                    <div
+                      key={url}
+                      draggable={supported} // don't allow reordering unsupported
+                      onDragStart={() => supported && handleDragStart(folder.name, i)}
+                      onDragOver={e => supported && handleDragOver(e, folder.name, i)}
+                      onDragEnd={handleDragEnd}
+                      className={`relative group transition-all ${
+                        isDragging ? 'opacity-50 scale-95' : 'opacity-100'
+                      } ${supported ? 'cursor-grab active:cursor-grabbing' : ''}`}
+                    >
+                      {/* Thumbnail */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={supported ? url : undefined}
+                        alt={orderedAlts[i] || folder.name}
+                        draggable={false}
+                        className={`w-28 h-20 object-cover rounded-sm border ${
+                          supported
+                            ? 'border-border'
+                            : 'border-red-200 opacity-40 bg-red-50'
                         }`}
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={url}
-                          alt={orderedAlts[i] || folder.name}
-                          draggable={false}
-                          className="w-28 h-20 object-cover rounded-sm border border-border"
-                        />
+                      />
 
-                        {/* Cover badge */}
-                        {i === 0 && (
-                          <span className="absolute top-1 left-1 bg-navy text-white text-[9px] font-bold px-1 py-0.5 rounded leading-none pointer-events-none">
-                            ★ COVER
-                          </span>
-                        )}
+                      {/* Placeholder for unsupported (can't render) */}
+                      {!supported && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-red-50/80 rounded-sm">
+                          <span className="text-lg">⚠️</span>
+                          <span className="text-[9px] font-mono text-red-500 mt-0.5">{ext}</span>
+                        </div>
+                      )}
 
-                        {/* Overlay actions */}
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors rounded-sm flex flex-col items-center justify-center gap-1 opacity-0 group-hover:opacity-100">
-                          {i !== 0 && (
-                            <button
-                              type="button"
-                              onClick={() => setCover(folder.name, i)}
-                              title="Set as cover"
-                              className="w-6 h-6 bg-white/90 rounded-full text-[11px] font-bold text-navy flex items-center justify-center hover:bg-white"
-                            >
-                              ★
-                            </button>
-                          )}
+                      {/* Format badge */}
+                      <span className={`absolute top-1 right-1 text-[8px] font-bold px-1 py-0.5 rounded leading-none ${
+                        supported
+                          ? 'bg-green-600 text-white'
+                          : 'bg-red-600 text-white'
+                      }`}>
+                        {ext}
+                      </span>
+
+                      {/* Cover badge */}
+                      {i === 0 && supported && (
+                        <span className="absolute top-1 left-1 bg-navy text-white text-[9px] font-bold px-1 py-0.5 rounded leading-none pointer-events-none">
+                          ★ COVER
+                        </span>
+                      )}
+
+                      {/* Filename label */}
+                      <div className="mt-1 w-28 text-[9px] text-tx-light font-mono truncate" title={fileName}>
+                        {fileName}
+                      </div>
+
+                      {/* Checkbox for unsupported (visible in unsupported filter mode) */}
+                      {!supported && filterMode === 'unsupported' && (
+                        <button
+                          type="button"
+                          onClick={() => toggleSelect(storagePath)}
+                          className={`absolute top-1 left-1 w-5 h-5 rounded border-2 flex items-center justify-center text-[10px] font-bold transition-colors ${
+                            isChecked
+                              ? 'bg-red-600 border-red-600 text-white'
+                              : 'bg-white/90 border-gray-400 text-transparent hover:border-red-400'
+                          }`}
+                        >
+                          ✓
+                        </button>
+                      )}
+
+                      {/* Hover overlay actions */}
+                      <div className="absolute inset-0 mb-5 bg-black/0 group-hover:bg-black/30 transition-colors rounded-sm flex flex-col items-center justify-center gap-1 opacity-0 group-hover:opacity-100">
+                        {i !== 0 && supported && (
                           <button
                             type="button"
-                            onClick={() => deleteImage(view, i)}
-                            disabled={isDeleting}
-                            title="Delete image"
-                            className="w-6 h-6 bg-red-500/90 rounded-full text-[11px] font-bold text-white flex items-center justify-center hover:bg-red-600 disabled:opacity-50"
+                            onClick={() => setCover(folder.name, i)}
+                            title="Set as cover"
+                            className="w-6 h-6 bg-white/90 rounded-full text-[11px] font-bold text-navy flex items-center justify-center hover:bg-white"
                           >
-                            ×
+                            ★
                           </button>
-                        </div>
-
-                        {isDeleting && (
-                          <div className="absolute inset-0 bg-white/70 rounded-sm flex items-center justify-center">
-                            <span className="text-[10px] text-tx-mid">…</span>
-                          </div>
                         )}
+                        <button
+                          type="button"
+                          onClick={() => deleteImage(view, i)}
+                          disabled={isDeleting}
+                          title="Delete image"
+                          className="w-6 h-6 bg-red-500/90 rounded-full text-[11px] font-bold text-white flex items-center justify-center hover:bg-red-600 disabled:opacity-50"
+                        >
+                          ×
+                        </button>
                       </div>
-                    )
-                  })}
-                </div>
-              )}
+
+                      {isDeleting && (
+                        <div className="absolute inset-0 mb-5 bg-white/70 rounded-sm flex items-center justify-center">
+                          <span className="text-[10px] text-tx-mid">…</span>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
 
               {/* Unlinked hint */}
               {isUnlinked && (

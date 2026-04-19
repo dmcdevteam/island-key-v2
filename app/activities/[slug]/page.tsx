@@ -322,8 +322,14 @@ export default function ActivityDetailPage() {
 
   const heroBg = CATEGORY_GRADIENTS[activity.category] ?? CATEGORY_GRADIENTS.culture;
   const categoryIcon = CATEGORY_ICONS[activity.category] ?? '🌟';
-  const images = activity.images ?? [];
-  const alts   = activity.image_alts ?? [];
+  // Filter to only browser-safe formats — AVIF, HEIC, etc. won't render reliably on all devices
+  const rawImages = activity.images ?? [];
+  const rawAlts   = activity.image_alts ?? [];
+  const filteredPairs = rawImages
+    .map((url, i) => ({ url, alt: rawAlts[i] ?? '' }))
+    .filter(({ url }) => /\.(jpg|jpeg|png|webp)(\?.*)?$/i.test(url));
+  const images = filteredPairs.map(p => p.url);
+  const alts   = filteredPairs.map(p => p.alt);
   const hasImages = images.length > 0;
 
   return (
