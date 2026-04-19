@@ -1,20 +1,25 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { getSession } from '@/lib/utils';
+import type { GuestSession } from '@/lib/types';
 
 const PHONE = '306974176759';
-
 const HIDDEN_ON = ['/admin', '/splash', '/onboard'];
 
 export function WhatsAppFAB() {
   const pathname = usePathname();
+  const [session, setSession] = useState<GuestSession | null>(null);
+
+  useEffect(() => {
+    setSession(getSession());
+  }, [pathname]);
 
   // Hide on gate page and listed routes
   if (pathname === '/') return null;
   if (HIDDEN_ON.some(p => pathname.startsWith(p))) return null;
 
-  const session = getSession();
   const text = session
     ? `Hi, I'm ${session.first_name} staying at ${session.property_name ?? 'my accommodation'} and I have a question about Island Key.`
     : 'Hi, I have a question about Island Key.';
