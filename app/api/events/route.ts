@@ -65,7 +65,9 @@ export async function GET(request: Request) {
       result.push(...expandRecurring(event, fromDate, toDate))
     } else {
       const startDate = new Date(event.start_date)
-      if (startDate >= fromDate && startDate <= toDate) {
+      const endDate = event.end_date ? new Date(event.end_date) : startDate
+      // Include event if it overlaps with [fromDate, toDate] range
+      if (startDate <= toDate && endDate >= fromDate) {
         result.push({ ...event, _instance_date: event.start_date.slice(0, 10) })
       }
     }
