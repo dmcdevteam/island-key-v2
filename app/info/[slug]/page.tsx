@@ -82,7 +82,7 @@ export default function InfoDetailPage() {
       )}
 
       <div className="px-5 pt-[52px] pb-4 border-b border-border-light bg-white">
-        <button onClick={() => router.push('/info')} className="text-teal text-xs font-semibold mb-3">← Back to Info</button>
+        <button onClick={() => window.history.length <= 1 ? router.push('/info') : router.back()} className="text-teal text-[12px] font-semibold mb-3">← Info</button>
         <div className="flex items-center gap-3">
           <span className="text-3xl">{page.icon ?? '📄'}</span>
           <div>
@@ -138,7 +138,7 @@ export default function InfoDetailPage() {
             )
           })}
 
-          <button onClick={() => router.push('/info')} className="text-teal text-sm font-semibold">← Back to Info</button>
+          <button onClick={() => window.history.length <= 1 ? router.push('/info') : router.back()} className="text-teal text-sm font-semibold">← Info</button>
         </div>
       </div>
 

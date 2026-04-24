@@ -24,9 +24,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="font-body text-tx bg-cream min-h-screen">
         <ServiceWorkerRegister />
-        <AdminPreviewPill />
-        <WhatsAppFAB />
-        {children}
+        <div className="app-shell">
+          <AdminPreviewPill />
+          <WhatsAppFAB />
+          {children}
+        </div>
       </body>
     </html>
   );

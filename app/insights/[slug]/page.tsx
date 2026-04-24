@@ -100,12 +100,6 @@ export default function ArticleDetailPage() {
 
   return (
     <div className="min-h-screen bg-cream flex flex-col pb-[90px]">
-      {/* Back */}
-      <button onClick={() => router.back()}
-        className="fixed top-0 left-0 z-30 mt-[52px] ml-4 text-white text-sm font-semibold bg-black/30 px-3 py-1.5 rounded-full backdrop-blur-sm">
-        ← Back
-      </button>
-
       {/* Hero */}
       {article.cover_image ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -117,6 +111,12 @@ export default function ArticleDetailPage() {
       )}
 
       <div className="px-5 py-5 max-w-2xl mx-auto w-full">
+        {/* Back */}
+        <button
+          onClick={() => window.history.length <= 1 ? router.push('/insights') : router.back()}
+          className="text-[12px] font-semibold text-teal mb-3 block"
+        >← Insights</button>
+
         {/* Meta */}
         <div className="flex items-center gap-2 flex-wrap mb-3">
           {article.category && (
@@ -196,8 +196,9 @@ export default function ArticleDetailPage() {
           </div>
         )}
 
-        <button onClick={() => router.push('/insights')}
-          className="mt-6 text-teal text-sm font-semibold">← Back to Insights</button>
+        <button
+          onClick={() => window.history.length <= 1 ? router.push('/insights') : router.back()}
+          className="mt-6 text-teal text-sm font-semibold">← Insights</button>
       </div>
 
       <BottomNav />

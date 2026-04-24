@@ -16,7 +16,7 @@ export function BottomNav() {
   const router = useRouter();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 h-[78px] bg-white border-t border-border-light flex pt-1.5 pb-6 z-50 max-w-[100vw]">
+    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] h-[78px] bg-white border-t border-border-light flex pt-1.5 pb-6 z-50">
       {NAV_ITEMS.map((item) => {
         const isActive = pathname.startsWith(item.href);
         return (

@@ -31,7 +31,7 @@ export function AdminPreviewPill() {
         <div className="fixed inset-0 z-[900]" onClick={() => setOpen(false)} />
       )}
 
-      <div className="fixed top-3 right-3 z-[1000]">
+      <div className="fixed top-3 z-[1000]" style={{ right: 'max(0.75rem, calc(50% - 228px))' }}>
         <button
           onClick={() => setOpen(o => !o)}
           className="flex items-center gap-1.5 bg-navy text-white text-[11px] font-bold px-3 py-1.5 rounded-full shadow-lg tracking-wide"

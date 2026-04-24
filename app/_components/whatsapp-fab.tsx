@@ -31,8 +31,8 @@ export function WhatsAppFAB() {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="fixed right-4 z-[500]"
-      style={{ bottom: 90 }}
+      className="fixed z-[500]"
+      style={{ bottom: 90, right: 'max(1rem, calc(50% - 224px))' }}
       aria-label="Chat on WhatsApp"
     >
       {/* Pulsing ring */}

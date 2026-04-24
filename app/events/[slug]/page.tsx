@@ -7,6 +7,8 @@ import { getSession } from '@/lib/utils'
 import { createClient } from '@/lib/supabase'
 import type { EventFull } from '@/lib/types'
 
+const SPYROS_WA = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '306974176759'
+
 const CATEGORY_COLORS: Record<string, string> = {
   festival: '#D4854A', music: '#1B2D4F', food: '#D4A843', sport: '#1A8A7D',
   cultural: '#9B59B6', market: '#1A8A7D', nightlife: '#D94F4F', family: '#3498DB', other: '#5A5A5A',
@@ -19,6 +21,10 @@ export default function EventDetailPage() {
   const [event, setEvent] = useState<EventFull | null>(null)
   const [loading, setLoading] = useState(true)
   const [imgIndex, setImgIndex] = useState(0)
+  const [showModal, setShowModal] = useState(false)
+  const [modalName, setModalName] = useState('')
+  const [modalEmail, setModalEmail] = useState('')
+  const [modalNotes, setModalNotes] = useState('')
 
   useEffect(() => {
     if (!slug) return
@@ -35,13 +41,28 @@ export default function EventDetailPage() {
       })
   }, [slug])
 
-  function askWhatsApp() {
+  useEffect(() => {
+    const s = getSession()
+    if (s?.first_name) setModalName(s.first_name)
+  }, [])
+
+  function sendEnquiry() {
+    if (!event) return
     const session = getSession()
-    const phone = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '306900000000'
-    const name = session?.first_name ?? 'a guest'
-    const prop = session?.property_name ?? 'the property'
-    const msg = `Hi, I'd like to know more about "${event?.title}". My name is ${name} staying at ${prop}.`
-    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank')
+    const name = modalName.trim() || session?.first_name || 'Guest'
+    const property = session?.property_name || '—'
+    const dateLabel = new Date(event.start_date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    const parts = [
+      `🌟 Event Enquiry — Island Key`,
+      `📅 Event: ${event.title}`,
+      `📆 Date: ${dateLabel}`,
+      `👤 Guest: ${name}`,
+      modalEmail.trim() ? `📧 Email: ${modalEmail.trim()}` : null,
+      `🏠 Property: ${property}`,
+      modalNotes.trim() ? `📝 Notes: ${modalNotes.trim()}` : null,
+    ].filter(Boolean)
+    window.open(`https://wa.me/${SPYROS_WA}?text=${encodeURIComponent(parts.join('\n'))}`, '_blank')
+    setShowModal(false)
   }
 
   if (loading) {
@@ -74,12 +95,6 @@ export default function EventDetailPage() {
 
   return (
     <div className="min-h-screen bg-cream flex flex-col pb-[90px]">
-      {/* Back button */}
-      <button onClick={() => router.back()}
-        className="fixed top-0 left-0 z-30 mt-[52px] ml-4 text-white text-sm font-semibold bg-black/30 px-3 py-1.5 rounded-full backdrop-blur-sm">
-        ← Back
-      </button>
-
       {/* Hero image(s) */}
       {images.length > 0 ? (
         <div className="relative">
@@ -114,6 +129,12 @@ export default function EventDetailPage() {
       )}
 
       <div className="px-5 py-5 space-y-4">
+        {/* Back button */}
+        <button
+          onClick={() => window.history.length <= 1 ? router.push('/events') : router.back()}
+          className="text-[12px] font-semibold text-teal"
+        >← Events</button>
+
         {/* Category + meta */}
         <div className="flex items-center gap-2 flex-wrap">
           {event.category && (
@@ -158,14 +179,58 @@ export default function EventDetailPage() {
               Get Tickets ↗
             </a>
           )}
-          <button onClick={askWhatsApp}
-            className="w-full py-3.5 bg-teal text-white font-bold rounded-sm flex items-center justify-center gap-2 text-sm">
-            <span>💬</span> Ask on WhatsApp
+          <button onClick={() => setShowModal(true)}
+            className="w-full py-3.5 bg-teal text-white font-bold rounded-sm text-sm">
+            Check Availability
           </button>
         </div>
       </div>
 
       <BottomNav />
+
+      {/* Enquiry modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/35 z-[150] flex items-end"
+          onClick={e => { if (e.target === e.currentTarget) setShowModal(false) }}>
+          <div className="w-full max-w-[480px] mx-auto bg-white rounded-t-[18px] px-5 pt-5 pb-9 max-h-[85%] overflow-y-auto">
+            <div className="w-9 h-1 bg-border rounded-full mx-auto mb-4" />
+            <h2 className="font-display text-lg font-medium text-navy mb-1">Check Availability</h2>
+            <p className="text-xs text-tx-light mb-4">We&apos;ll send your request to your Island Key curator via WhatsApp — they&apos;ll confirm within a few hours.</p>
+            <div className="flex justify-between items-start py-2.5 border-b border-border-light">
+              <span className="text-[13px] text-tx-mid">Event</span>
+              <span className="text-[13px] font-semibold text-navy text-right max-w-[60%]">{event.title}</span>
+            </div>
+            <div className="flex justify-between items-center py-2.5 border-b border-border-light">
+              <span className="text-[13px] text-tx-mid">Your name</span>
+              <input type="text" value={modalName} onChange={e => setModalName(e.target.value)}
+                placeholder="First name"
+                className="text-[13px] text-right text-navy bg-transparent outline-none placeholder:text-tx-light w-36" />
+            </div>
+            <div className="flex justify-between items-center py-2.5 border-b border-border-light">
+              <span className="text-[13px] text-tx-mid">Email</span>
+              <input type="email" value={modalEmail} onChange={e => setModalEmail(e.target.value)}
+                placeholder="your@email.com"
+                className="text-[13px] text-right text-navy bg-transparent outline-none placeholder:text-tx-light w-48" />
+            </div>
+            <div className="py-2.5 border-b border-border-light">
+              <p className="text-[13px] text-tx-mid mb-2">Anything to add?</p>
+              <textarea value={modalNotes} onChange={e => setModalNotes(e.target.value)}
+                placeholder="Number of people, special requirements…"
+                rows={3}
+                className="w-full text-[13px] text-navy bg-sand rounded px-3 py-2 outline-none resize-none placeholder:text-tx-light" />
+            </div>
+            <div className="mt-4">
+              <button onClick={sendEnquiry}
+                className="w-full py-3.5 bg-teal text-white rounded-sm font-semibold text-sm active:scale-[0.98]">
+                Check Availability
+              </button>
+            </div>
+            <p className="text-center text-[10px] text-tx-light mt-3">
+              No payment taken now — your curator will confirm availability first.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

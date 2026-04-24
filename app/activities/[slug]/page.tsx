@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { BookButton, WhatsAppButton } from '@/components/ui/components';
+import { BookButton } from '@/components/ui/components';
 import { formatPrice, getSession } from '@/lib/utils';
 import { createClient } from '@/lib/supabase';
 import type { Activity } from '@/lib/types';
@@ -101,8 +101,8 @@ function ImageCarousel({ images, alts, category, categoryIcon, onBack }: Carouse
       {/* Back button */}
       <button
         onClick={onBack}
-        className="absolute top-[52px] left-4 w-[34px] h-[34px] bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-base z-10 active:scale-90"
-      >←</button>
+        className="absolute top-[52px] left-4 bg-white/90 backdrop-blur-sm rounded-full flex items-center gap-1 px-3 h-[34px] text-[12px] font-semibold text-navy z-10 active:scale-90"
+      >← Activities</button>
 
       {/* Category badge */}
       <span className="absolute bottom-10 left-4 text-[10px] font-bold text-white bg-black/30 backdrop-blur-sm px-2 py-1 rounded uppercase z-10">
@@ -341,14 +341,14 @@ export default function ActivityDetailPage() {
           alts={alts}
           category={activity.category}
           categoryIcon={categoryIcon}
-          onBack={() => router.back()}
+          onBack={() => window.history.length <= 1 ? router.push('/activities') : router.back()}
         />
       ) : (
         <div className="h-[210px] relative flex items-end p-4 flex-shrink-0" style={{ background: heroBg }}>
           <button
-            onClick={() => router.back()}
-            className="absolute top-[52px] left-4 w-[34px] h-[34px] bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-base z-10 active:scale-90"
-          >←</button>
+            onClick={() => window.history.length <= 1 ? router.push('/activities') : router.back()}
+            className="absolute top-[52px] left-4 bg-white/90 backdrop-blur-sm rounded-full flex items-center gap-1 px-3 h-[34px] text-[12px] font-semibold text-navy z-10 active:scale-90"
+          >← Activities</button>
           <span className="text-[10px] font-bold text-white bg-black/30 backdrop-blur-sm px-2 py-1 rounded uppercase">
             {categoryIcon} {activity.category}
           </span>
@@ -413,7 +413,6 @@ export default function ActivityDetailPage() {
           </p>
         </div>
         <BookButton onClick={() => { setShowModal(true); setEnquiryError(null); }} />
-        <WhatsAppButton onClick={() => { setShowModal(true); setEnquiryError(null); }} />
       </div>
 
       {/* ─── Enquiry Modal ─── */}
@@ -424,7 +423,8 @@ export default function ActivityDetailPage() {
         >
           <div className="w-full bg-white rounded-t-[18px] px-5 pt-5 pb-9 animate-slide-up max-h-[90%] overflow-y-auto">
             <div className="w-9 h-1 bg-border rounded-full mx-auto mb-4" />
-            <h2 className="font-display text-lg font-medium text-navy mb-4">Request this experience</h2>
+            <h2 className="font-display text-lg font-medium text-navy mb-1">Check Availability</h2>
+            <p className="text-xs text-tx-light mb-4">We&apos;ll send your request to your Island Key curator via WhatsApp — they&apos;ll confirm within a few hours.</p>
 
             {/* Activity summary */}
             <div className="flex justify-between items-start py-2.5 border-b border-border-light">
