@@ -153,6 +153,8 @@ export default function HomePage() {
   const [session, setSession] = useState<GuestSession | null>(null);
   const [data, setData] = useState<HomeData>({ deals: [], activities: [], allActivities: [], articles: [], events: [] });
   const [loading, setLoading] = useState(true);
+  const [eventsStatus, setEventsStatus] = useState<'loading' | 'empty' | 'data'>('loading');
+  const [dealsStatus, setDealsStatus] = useState<'loading' | 'empty' | 'data'>('loading');
   const [error, setError] = useState<string | null>(null);
   const [, setTick] = useState(0);
   const [weather, setWeather] = useState<WeatherData | null>(null);
@@ -219,13 +221,17 @@ export default function HomePage() {
         .filter((a: Activity) => a.region === 'island-wide' || a.region === region)
         .slice(0, 12);
 
+      const dealsList = Array.isArray(deals) ? deals : []
+      const eventsList = Array.isArray(events) ? events : []
       setData({
-        deals: Array.isArray(deals) ? deals : [],
+        deals: dealsList,
         activities,
         allActivities,
         articles: Array.isArray(articles) ? articles : [],
-        events: Array.isArray(events) ? events : [],
+        events: eventsList,
       });
+      setEventsStatus(eventsList.length > 0 ? 'data' : 'empty')
+      setDealsStatus(dealsList.length > 0 ? 'data' : 'empty')
       setLoading(false);
     });
   }, []);
@@ -343,11 +349,11 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* What's happening today — only shown when there are events */}
-        {(loading || data.events.length > 0) && (
+        {/* What's happening today — hidden only when fetch completes with no results */}
+        {eventsStatus !== 'empty' && (
           <>
             <SectionHeader title="What&apos;s happening today" linkText="See all →" onLink={() => router.push('/events')} />
-            {loading ? (
+            {eventsStatus === 'loading' ? (
               <div className="mx-5 mb-5 space-y-2">
                 {Array.from({ length: 2 }).map((_, i) => (
                   <div key={i} className="h-[52px] rounded-sm bg-navy/5 animate-pulse" />
@@ -378,11 +384,11 @@ export default function HomePage() {
           </>
         )}
 
-        {/* Deals section — only shown when there are featured deals */}
-        {(loading || featuredDeal) && (
+        {/* Deals section — hidden only when fetch completes with no results */}
+        {dealsStatus !== 'empty' && (
           <>
             <SectionHeader title="Today&apos;s Deal" linkText="View all →" onLink={() => router.push('/deals')} />
-            {loading ? (
+            {dealsStatus === 'loading' ? (
               <div className="mx-5 mb-5 h-[90px] rounded bg-navy/5 animate-pulse" />
             ) : featuredDeal ? (
               <div

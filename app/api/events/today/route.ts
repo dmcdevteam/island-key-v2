@@ -18,7 +18,10 @@ export async function GET() {
   // Match events where start_date date portion = today, or recurring events that land on today
   const todayEvents = events.filter(ev => {
     const startDay = (ev.start_date as string).slice(0, 10)
-    if (!ev.recurring) return startDay === today
+    if (!ev.recurring) {
+      const endDay = ev.end_date ? (ev.end_date as string).slice(0, 10) : startDay
+      return startDay <= today && today <= endDay
+    }
 
     // For recurring events, check if today is a valid instance
     const start = new Date(ev.start_date as string)
