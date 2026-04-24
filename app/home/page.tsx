@@ -384,6 +384,21 @@ export default function HomePage() {
           </>
         )}
 
+        {/* Upcoming Events entry point — shown when no events today */}
+        {eventsStatus === 'empty' && (
+          <button
+            onClick={() => router.push('/events')}
+            className="mx-5 mb-5 w-[calc(100%-40px)] flex items-center gap-3 px-4 py-3 bg-white border border-border-light rounded-sm active:bg-sand transition-colors"
+          >
+            <span className="text-lg">📅</span>
+            <div className="flex-1 text-left">
+              <p className="text-xs font-semibold text-navy">Upcoming Events in Chania</p>
+              <p className="text-[10px] text-tx-light">Festivals, music, food &amp; more</p>
+            </div>
+            <span className="text-[11px] text-teal">→</span>
+          </button>
+        )}
+
         {/* Deals section — hidden only when fetch completes with no results */}
         {dealsStatus !== 'empty' && (
           <>
