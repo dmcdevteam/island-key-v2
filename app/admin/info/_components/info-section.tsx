@@ -10,6 +10,11 @@ const SELECT = `${INPUT} cursor-pointer`
 
 const CATEGORIES = ['emergency','transport','health','money','connectivity','language','culture','practical','other']
 const CATEGORY_LABELS: Record<string, string> = {
+  emergency: 'Emergency', transport: 'Transport', health: 'Health',
+  money: 'Money', connectivity: 'Connectivity', language: 'Language',
+  culture: 'Culture', practical: 'Practical', other: 'Other',
+}
+const CATEGORY_OPTION_LABELS: Record<string, string> = {
   emergency: '🚨 Emergency', transport: '🚗 Transport', health: '💊 Health',
   money: '💳 Money', connectivity: '📱 Connectivity', language: '🇬🇷 Language',
   culture: '🫒 Culture', practical: '🏖️ Practical', other: '📄 Other',
@@ -137,7 +142,7 @@ function InfoForm({ page, onSave, onClose }: {
                 <label className={LABEL}>Category</label>
                 <select className={SELECT} value={form.category ?? ''} onChange={e => handleCategoryChange(e.target.value)}>
                   <option value="">— None —</option>
-                  {CATEGORIES.map(c => <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>)}
+                  {CATEGORIES.map(c => <option key={c} value={c}>{CATEGORY_OPTION_LABELS[c]}</option>)}
                 </select>
               </div>
               <div>
