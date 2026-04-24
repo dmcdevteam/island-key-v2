@@ -86,12 +86,48 @@ function EventForm({ event, onSave, onClose }: { event: EventFull | null; onSave
     const files = Array.from(e.target.files ?? [])
     if (!files.length) return
     setUploadError('')
-    const valid = files.filter(f => SUPPORTED_MIME.has(getEffectiveMime(f)))
-    if (valid.length < files.length) setUploadError(`${files.length - valid.length} file(s) skipped`)
-    if (!valid.length) return
-    setUploadingCount(valid.length)
+    const validationErrors: string[] = []
+    const warnings: string[] = []
+
+    // Format check
+    const formatOk = files.filter(f => SUPPORTED_MIME.has(getEffectiveMime(f)))
+    if (formatOk.length < files.length)
+      validationErrors.push(`${files.length - formatOk.length} file(s) skipped — unsupported format (JPG/PNG/WebP/AVIF only)`)
+
+    // Size check — max 2MB
+    const sizeOk = formatOk.filter(f => {
+      if (f.size > 2 * 1024 * 1024) { validationErrors.push(`${f.name}: exceeds 2MB limit`); return false }
+      return true
+    })
+
+    // Dimension check — min 1200px wide, 16:9 warning
+    const ready: File[] = []
+    await Promise.all(sizeOk.map(file => new Promise<void>(resolve => {
+      const url = URL.createObjectURL(file)
+      const img = new Image()
+      img.onload = () => {
+        URL.revokeObjectURL(url)
+        if (img.naturalWidth < 1200) {
+          validationErrors.push(`${file.name}: must be at least 1200px wide (got ${img.naturalWidth}px)`)
+        } else {
+          const ratio = img.naturalWidth / img.naturalHeight
+          if (Math.abs(ratio - 16 / 9) > 0.12)
+            warnings.push(`${file.name}: not 16:9 — image may appear cropped`)
+          ready.push(file)
+        }
+        resolve()
+      }
+      img.onerror = () => { URL.revokeObjectURL(url); ready.push(file); resolve() }
+      img.src = url
+    })))
+
+    const allMessages = [...validationErrors, ...warnings]
+    if (allMessages.length) setUploadError(allMessages.join('\n'))
+    if (!ready.length) return
+
+    setUploadingCount(ready.length)
     const slug = form.slug || slugify(form.title) || undefined
-    const results = await Promise.allSettled(valid.map(async file => {
+    const results = await Promise.allSettled(ready.map(async file => {
       const fd = new globalThis.FormData()
       fd.append('file', file)
       if (slug) fd.append('slug', slug)
@@ -104,13 +140,13 @@ function EventForm({ event, onSave, onClose }: { event: EventFull | null; onSave
     setUploadingCount(0)
     if (fileInputRef.current) fileInputRef.current.value = ''
     const urls: string[] = []
-    const errors: string[] = []
+    const uploadErrors: string[] = []
     for (const r of results) {
       if (r.status === 'fulfilled') urls.push(r.value)
-      else errors.push(r.reason instanceof Error ? r.reason.message : 'Upload failed')
+      else uploadErrors.push(r.reason instanceof Error ? r.reason.message : 'Upload failed')
     }
     if (urls.length) setImages(prev => [...prev, ...urls])
-    if (errors.length) setUploadError(errors.join('\n'))
+    if (uploadErrors.length) setUploadError(prev => [prev, ...uploadErrors].filter(Boolean).join('\n'))
   }
 
   async function handleSubmit() {

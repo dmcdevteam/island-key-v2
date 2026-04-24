@@ -90,7 +90,7 @@ export default function EventDetailPage() {
             }}>
             {images.map((url, i) => (
               // eslint-disable-next-line @next/next/no-img-element
-              <img key={i} src={url} alt={event.title} className="min-w-full aspect-video object-cover snap-start flex-shrink-0" />
+              <img key={i} src={url} alt={event.title} className="min-w-full object-cover snap-start flex-shrink-0" style={{ aspectRatio: '16/9' }} />
             ))}
           </div>
           {images.length > 1 && (
@@ -102,8 +102,14 @@ export default function EventDetailPage() {
           )}
         </div>
       ) : (
-        <div className="aspect-video flex items-center justify-center" style={{ background: catColor }}>
-          <span className="text-5xl">{event.category === 'music' ? '🎵' : event.category === 'food' ? '🍽️' : '📅'}</span>
+        <div className="w-full relative flex items-end" style={{ aspectRatio: '16/9', background: `linear-gradient(160deg, ${catColor}dd, #1B2D4F)` }}>
+          <div className="absolute inset-0 flex flex-col justify-end p-5">
+            {event.category && (
+              <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded text-white/90 w-fit mb-2"
+                style={{ background: 'rgba(255,255,255,0.15)' }}>{event.category}</span>
+            )}
+            <h2 className="font-display text-xl text-white leading-snug drop-shadow">{event.title}</h2>
+          </div>
         </div>
       )}
 

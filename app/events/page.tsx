@@ -53,6 +53,7 @@ function formatMonthLabel(yearMonth: string) {
 
 function EventCard({ ev, onClick }: { ev: EventInstance; onClick: () => void }) {
   const catColor = CATEGORY_COLORS[ev.category ?? 'other'] ?? '#5A5A5A'
+  const coverImage = ev.images?.[0] ?? null
   const timeStr = ev.all_day
     ? 'All day'
     : new Date(ev.start_date).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false })
@@ -60,29 +61,35 @@ function EventCard({ ev, onClick }: { ev: EventInstance; onClick: () => void }) 
   return (
     <button
       onClick={onClick}
-      className="w-full mb-2.5 p-3.5 bg-white rounded-sm border border-border-light flex gap-3.5 items-start active:scale-[0.98] transition-transform text-left"
+      className="w-full mb-3 bg-white rounded-sm border border-border-light overflow-hidden active:scale-[0.98] transition-transform text-left"
     >
-      <div className="min-w-[44px] text-center flex-shrink-0 pt-0.5">
-        <div className="text-[15px] font-bold text-navy leading-none">{timeStr.slice(0, 5)}</div>
-        {!ev.all_day && <div className="text-[9px] text-tx-light mt-0.5">{timeStr.slice(5)}</div>}
+      {/* Cover image — 16:9 */}
+      <div className="w-full overflow-hidden" style={{ aspectRatio: '16/9' }}>
+        {coverImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={coverImage} alt={ev.title} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center" style={{ background: catColor }}>
+            <span className="text-xs font-bold text-white/80 uppercase tracking-widest">{ev.category ?? 'event'}</span>
+          </div>
+        )}
       </div>
-      <div className="w-0.5 self-stretch rounded-full flex-shrink-0" style={{ background: catColor }} />
-      <div className="flex-1 min-w-0">
-        <h3 className="text-sm font-semibold text-navy mb-0.5 leading-snug">{ev.title}</h3>
-        {ev.location_name && <p className="text-[11px] text-tx-light truncate">📍 {ev.location_name}</p>}
-        <div className="flex items-center gap-2 mt-1 flex-wrap">
+      {/* Details */}
+      <div className="p-3">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-[10px] font-semibold text-tx-light">{timeStr}</span>
           {ev.category && (
             <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded text-white"
               style={{ background: catColor }}>{ev.category}</span>
           )}
-          {ev.is_free ? (
-            <span className="text-[10px] font-semibold text-teal">Free</span>
-          ) : ev.price_label ? (
-            <span className="text-[10px] text-tx-light">{ev.price_label}</span>
-          ) : null}
         </div>
+        <h3 className="text-sm font-semibold text-navy leading-snug mb-0.5">{ev.title}</h3>
+        {ev.location_name && <p className="text-[11px] text-tx-light">📍 {ev.location_name}</p>}
+        {!ev.is_free && ev.price_label && (
+          <p className="text-[11px] text-tx-light mt-0.5">{ev.price_label}</p>
+        )}
+        {ev.is_free && <p className="text-[11px] font-semibold text-teal mt-0.5">Free entry</p>}
       </div>
-      <span className="text-[11px] text-teal flex-shrink-0 pt-1">→</span>
     </button>
   )
 }
