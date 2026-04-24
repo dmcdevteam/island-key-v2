@@ -125,7 +125,7 @@ function buildGuestEmailHtml(data: {
 
     <!-- Footer -->
     <p style="text-align:center;font-size:11px;color:#9CA3AF;margin-top:16px">
-      Island Key &mdash; Crete &mdash; <a href="https://islandkey.gr" style="color:#9CA3AF">islandkey.gr</a>
+      Island Key &mdash; Crete &mdash; <a href="https://app.islandkey.gr" style="color:#9CA3AF">app.islandkey.gr</a>
     </p>
 
   </div>

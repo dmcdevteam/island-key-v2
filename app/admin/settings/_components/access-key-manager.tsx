@@ -226,7 +226,7 @@ function TestingTools() {
 
         {/* DevTools note */}
         <p className="text-[12px] text-tx-light leading-relaxed">
-          <span className="font-semibold text-tx-mid">Full browser reset:</span> to clear localStorage and all cookies at once, go to DevTools → Application → Storage → Clear site data for islandkey.gr.
+          <span className="font-semibold text-tx-mid">Full browser reset:</span> to clear localStorage and all cookies at once, go to DevTools → Application → Storage → Clear site data for app.islandkey.gr.
         </p>
 
       </div>

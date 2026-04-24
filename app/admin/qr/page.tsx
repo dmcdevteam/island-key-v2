@@ -6,7 +6,7 @@ import QRCodeLib from 'qrcode';
 import { createClient } from '@/lib/supabase';
 import type { Tier, Region } from '@/lib/types';
 
-const APP_URL = 'https://islandkey.gr';
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.islandkey.gr';
 
 interface Provider {
   id: string;
