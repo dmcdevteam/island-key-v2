@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getSession, TIER_LABELS, timeRemaining, formatPrice } from '@/lib/utils';
+import { getSession, TIER_LABELS, formatPrice } from '@/lib/utils';
 import { BottomNav } from '@/components/ui/bottom-nav';
 import { SectionHeader, ActivityMiniCard, ArticleCard } from '@/components/ui/components';
 import { createClient } from '@/lib/supabase';
-import type { GuestSession, Deal, Activity, Article, CalendarEvent } from '@/lib/types';
+import type { GuestSession, Activity, DealFull, ArticleFull, EventFull } from '@/lib/types';
 
 // ─── Weather ──────────────────────────────────────────────────────────────────
 const WEATHER_CACHE_KEY = 'ik_weather_v2'
@@ -108,32 +108,44 @@ async function fetchWeather(): Promise<WeatherData> {
 
 // ─── Style maps ───────────────────────────────────────────────────────────────
 const ARTICLE_STYLES: Record<string, { bg: string; tagColor: string }> = {
-  guide:   { bg: 'linear-gradient(135deg,rgba(26,138,125,0.12),rgba(107,123,94,0.08))',  tagColor: '#1A8A7D' },
-  food:    { bg: 'linear-gradient(135deg,rgba(212,133,74,0.08),rgba(196,112,63,0.08))',  tagColor: '#D4854A' },
-  culture: { bg: 'linear-gradient(135deg,rgba(27,45,79,0.08),rgba(26,138,125,0.08))',    tagColor: '#1B2D4F' },
-  nature:  { bg: 'linear-gradient(135deg,rgba(107,123,94,0.08),rgba(26,138,125,0.08))',  tagColor: '#5B7A3D' },
-  events:  { bg: 'linear-gradient(135deg,rgba(212,133,74,0.07),rgba(26,138,125,0.07))',  tagColor: '#D94F4F' },
-  tips:    { bg: 'linear-gradient(135deg,rgba(212,168,67,0.08),rgba(107,123,94,0.08))',  tagColor: '#D4A843' },
+  // New categories
+  local_guide: { bg: 'linear-gradient(135deg,rgba(26,138,125,0.12),rgba(107,123,94,0.08))',  tagColor: '#1A8A7D' },
+  food_drink:  { bg: 'linear-gradient(135deg,rgba(212,133,74,0.08),rgba(196,112,63,0.08))',  tagColor: '#D4854A' },
+  culture:     { bg: 'linear-gradient(135deg,rgba(27,45,79,0.08),rgba(26,138,125,0.08))',    tagColor: '#1B2D4F' },
+  adventure:   { bg: 'linear-gradient(135deg,rgba(107,123,94,0.08),rgba(26,138,125,0.08))',  tagColor: '#5B7A3D' },
+  beaches:     { bg: 'linear-gradient(135deg,rgba(26,138,125,0.07),rgba(52,152,219,0.07))',  tagColor: '#1A8A7D' },
+  tips:        { bg: 'linear-gradient(135deg,rgba(212,168,67,0.08),rgba(107,123,94,0.08))',  tagColor: '#D4A843' },
+  seasonal:    { bg: 'linear-gradient(135deg,rgba(212,133,74,0.07),rgba(26,138,125,0.07))',  tagColor: '#D4854A' },
+  other:       { bg: 'linear-gradient(135deg,rgba(27,45,79,0.05),rgba(107,123,94,0.05))',   tagColor: '#5A5A5A' },
+  // Legacy aliases
+  guide:       { bg: 'linear-gradient(135deg,rgba(26,138,125,0.12),rgba(107,123,94,0.08))',  tagColor: '#1A8A7D' },
+  food:        { bg: 'linear-gradient(135deg,rgba(212,133,74,0.08),rgba(196,112,63,0.08))',  tagColor: '#D4854A' },
+  nature:      { bg: 'linear-gradient(135deg,rgba(107,123,94,0.08),rgba(26,138,125,0.08))',  tagColor: '#5B7A3D' },
+  events:      { bg: 'linear-gradient(135deg,rgba(212,133,74,0.07),rgba(26,138,125,0.07))',  tagColor: '#D94F4F' },
 };
 const EVENT_ICONS: Record<string, string> = {
   market: '🛍️', food: '🍽️', music: '🎵', art: '🎨', cinema: '🎬',
-  wine: '🍷', wellness: '🧘', festival: '🎉', sport: '⚽', other: '📅',
+  wine: '🍷', wellness: '🧘', festival: '🎉', sport: '⚽',
+  cultural: '🏛️', nightlife: '🌙', family: '👨‍👩‍👧', other: '📅',
 };
 
-function formatEventWhen(dateStr: string, timeStart: string | null): string {
+function formatEventWhen(startDate: string): string {
   const today = new Date().toISOString().slice(0, 10);
   const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+  const dateStr = startDate.slice(0, 10);
   const label = dateStr === today ? 'Today' : dateStr === tomorrow ? 'Tomorrow'
     : new Date(dateStr + 'T00:00:00').toLocaleDateString('en', { weekday: 'short', day: 'numeric', month: 'short' });
-  return timeStart ? `${label} · ${timeStart.slice(0, 5)}` : label;
+  const d = new Date(startDate);
+  const timeStr = d.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false });
+  return `${label} · ${timeStr}`;
 }
 
 interface HomeData {
-  deals:         Deal[];
+  deals:         DealFull[];
   activities:    Activity[];   // featured
   allActivities: Activity[];   // all active (for Explore section)
-  articles:      Article[];
-  events:        CalendarEvent[];
+  articles:      ArticleFull[];
+  events:        EventFull[];
 }
 
 export default function HomePage() {
@@ -179,40 +191,40 @@ export default function HomePage() {
     if (!s) return;
     const supabase = createClient();
 
+    const dealParams = new URLSearchParams({
+      tier: s.tier, region: s.region, featured: 'true', limit: '3',
+      ...(s.property_id ? { property_id: s.property_id } : {}),
+    });
+
     Promise.all([
-      supabase.from('active_deals').select('*').limit(10),
+      fetch(`/api/deals?${dealParams}`).then(r => r.json()).catch(() => []),
       supabase.from('activities').select('*').eq('is_featured', true).eq('is_active', true).limit(10),
       supabase.from('activities').select('*').eq('is_active', true).limit(30),
-      supabase.from('published_articles').select('*').limit(3),
-      supabase.from('upcoming_events').select('*').limit(3),
-    ]).then(([dealsRes, featuredRes, allRes, articlesRes, eventsRes]) => {
-      const err = dealsRes.error || featuredRes.error || allRes.error || articlesRes.error || eventsRes.error;
+      fetch('/api/articles?limit=3').then(r => r.json()).catch(() => []),
+      fetch('/api/events/today').then(r => r.json()).catch(() => []),
+    ]).then(([deals, featuredRes, allRes, articles, events]) => {
+      const err = featuredRes.error || allRes.error;
       if (err) { setError(err.message); setLoading(false); return; }
 
       const tier   = s.tier;
       const region = s.region;
 
-      const deals = (dealsRes.data ?? [])
-        .filter(d => !d.tier_visibility?.length || d.tier_visibility.includes(tier))
-        .filter(d => d.region === region)
-        .slice(0, 3);
-
       const activities = (featuredRes.data ?? [])
-        .filter(a => !a.tier_visibility?.length || a.tier_visibility.includes(tier))
-        .filter(a => a.region === 'island-wide' || a.region === region)
+        .filter((a: Activity) => !a.tier_visibility?.length || a.tier_visibility.includes(tier))
+        .filter((a: Activity) => a.region === 'island-wide' || a.region === region)
         .slice(0, 5);
 
       const allActivities = (allRes.data ?? [])
-        .filter(a => !a.tier_visibility?.length || a.tier_visibility.includes(tier))
-        .filter(a => a.region === 'island-wide' || a.region === region)
+        .filter((a: Activity) => !a.tier_visibility?.length || a.tier_visibility.includes(tier))
+        .filter((a: Activity) => a.region === 'island-wide' || a.region === region)
         .slice(0, 12);
 
       setData({
-        deals,
+        deals: Array.isArray(deals) ? deals : [],
         activities,
         allActivities,
-        articles: articlesRes.data ?? [],
-        events:   eventsRes.data ?? [],
+        articles: Array.isArray(articles) ? articles : [],
+        events: Array.isArray(events) ? events : [],
       });
       setLoading(false);
     });
@@ -240,7 +252,7 @@ export default function HomePage() {
     return { type: 'during' as const, dayNum, length };
   })();
 
-  const featuredDeal = data.deals[0] ?? null;
+  const featuredDeal: DealFull | null = data.deals[0] ?? null;
 
   return (
     <div className="min-h-screen bg-cream flex flex-col pb-[90px]">
@@ -331,64 +343,71 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* What's happening */}
-        <SectionHeader title="What's happening" linkText="See calendar →" onLink={() => router.push('/events')} />
-        {loading ? (
-          <div className="mx-5 mb-5 space-y-2">
-            {Array.from({ length: 2 }).map((_, i) => (
-              <div key={i} className="h-[52px] rounded-sm bg-navy/5 animate-pulse" />
-            ))}
-          </div>
-        ) : data.events.length > 0 ? (
-          <div className="mb-5">
-            {data.events.map(ev => (
-              <div
-                key={ev.id}
-                onClick={() => router.push('/events')}
-                className="mx-5 mb-2.5 flex gap-2.5 p-2.5 px-3 bg-white rounded-sm border border-border-light items-center cursor-pointer active:bg-sand"
-              >
-                <span className="text-lg">{EVENT_ICONS[ev.category] ?? '📅'}</span>
-                <div className="flex-1">
-                  <p className="text-xs font-semibold text-navy">{ev.title}</p>
-                  <p className="text-[10px] text-tx-light">
-                    {formatEventWhen(ev.date, ev.time_start)}
-                    {ev.location ? ` · ${ev.location}` : ''}
-                    {ev.is_free ? ' · Free entry' : ''}
-                  </p>
-                </div>
-                <span className="text-[11px] text-teal">→</span>
+        {/* What's happening today — only shown when there are events */}
+        {(loading || data.events.length > 0) && (
+          <>
+            <SectionHeader title="What&apos;s happening today" linkText="See all →" onLink={() => router.push('/events')} />
+            {loading ? (
+              <div className="mx-5 mb-5 space-y-2">
+                {Array.from({ length: 2 }).map((_, i) => (
+                  <div key={i} className="h-[52px] rounded-sm bg-navy/5 animate-pulse" />
+                ))}
               </div>
-            ))}
-          </div>
-        ) : (
-          <p className="mx-5 mb-5 text-xs text-tx-light">No upcoming events in the next 30 days.</p>
+            ) : (
+              <div className="mb-5">
+                {data.events.map(ev => (
+                  <div
+                    key={ev.id}
+                    onClick={() => router.push(`/events/${ev.slug}`)}
+                    className="mx-5 mb-2.5 flex gap-2.5 p-2.5 px-3 bg-white rounded-sm border border-border-light items-center cursor-pointer active:bg-sand"
+                  >
+                    <span className="text-lg">{EVENT_ICONS[ev.category ?? 'other'] ?? '📅'}</span>
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-navy">{ev.title}</p>
+                      <p className="text-[10px] text-tx-light">
+                        {formatEventWhen(ev.start_date)}
+                        {ev.location_name ? ` · ${ev.location_name}` : ''}
+                        {ev.is_free ? ' · Free entry' : ''}
+                      </p>
+                    </div>
+                    <span className="text-[11px] text-teal">→</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
         )}
 
-        {/* Today's Deal */}
-        <SectionHeader title="Today's Deal" linkText="View all →" onLink={() => router.push('/deals')} />
-        {loading ? (
-          <div className="mx-5 mb-5 h-[90px] rounded bg-navy/5 animate-pulse" />
-        ) : featuredDeal ? (
-          <div
-            onClick={() => router.push('/deals')}
-            className="mx-5 mb-5 p-3.5 rounded cursor-pointer relative overflow-hidden border border-[#F0D9C4] transition-all active:scale-[0.98]"
-            style={{ background: 'linear-gradient(135deg, #FDF3EB, #FFF8F2)' }}
-          >
-            <span className="absolute top-2.5 right-2.5 bg-deal text-white text-[10px] font-bold px-2 py-0.5 rounded">
-              {timeRemaining(featuredDeal.expires_at)}
-            </span>
-            <h3 className="font-semibold text-sm text-navy mb-0.5 pr-20">{featuredDeal.title}</h3>
-            <p className="text-[11px] text-tx-light mb-1.5">
-              {featuredDeal.provider_name ?? ''}
-              {featuredDeal.available_seats ? ` · ${featuredDeal.available_seats} seats left` : ''}
-            </p>
-            <div className="flex items-baseline gap-2">
-              <span className="text-xs text-tx-light line-through">{formatPrice(featuredDeal.original_price)}</span>
-              <span className="text-base font-bold text-terra">{formatPrice(featuredDeal.deal_price)}</span>
-            </div>
-          </div>
-        ) : (
-          <p className="mx-5 mb-5 text-xs text-tx-light">No active deals right now — check back soon.</p>
+        {/* Deals section — only shown when there are featured deals */}
+        {(loading || featuredDeal) && (
+          <>
+            <SectionHeader title="Today&apos;s Deal" linkText="View all →" onLink={() => router.push('/deals')} />
+            {loading ? (
+              <div className="mx-5 mb-5 h-[90px] rounded bg-navy/5 animate-pulse" />
+            ) : featuredDeal ? (
+              <div
+                onClick={() => router.push('/deals')}
+                className="mx-5 mb-5 p-3.5 rounded cursor-pointer relative overflow-hidden border border-[#F0D9C4] transition-all active:scale-[0.98]"
+                style={{ background: 'linear-gradient(135deg, #FDF3EB, #FFF8F2)' }}
+              >
+                {featuredDeal.discount_label && (
+                  <span className="absolute top-2.5 right-2.5 bg-teal text-white text-[10px] font-bold px-2 py-0.5 rounded">
+                    {featuredDeal.discount_label}
+                  </span>
+                )}
+                <h3 className="font-semibold text-sm text-navy mb-0.5 pr-20">{featuredDeal.title}</h3>
+                {featuredDeal.short_description && (
+                  <p className="text-[11px] text-tx-light mb-1.5">{featuredDeal.short_description}</p>
+                )}
+                {(featuredDeal.original_price || featuredDeal.deal_price) && (
+                  <div className="flex items-baseline gap-2">
+                    {featuredDeal.original_price && <span className="text-xs text-tx-light line-through">{formatPrice(featuredDeal.original_price)}</span>}
+                    {featuredDeal.deal_price && <span className="text-base font-bold text-terra">{formatPrice(featuredDeal.deal_price)}</span>}
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </>
         )}
 
         {/* Recommended for you */}
@@ -454,17 +473,17 @@ export default function HomePage() {
         ) : data.articles.length > 0 ? (
           <div className="flex gap-2.5 px-5 overflow-x-auto snap-x no-scrollbar mb-5">
             {data.articles.map(a => {
-              const style = ARTICLE_STYLES[a.category] ?? { bg: ARTICLE_STYLES.guide.bg, tagColor: '#5A5A5A' };
+              const style = ARTICLE_STYLES[a.category ?? ''] ?? { bg: ARTICLE_STYLES.guide.bg, tagColor: '#5A5A5A' };
               return (
                 <ArticleCard
                   key={a.id}
                   title={a.title}
                   excerpt={a.excerpt ?? ''}
-                  category={a.category.charAt(0).toUpperCase() + a.category.slice(1)}
-                  readTime={a.read_time_min}
+                  category={(a.category ?? 'other').replace('_', ' ')}
+                  readTime={a.read_time_minutes ?? 0}
                   bgGradient={style.bg}
                   tagColor={style.tagColor}
-                  onClick={() => router.push('/insights')}
+                  onClick={() => router.push(`/insights/${a.slug}`)}
                 />
               );
             })}

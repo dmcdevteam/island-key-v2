@@ -245,6 +245,107 @@ export interface InfoPage {
   updated_at: string;
 }
 
+// ─── New full-schema types (2025 rebuild) ────────────────────────────────────
+
+export interface DealFull {
+  id: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  short_description: string | null;
+  provider_id: string | null;
+  property_id: string | null;
+  category: string | null;
+  discount_type: string | null;
+  discount_value: number | null;
+  discount_label: string | null;
+  original_price: number | null;
+  deal_price: number | null;
+  currency: string;
+  code: string | null;
+  terms: string | null;
+  valid_from: string | null;
+  valid_until: string | null;
+  max_redemptions: number | null;
+  total_redemptions: number;
+  region: string;
+  tier_visibility: string[];
+  images: string[] | null;
+  is_featured: boolean;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface EventFull {
+  id: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  short_description: string | null;
+  category: string | null;
+  start_date: string;
+  end_date: string | null;
+  all_day: boolean;
+  recurring: boolean;
+  recurring_pattern: string | null;
+  location_name: string | null;
+  location_address: string | null;
+  location_lat: number | null;
+  location_lng: number | null;
+  price_from: number | null;
+  price_label: string | null;
+  is_free: boolean;
+  booking_url: string | null;
+  organiser: string | null;
+  region: string;
+  tier_visibility: string[];
+  images: string[] | null;
+  is_featured: boolean;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface ArticleFull {
+  id: string;
+  title: string;
+  slug: string;
+  subtitle: string | null;
+  body: string | null;
+  excerpt: string | null;
+  category: string | null;
+  author: string;
+  author_bio: string | null;
+  read_time_minutes: number | null;
+  cover_image: string | null;
+  images: string[] | null;
+  tags: string[] | null;
+  meta_title: string | null;
+  meta_description: string | null;
+  og_image: string | null;
+  region: string;
+  is_featured: boolean;
+  is_active: boolean;
+  sort_order: number;
+  published_at: string | null;
+  created_at: string;
+}
+
+export interface InfoPageFull {
+  id: string;
+  title: string;
+  slug: string;
+  category: string | null;
+  icon: string | null;
+  content: string | null;
+  sections: { heading: string; content: string }[] | null;
+  region: string;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+}
+
 // ─── Session state (stored in localStorage) ───
 export interface GuestSession {
   guest_id: string | null;

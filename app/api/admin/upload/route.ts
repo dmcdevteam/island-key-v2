@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
 import { isAdminAuthed } from '../_lib/auth'
 
-const ALLOWED_BUCKETS = new Set(['activity-images', 'rental-images', 'transfer-images'])
+const ALLOWED_BUCKETS = new Set(['activity-images', 'rental-images', 'transfer-images', 'deal-images', 'event-images', 'article-images'])
 
 // Increase Vercel serverless body limit for image uploads
 export const maxDuration = 30
