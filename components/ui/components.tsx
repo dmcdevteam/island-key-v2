@@ -3,6 +3,28 @@
 import { clsx } from 'clsx';
 import type { Tier, ActivityCategory, Deal } from '@/lib/types';
 import { TIER_LABELS, TIER_COLORS, formatPrice, timeRemaining } from '@/lib/utils';
+import { useFavourites } from '@/app/_components/favourites-provider';
+import type { FavouriteToggleItem } from '@/app/_components/favourites-provider';
+
+// ─── HEART BUTTON ───
+export function HeartButton({ item, className }: { item: FavouriteToggleItem; className?: string }) {
+  const { isFavourited, toggleFavourite } = useFavourites()
+  const faved = isFavourited(item.id)
+  return (
+    <button
+      onClick={e => { e.stopPropagation(); toggleFavourite(item) }}
+      aria-label={faved ? 'Remove from saved' : 'Save'}
+      className={clsx(
+        'w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90',
+        faved ? 'bg-white/90 text-red-500' : 'bg-white/70 text-tx-light hover:text-red-400',
+        className
+      )}
+      style={{ backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}
+    >
+      <span className="text-[16px] leading-none select-none">{faved ? '♥' : '♡'}</span>
+    </button>
+  )
+}
 
 // ─── BUTTON ───
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -132,13 +154,17 @@ interface ActivityCardProps {
   priceFrom: number;
   duration: string;
   imageUrl?: string | null;
+  externalRating?: number | null;
+  externalRatingCount?: number | null;
+  externalRatingSource?: string | null;
+  heartItem?: FavouriteToggleItem;
   // kept for legacy call sites that still pass these — unused when imageUrl is present
   icon?: string;
   bgGradient?: string;
   onClick?: () => void;
 }
 
-export function ActivityCard({ title, description, category, priceFrom, duration, imageUrl, onClick }: ActivityCardProps) {
+export function ActivityCard({ title, description, category, priceFrom, duration, imageUrl, externalRating, externalRatingCount, externalRatingSource, heartItem, onClick }: ActivityCardProps) {
   const icon = CATEGORY_ICONS[category] ?? '🌟';
   return (
     <div
@@ -160,10 +186,23 @@ export function ActivityCard({ title, description, category, priceFrom, duration
             <span style={{ fontSize: 10, fontWeight: 700, color: '#F5F0E8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{category}</span>
           </div>
         )}
+        {heartItem && (
+          <div className="absolute top-2 right-2 z-10">
+            <HeartButton item={heartItem} />
+          </div>
+        )}
       </div>
       {/* Text */}
       <div className="p-2.5">
         <h3 className="font-semibold text-[13px] text-navy mb-0.5">{title}</h3>
+        {externalRating && (
+          <div className="flex items-center gap-1 mb-1">
+            <span className="text-amber-400 text-[11px] leading-none">{'★'.repeat(Math.round(externalRating))}</span>
+            <span className="text-[11px] font-semibold text-navy">{externalRating.toFixed(1)}</span>
+            {externalRatingCount && <span className="text-[10px] text-tx-light">({externalRatingCount.toLocaleString()})</span>}
+            {externalRatingSource && <span className="text-[9px] text-tx-light bg-sand px-1 py-0.5 rounded">{externalRatingSource}</span>}
+          </div>
+        )}
         <p className="text-[11px] text-tx-light leading-snug mb-1.5 line-clamp-2">{description}</p>
         <div className="flex justify-between items-center">
           <span className="text-xs font-bold text-teal">From {formatPrice(priceFrom)}pp</span>
@@ -175,8 +214,9 @@ export function ActivityCard({ title, description, category, priceFrom, duration
 }
 
 // ─── ACTIVITY MINI CARD (Horizontal scroll — Home screen) ───
-export function ActivityMiniCard({ title, subtitle, priceFrom, category, imageUrl, onClick }: {
+export function ActivityMiniCard({ title, subtitle, priceFrom, category, imageUrl, heartItem, onClick }: {
   title: string; subtitle: string; priceFrom: number; category: string; imageUrl?: string | null;
+  heartItem?: FavouriteToggleItem;
   // kept for legacy call sites
   icon?: string; bgGradient?: string;
   onClick?: () => void;
@@ -200,6 +240,11 @@ export function ActivityMiniCard({ title, subtitle, priceFrom, category, imageUr
           <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
             <span style={{ fontSize: 26 }}>{icon}</span>
             <span style={{ fontSize: 9, fontWeight: 700, color: '#F5F0E8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{category}</span>
+          </div>
+        )}
+        {heartItem && (
+          <div className="absolute top-1.5 right-1.5 z-10">
+            <HeartButton item={heartItem} />
           </div>
         )}
       </div>

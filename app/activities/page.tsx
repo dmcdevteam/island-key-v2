@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { BottomNav } from '@/components/ui/bottom-nav';
 import { CategoryChip, ActivityCard } from '@/components/ui/components';
+import { ProfileAvatar } from '@/app/_components/profile-avatar';
 import { ACTIVITY_CATEGORIES, getSession } from '@/lib/utils';
 import { createClient } from '@/lib/supabase';
 import type { Activity } from '@/lib/types';
@@ -61,10 +62,13 @@ export default function ActivitiesPage() {
   return (
     <div className="min-h-screen bg-cream flex flex-col pb-[90px]">
       <div className="px-5 pt-[52px] pb-3">
-        <div className="flex items-center gap-2">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo_icon_navy.png" alt="Island Key" style={{ height: 24, width: 'auto' }} />
-          <h1 className="font-display text-xl font-medium text-navy">Explore</h1>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo_icon_navy.png" alt="Island Key" style={{ height: 24, width: 'auto' }} />
+            <h1 className="font-display text-xl font-medium text-navy">Explore</h1>
+          </div>
+          <ProfileAvatar />
         </div>
         <p className="text-xs text-tx-light mt-0.5">Curated by locals, vetted for quality</p>
       </div>
@@ -169,6 +173,10 @@ export default function ActivitiesPage() {
                 priceFrom={activity.price_from ?? 0}
                 duration={activity.duration ?? ''}
                 imageUrl={activity.images?.[0] ?? null}
+                externalRating={activity.external_rating}
+                externalRatingCount={activity.external_rating_count}
+                externalRatingSource={activity.external_rating_source}
+                heartItem={{ id: activity.id, type: 'activity', slug: activity.slug, title: activity.title, image: activity.images?.[0] ?? null, price: activity.price_from ? `€${activity.price_from}pp` : null }}
                 onClick={() => router.push(`/activities/${activity.slug}`)}
               />
             ))}

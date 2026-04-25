@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { BottomNav } from '@/components/ui/bottom-nav'
-import { CategoryChip } from '@/components/ui/components'
+import { CategoryChip, HeartButton } from '@/components/ui/components'
+import { ProfileAvatar } from '@/app/_components/profile-avatar'
 import type { ArticleFull } from '@/lib/types'
 
 const CATEGORIES = [
@@ -60,10 +61,13 @@ export default function InsightsPage() {
   return (
     <div className="min-h-screen bg-cream flex flex-col pb-[90px]">
       <div className="px-5 pt-[52px] pb-3">
-        <div className="flex items-center gap-2">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo_icon_navy.png" alt="Island Key" style={{ height: 24, width: 'auto' }} />
-          <h1 className="font-display text-xl font-medium text-navy">Local Insights</h1>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo_icon_navy.png" alt="Island Key" style={{ height: 24, width: 'auto' }} />
+            <h1 className="font-display text-xl font-medium text-navy">Local Insights</h1>
+          </div>
+          <ProfileAvatar />
         </div>
         <p className="text-xs text-tx-light mt-0.5">Stories, guides & tips from the island</p>
       </div>
@@ -103,11 +107,19 @@ export default function InsightsPage() {
                 className="w-full text-left bg-white rounded-sm overflow-hidden border border-border-light active:scale-[0.98] transition-transform"
               >
                 {featured.cover_image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={featured.cover_image} alt={featured.title} className="w-full h-52 object-cover" />
+                  <div className="relative">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={featured.cover_image} alt={featured.title} className="w-full h-52 object-cover" />
+                    <div className="absolute top-2 right-2 z-10">
+                      <HeartButton item={{ id: featured.id, type: 'article', slug: featured.slug, title: featured.title, image: featured.cover_image, price: null }} />
+                    </div>
+                  </div>
                 ) : (
-                  <div className="h-52 flex items-center justify-center" style={{ background: (CATEGORY_STYLES[featured.category ?? ''] ?? DEFAULT_STYLE).bg }}>
+                  <div className="h-52 flex items-center justify-center relative" style={{ background: (CATEGORY_STYLES[featured.category ?? ''] ?? DEFAULT_STYLE).bg }}>
                     <span className="text-4xl">📖</span>
+                    <div className="absolute top-2 right-2 z-10">
+                      <HeartButton item={{ id: featured.id, type: 'article', slug: featured.slug, title: featured.title, image: null, price: null }} />
+                    </div>
                   </div>
                 )}
                 <div className="p-4">
@@ -139,8 +151,13 @@ export default function InsightsPage() {
                     className="text-left bg-white rounded-sm overflow-hidden border border-border-light active:scale-[0.98] transition-transform"
                   >
                     {article.cover_image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={article.cover_image} alt={article.title} className="w-full aspect-video object-cover" />
+                      <div className="relative">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={article.cover_image} alt={article.title} className="w-full aspect-video object-cover" />
+                        <div className="absolute top-1.5 right-1.5 z-10">
+                          <HeartButton item={{ id: article.id, type: 'article', slug: article.slug, title: article.title, image: article.cover_image, price: null }} />
+                        </div>
+                      </div>
                     ) : (
                       <div className="aspect-video flex items-center justify-center relative" style={{ background: style.bg }}>
                         {article.category && (
@@ -149,6 +166,9 @@ export default function InsightsPage() {
                             {article.category.replace('_', ' ')}
                           </span>
                         )}
+                        <div className="absolute top-1.5 right-1.5 z-10">
+                          <HeartButton item={{ id: article.id, type: 'article', slug: article.slug, title: article.title, image: null, price: null }} />
+                        </div>
                       </div>
                     )}
                     <div className="p-2.5">

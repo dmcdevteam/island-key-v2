@@ -88,6 +88,10 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
     meeting_point:       activity?.meeting_point ?? '',
     meeting_coords:      activity?.meeting_coords ?? '',
     includes:            activity?.includes?.join('\n') ?? '',
+    not_included:        activity?.not_included?.join('\n') ?? '',
+    external_rating:     activity?.external_rating?.toString() ?? '',
+    external_rating_count: activity?.external_rating_count?.toString() ?? '',
+    external_rating_source: activity?.external_rating_source ?? '',
     good_to_know:        activity?.good_to_know ?? '',
     cancellation_policy: activity?.cancellation_policy ?? 'Free cancellation up to 24 hours',
     provider_id:         activity?.provider_id ?? '',
@@ -372,6 +376,10 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
         meeting_point:       form.meeting_point || null,
         meeting_coords:      form.meeting_coords || null,
         includes:            form.includes ? form.includes.split('\n').map((l: string) => l.trim()).filter(Boolean) : null,
+        not_included:        form.not_included ? form.not_included.split('\n').map((l: string) => l.trim()).filter(Boolean) : null,
+        external_rating:     form.external_rating ? parseFloat(form.external_rating) : null,
+        external_rating_count: form.external_rating_count ? parseInt(form.external_rating_count) : null,
+        external_rating_source: form.external_rating_source || null,
         good_to_know:        form.good_to_know || null,
         cancellation_policy: form.cancellation_policy || null,
         provider_id:         form.provider_id || null,
@@ -560,6 +568,44 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
                   value={form.includes}
                   onChange={e => set('includes', e.target.value)}
                 />
+              </div>
+              <div>
+                <label className={LABEL}>Not Included (one per line)</label>
+                <textarea
+                  className={`${INPUT} resize-y`}
+                  rows={3}
+                  placeholder={"Guide\nFood\nTransport to meeting point"}
+                  value={form.not_included}
+                  onChange={e => set('not_included', e.target.value)}
+                />
+              </div>
+              <div>
+                <label className={LABEL}>External Rating (e.g. from GYG)</label>
+                <div className="grid grid-cols-3 gap-2">
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="5"
+                    className={INPUT}
+                    placeholder="4.9"
+                    value={form.external_rating}
+                    onChange={e => set('external_rating', e.target.value)}
+                  />
+                  <input
+                    type="number"
+                    className={INPUT}
+                    placeholder="274 reviews"
+                    value={form.external_rating_count}
+                    onChange={e => set('external_rating_count', e.target.value)}
+                  />
+                  <input
+                    className={INPUT}
+                    placeholder="GYG / TripAdvisor"
+                    value={form.external_rating_source}
+                    onChange={e => set('external_rating_source', e.target.value)}
+                  />
+                </div>
               </div>
               <div>
                 <label className={LABEL}>Good to Know</label>

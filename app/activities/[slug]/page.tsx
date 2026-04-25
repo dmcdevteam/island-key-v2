@@ -358,7 +358,25 @@ export default function ActivityDetailPage() {
       {/* Body */}
       <div className="flex-1 overflow-y-auto px-5 pt-4 pb-[100px]">
         <h1 className="font-display text-[21px] font-medium text-navy mb-0.5">{activity.title}</h1>
-        <p className="text-xs text-tx-light mb-3">{activity.meeting_point ?? activity.region}</p>
+        <p className="text-xs text-tx-light mb-1">{activity.meeting_point ?? activity.region}</p>
+
+        {activity.external_rating && (
+          <div className="flex items-center gap-1.5 mb-3">
+            <span className="text-amber-400 text-sm leading-none">
+              {'★'.repeat(Math.floor(activity.external_rating))}
+              {activity.external_rating % 1 >= 0.5 ? '½' : ''}
+            </span>
+            <span className="text-[13px] font-bold text-navy">{activity.external_rating.toFixed(1)}</span>
+            {activity.external_rating_count && (
+              <span className="text-[11px] text-tx-light">· {activity.external_rating_count.toLocaleString()} reviews</span>
+            )}
+            {activity.external_rating_source && (
+              <span className="text-[10px] text-tx-light bg-sand px-1.5 py-0.5 rounded">{activity.external_rating_source}</span>
+            )}
+          </div>
+        )}
+
+        {!activity.external_rating && <div className="mb-3" />}
 
         <div className="flex flex-wrap gap-3 mb-3">
           {activity.duration && <span className="text-[11px] text-tx-mid">⏱ {activity.duration}</span>}
@@ -386,6 +404,19 @@ export default function ActivityDetailPage() {
               {activity.includes.map(item => (
                 <li key={item} className="text-xs text-tx-mid py-1.5 border-b border-border-light flex items-center gap-2">
                   <span className="text-teal font-bold text-[11px]">✓</span>{item}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+
+        {activity.not_included && activity.not_included.length > 0 && (
+          <>
+            <h3 className="text-[11px] font-bold text-navy uppercase tracking-wide mb-2">Not included</h3>
+            <ul className="mb-4">
+              {activity.not_included.map(item => (
+                <li key={item} className="text-xs text-tx-mid py-1.5 border-b border-border-light flex items-center gap-2">
+                  <span className="text-tx-light font-bold text-[11px]">✗</span>{item}
                 </li>
               ))}
             </ul>

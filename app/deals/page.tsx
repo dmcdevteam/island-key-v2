@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { BottomNav } from '@/components/ui/bottom-nav'
+import { HeartButton } from '@/components/ui/components'
+import { ProfileAvatar } from '@/app/_components/profile-avatar'
 import { getSession } from '@/lib/utils'
 import type { DealFull, GuestSession } from '@/lib/types'
 
@@ -180,10 +182,13 @@ export default function DealsPage() {
   return (
     <div className="min-h-screen bg-cream flex flex-col pb-[90px]">
       <div className="px-5 pt-[52px] pb-3">
-        <div className="flex items-center gap-2">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo_icon_navy.png" alt="Island Key" style={{ height: 24, width: 'auto' }} />
-          <h1 className="font-display text-xl font-medium text-navy">Deals & Offers</h1>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo_icon_navy.png" alt="Island Key" style={{ height: 24, width: 'auto' }} />
+            <h1 className="font-display text-xl font-medium text-navy">Deals & Offers</h1>
+          </div>
+          <ProfileAvatar />
         </div>
         <p className="text-xs text-tx-light mt-0.5">Exclusive to Island Key guests</p>
       </div>
@@ -224,20 +229,21 @@ export default function DealsPage() {
                           {deal.category}
                         </span>
                       )}
-                      {deal.discount_label && (
-                        <span className="absolute top-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded bg-teal text-white">
-                          {deal.discount_label}
-                        </span>
-                      )}
+                      <div className="absolute top-2 right-2">
+                        <HeartButton item={{ id: deal.id, type: 'deal', slug: deal.slug, title: deal.title, image: deal.images?.[0] ?? null, price: deal.deal_price ? `€${deal.deal_price}` : null }} />
+                      </div>
                     </div>
                   ) : (
                     <div className="aspect-video bg-navy flex items-center justify-center relative">
                       <span className="text-3xl">{deal.category === 'dining' ? '🍽️' : '🎁'}</span>
                       {deal.discount_label && (
-                        <span className="absolute top-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded bg-teal text-white">
+                        <span className="absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded bg-teal text-white">
                           {deal.discount_label}
                         </span>
                       )}
+                      <div className="absolute top-2 right-2">
+                        <HeartButton item={{ id: deal.id, type: 'deal', slug: deal.slug, title: deal.title, image: null, price: deal.deal_price ? `€${deal.deal_price}` : null }} />
+                      </div>
                     </div>
                   )}
 

@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { BottomNav } from '@/components/ui/bottom-nav'
+import { HeartButton } from '@/components/ui/components'
+import { ProfileAvatar } from '@/app/_components/profile-avatar'
 import type { EventFull } from '@/lib/types'
 import { clsx } from 'clsx'
 
@@ -64,7 +66,7 @@ function EventCard({ ev, onClick }: { ev: EventInstance; onClick: () => void }) 
       className="w-full mb-3 bg-white rounded-sm border border-border-light overflow-hidden active:scale-[0.98] transition-transform text-left"
     >
       {/* Cover image — 16:9 */}
-      <div className="w-full overflow-hidden" style={{ aspectRatio: '16/9' }}>
+      <div className="w-full overflow-hidden relative" style={{ aspectRatio: '16/9' }}>
         {coverImage ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={coverImage} alt={ev.title} className="w-full h-full object-cover" />
@@ -73,6 +75,9 @@ function EventCard({ ev, onClick }: { ev: EventInstance; onClick: () => void }) 
             <span className="text-xs font-bold text-white/80 uppercase tracking-widest">{ev.category ?? 'event'}</span>
           </div>
         )}
+        <div className="absolute top-2 right-2 z-10">
+          <HeartButton item={{ id: ev.id, type: 'event', slug: ev.slug, title: ev.title, image: coverImage, price: ev.price_label }} />
+        </div>
       </div>
       {/* Details */}
       <div className="p-3">
@@ -165,10 +170,13 @@ export default function EventsPage() {
     <div className="min-h-screen bg-cream flex flex-col pb-[90px]">
       {/* Header */}
       <div className="px-5 pt-[52px] pb-3">
-        <div className="flex items-center gap-2">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo_icon_navy.png" alt="Island Key" style={{ height: 24, width: 'auto' }} />
-          <h1 className="font-display text-xl font-medium text-navy">What&apos;s Happening</h1>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo_icon_navy.png" alt="Island Key" style={{ height: 24, width: 'auto' }} />
+            <h1 className="font-display text-xl font-medium text-navy">What&apos;s Happening</h1>
+          </div>
+          <ProfileAvatar />
         </div>
         <p className="text-xs text-tx-light mt-0.5">Curated events across Crete</p>
       </div>

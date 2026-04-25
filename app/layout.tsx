@@ -3,6 +3,7 @@ import './globals.css';
 import { AdminPreviewPill } from './_components/admin-preview-pill';
 import { WhatsAppFAB } from './_components/whatsapp-fab';
 import { ServiceWorkerRegister } from './_components/sw-register';
+import { FavouritesProvider } from './_components/favourites-provider';
 
 export const metadata: Metadata = {
   title: 'Island Key — Your island. Unlocked.',
@@ -24,11 +25,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="font-body text-tx bg-cream min-h-screen">
         <ServiceWorkerRegister />
-        <div className="app-shell">
-          <AdminPreviewPill />
-          <WhatsAppFAB />
-          {children}
-        </div>
+        <FavouritesProvider>
+          <div className="app-shell">
+            <AdminPreviewPill />
+            <WhatsAppFAB />
+            {children}
+          </div>
+        </FavouritesProvider>
       </body>
     </html>
   );

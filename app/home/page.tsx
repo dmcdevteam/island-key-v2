@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { getSession, TIER_LABELS, formatPrice } from '@/lib/utils';
 import { BottomNav } from '@/components/ui/bottom-nav';
 import { SectionHeader, ActivityMiniCard, ArticleCard } from '@/components/ui/components';
+import { ProfileAvatar } from '@/app/_components/profile-avatar';
 import { createClient } from '@/lib/supabase';
 import type { GuestSession, Activity, DealFull, ArticleFull, EventFull } from '@/lib/types';
 
@@ -140,6 +141,14 @@ function formatEventWhen(startDate: string): string {
   return `${label} · ${timeStr}`;
 }
 
+interface BookingCard {
+  id: string
+  item_title: string
+  booking_date: string
+  confirmation_code: string
+  status: string
+}
+
 interface HomeData {
   deals:         DealFull[];
   activities:    Activity[];   // featured
@@ -158,11 +167,26 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [, setTick] = useState(0);
   const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [activeBooking, setActiveBooking] = useState<BookingCard | null>(null);
+  const [bookingDismissed, setBookingDismissed] = useState(false);
 
   useEffect(() => {
     const s = getSession();
     if (!s) { router.replace('/splash'); return; }
     setSession(s);
+
+    // Fetch active confirmed booking for floating card
+    if (s.guest_id) {
+      const today = new Date().toISOString().slice(0, 10);
+      fetch(`/api/bookings?guest_id=${encodeURIComponent(s.guest_id)}`)
+        .then(r => r.json())
+        .then(data => {
+          if (!Array.isArray(data)) return;
+          const confirmed = data.find((b: BookingCard) => b.status === 'confirmed' && b.booking_date >= today);
+          if (confirmed) setActiveBooking(confirmed);
+        })
+        .catch(() => {});
+    }
   }, [router]);
 
   useEffect(() => {
@@ -271,6 +295,7 @@ export default function HomePage() {
             Hello, <span className="font-semibold">{session.first_name}</span> 👋
           </h1>
         </div>
+        <ProfileAvatar />
       </div>
 
       <div className="flex-1 overflow-y-auto">
@@ -449,6 +474,7 @@ export default function HomePage() {
                 priceFrom={a.price_from ?? 0}
                 category={a.category}
                 imageUrl={a.images?.[0] ?? null}
+                heartItem={{ id: a.id, type: 'activity', slug: a.slug, title: a.title, image: a.images?.[0] ?? null, price: a.price_from ? `€${a.price_from}pp` : null }}
                 onClick={() => router.push(`/activities/${a.slug}`)}
               />
             ))}
@@ -475,6 +501,7 @@ export default function HomePage() {
                 priceFrom={a.price_from ?? 0}
                 category={a.category}
                 imageUrl={a.images?.[0] ?? null}
+                heartItem={{ id: a.id, type: 'activity', slug: a.slug, title: a.title, image: a.images?.[0] ?? null, price: a.price_from ? `€${a.price_from}pp` : null }}
                 onClick={() => router.push(`/activities/${a.slug}`)}
               />
             ))}
@@ -514,6 +541,34 @@ export default function HomePage() {
         )}
 
       </div>
+
+      {/* Floating active booking card */}
+      {activeBooking && !bookingDismissed && (
+        <div className="fixed left-1/2 -translate-x-1/2 w-full max-w-[480px] z-40" style={{ bottom: 86 }}>
+          <div className="mx-4 bg-white rounded-sm shadow-lg border-l-4 border-teal flex items-center gap-3 pr-3 pl-4 py-3">
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-bold text-teal uppercase tracking-wide mb-0.5">Confirmed Booking</p>
+              <p className="text-xs font-semibold text-navy truncate">{activeBooking.item_title}</p>
+              <p className="text-[11px] text-tx-light">
+                {new Date(activeBooking.booking_date + 'T00:00:00').toLocaleDateString('en', { weekday: 'short', day: 'numeric', month: 'short' })}
+              </p>
+            </div>
+            <button
+              onClick={() => router.push('/profile')}
+              className="text-[11px] font-semibold text-teal px-2.5 py-1.5 border border-teal/30 rounded-sm flex-shrink-0 active:bg-teal/5"
+            >
+              View →
+            </button>
+            <button
+              onClick={() => setBookingDismissed(true)}
+              className="text-tx-light text-lg leading-none ml-1 flex-shrink-0"
+              aria-label="Dismiss"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
 
       <BottomNav />
     </div>
