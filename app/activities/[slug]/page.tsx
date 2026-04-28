@@ -202,45 +202,33 @@ export default function ActivityDetailPage() {
     const resolvedName = guestName.trim() || session?.first_name || 'Guest';
 
     try {
-      const supabase = createClient();
-
-      // session.property_id is a slug — look up the UUID before inserting
-      let propertyUuid: string | null = null;
-      if (session?.property_id) {
-        const { data: prop } = await supabase
-          .from('properties')
-          .select('id')
-          .eq('slug', session.property_id)
-          .single();
-        propertyUuid = prop?.id ?? null;
-      }
-
-      const { data, error } = await supabase
-        .from('bookings')
-        .insert({
-          item_type: 'activity',
-          item_id: activity.id,
-          item_title: activity.title,
-          booking_date: bookingDate,
+      const res = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          item_type:      'activity',
+          item_id:        activity.id,
+          item_title:     activity.title,
+          booking_date:   bookingDate,
           pax,
-          days: 1,
-          unit_price: unitPrice,
-          total_price: unitPrice * pax,
+          days:           1,
+          unit_price:     unitPrice,
+          total_price:    unitPrice * pax,
           payment_method: 'whatsapp',
-          status: 'enquiry',
-          guest_id: session?.guest_id ?? null,
-          property_id: propertyUuid,
-          provider_id: activity.provider_id ?? null,
-          guest_notes: guestNotes.trim() || null,
-          guest_name: resolvedName,
-          guest_email: guestEmail.trim() || null,
-        })
-        .select('id, confirmation_code')
-        .single();
+          guest_id:       session?.guest_id ?? null,
+          property_slug:  session?.property_id ?? null,
+          provider_id:    activity.provider_id ?? null,
+          guest_notes:    guestNotes.trim() || null,
+          guest_name:     resolvedName,
+          guest_email:    guestEmail.trim() || null,
+        }),
+      });
 
-      if (error) {
-        console.error('Enquiry insert error:', error.message);
-      } else if (data) {
+      const data = await res.json();
+
+      if (!res.ok) {
+        console.error('Enquiry insert error:', data.error);
+      } else {
         confirmationCode = data.confirmation_code;
 
         // Notify host + internal — fire and forget
