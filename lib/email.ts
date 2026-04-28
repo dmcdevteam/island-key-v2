@@ -177,7 +177,7 @@ export async function sendInternalNotification(
 
   const { data: booking, error: bErr } = await supabase
     .from('bookings')
-    .select('id, item_title, booking_date, pax, total_price, unit_price, confirmation_code, payment_method, property_id, guest_id, commission, action_token')
+    .select('id, item_title, booking_date, pax, total_price, unit_price, confirmation_code, payment_method, property_id, guest_id, guest_name, guest_email, action_token')
     .eq('id', bookingId)
     .single();
 
@@ -213,7 +213,14 @@ export async function sendInternalNotification(
     weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
   });
   const paymentLabel = booking.payment_method === 'stripe' ? 'Card (Stripe)' : 'WhatsApp';
-  const commission = booking.commission != null ? `€${booking.commission}` : '—';
+
+  // Use guest_email from booking record if not passed in options
+  if (guestEmail === '—' && (booking as Record<string, unknown>).guest_email) {
+    guestEmail = (booking as Record<string, unknown>).guest_email as string;
+  }
+  if (guestName === 'Guest' && (booking as Record<string, unknown>).guest_name) {
+    guestName = (booking as Record<string, unknown>).guest_name as string;
+  }
 
   const rows = [
     ['Ref',         booking.confirmation_code],
@@ -222,7 +229,6 @@ export async function sendInternalNotification(
     ['Guests',      String(booking.pax)],
     ['Unit price',  `€${booking.unit_price}`],
     ['Total',       `€${booking.total_price}`],
-    ['Commission',  commission],
     ['Payment',     paymentLabel],
     ['Property',    propertyName],
     ['Guest name',  guestName],

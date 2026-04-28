@@ -230,27 +230,7 @@ export default function ActivityDetailPage() {
         console.error('Enquiry insert error:', data.error);
       } else {
         confirmationCode = data.confirmation_code;
-
-        // Notify host + internal — fire and forget
-        fetch('/api/notify-host', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            bookingId: data.id,
-            guestName: resolvedName,
-            guestPhone: fullPhone,
-            guestEmail: guestEmail.trim() || undefined,
-          }),
-        }).catch(err => console.error('notify-host fetch error:', err));
-
-        // Notify guest — fire and forget, skipped silently if no email
-        if (guestEmail.trim()) {
-          fetch('/api/notify-guest', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ bookingId: data.id, guestEmail: guestEmail.trim(), guestName: resolvedName }),
-          }).catch(err => console.error('notify-guest fetch error:', err));
-        }
+        // Emails are sent server-side inside POST /api/bookings
       }
     } catch (err) {
       console.error('Enquiry insert exception:', err);

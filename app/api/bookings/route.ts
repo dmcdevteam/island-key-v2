@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
+import { sendGuestConfirmation, sendHostNotification, sendInternalNotification } from '@/lib/email'
 
 export async function POST(request: Request) {
   let body: Record<string, unknown>
@@ -55,6 +56,42 @@ export async function POST(request: Request) {
   }
 
   console.log('[POST /api/bookings] created booking', data.confirmation_code)
+
+  // Fire all three emails independently server-side — one failure must not block others
+  const bookingId   = data.id
+  const guestName   = (body.guest_name  as string | null) ?? 'Guest'
+  const guestEmail  = (body.guest_email as string | null) ?? null
+  const guestPhone  = (body.guest_phone as string | null) ?? null
+
+  try {
+    await sendInternalNotification(bookingId, { guestEmail: guestEmail ?? undefined })
+  } catch (e) {
+    console.error('[POST /api/bookings] internal email failed:', e)
+  }
+
+  try {
+    await sendHostNotification(bookingId, { guestName, guestPhone })
+  } catch (e) {
+    console.error('[POST /api/bookings] host email failed:', e)
+  }
+
+  if (guestEmail) {
+    try {
+      await sendGuestConfirmation({
+        to: guestEmail,
+        guestName,
+        itemTitle:        (body.item_title     as string) ?? '',
+        bookingDate:      (body.booking_date   as string) ?? '',
+        pax:              (body.pax            as number) ?? 1,
+        totalPrice:       (body.total_price    as number) ?? 0,
+        confirmationCode: data.confirmation_code,
+        paymentMethod:    (body.payment_method as string) ?? 'whatsapp',
+      })
+    } catch (e) {
+      console.error('[POST /api/bookings] guest email failed:', e)
+    }
+  }
+
   return NextResponse.json(data)
 }
 
