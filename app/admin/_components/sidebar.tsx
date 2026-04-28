@@ -7,6 +7,7 @@ import { logoutAction } from '../login/actions'
 
 const navItems = [
   { href: '/admin/activities', label: 'Activities' },
+  { href: '/admin/bookings',   label: 'Bookings' },
   { href: '/admin/images',     label: 'Images' },
   { href: '/admin/providers',  label: 'Providers' },
   { href: '/admin/properties', label: 'Properties' },

@@ -199,6 +199,8 @@ export default function ActivityDetailPage() {
       ? `${countryCode}${localPhone.trim().replace(/^0+/, '').replace(/\s+/g, '')}`
       : session?.whatsapp_number ?? null;
 
+    const resolvedName = guestName.trim() || session?.first_name || 'Guest';
+
     try {
       const supabase = createClient();
 
@@ -230,6 +232,8 @@ export default function ActivityDetailPage() {
           property_id: propertyUuid,
           provider_id: activity.provider_id ?? null,
           guest_notes: guestNotes.trim() || null,
+          guest_name: resolvedName,
+          guest_email: guestEmail.trim() || null,
         })
         .select('id, confirmation_code')
         .single();
@@ -238,7 +242,6 @@ export default function ActivityDetailPage() {
         console.error('Enquiry insert error:', error.message);
       } else if (data) {
         confirmationCode = data.confirmation_code;
-        const resolvedName = guestName.trim() || session?.first_name || 'Guest';
 
         // Notify host + internal — fire and forget
         fetch('/api/notify-host', {
@@ -266,7 +269,7 @@ export default function ActivityDetailPage() {
     }
 
     // Send WhatsApp to Spyros
-    const name = guestName.trim() || session?.first_name || 'Guest';
+    const name = resolvedName;
     const property = session?.property_name || '—';
 
     const parts = [

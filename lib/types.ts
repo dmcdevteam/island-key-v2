@@ -219,8 +219,13 @@ export interface Booking {
   stripe_payment_id: string | null;
   stripe_session_id: string | null;
   status: BookingStatus;
+  guest_name: string | null;
+  guest_email: string | null;
   guest_notes: string | null;
   provider_id: string | null;
+  action_token: string | null;
+  confirmed_at: string | null;
+  cancelled_at: string | null;
   created_at: string;
   updated_at: string;
 }
