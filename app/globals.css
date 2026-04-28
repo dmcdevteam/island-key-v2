@@ -11,7 +11,11 @@
     scroll-behavior: smooth;
   }
   body {
-    @apply font-body text-tx bg-cream;
+    @apply font-body text-tx;
+    background-color: #f0ede8; /* warm sand — visible on desktop beside the 480px column */
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
     -webkit-tap-highlight-color: transparent;
   }
   ::selection {
@@ -26,12 +30,12 @@
 
   /* App shell — constrains all content to 480px, centred on large screens */
   .app-shell {
-    max-width: 480px;
-    margin-left: auto;
-    margin-right: auto;
     width: 100%;
+    max-width: 480px;
     min-height: 100vh;
+    background-color: #FDFCFA; /* cream — the app background */
     position: relative;
     overflow-x: hidden;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.08); /* only visible on desktop where sides are exposed */
   }
 }
