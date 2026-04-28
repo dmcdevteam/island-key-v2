@@ -28,7 +28,15 @@
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-  /* App shell — constrains all content to 480px, centred on large screens */
+  /* Admin shell — full viewport width, no centering constraints */
+  .admin-shell {
+    width: 100%;
+    min-height: 100vh;
+    background-color: #f8f7f4;
+    overflow-x: hidden;
+  }
+
+  /* Guest app shell — constrains all content to 480px, centred on large screens */
   .app-shell {
     width: 100%;
     max-width: 480px;

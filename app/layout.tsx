@@ -5,6 +5,7 @@ import { WhatsAppFAB } from './_components/whatsapp-fab';
 import { ServiceWorkerRegister } from './_components/sw-register';
 import { FavouritesProvider } from './_components/favourites-provider';
 import { BookingCardProvider } from './_components/booking-card-context';
+import { ShellWrapper } from './_components/shell-wrapper';
 
 export const metadata: Metadata = {
   title: 'Island Key — Your island. Unlocked.',
@@ -28,11 +29,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ServiceWorkerRegister />
         <FavouritesProvider>
           <BookingCardProvider>
-            <div className="app-shell">
+            <ShellWrapper>
               <AdminPreviewPill />
               <WhatsAppFAB />
               {children}
-            </div>
+            </ShellWrapper>
           </BookingCardProvider>
         </FavouritesProvider>
       </body>
