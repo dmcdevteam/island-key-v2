@@ -6,7 +6,7 @@
 export type Tier = 'B' | 'M' | 'P';
 export type Region = 'chania' | 'rethymno' | 'heraklion' | 'lasithi';
 export type GroupType = 'couple' | 'family' | 'friends' | 'solo';
-export type ActivityCategory = 'sea' | 'land' | 'table' | 'culture' | 'adventure' | 'wellness';
+export type ActivityCategory = 'on_water' | 'on_foot' | 'wild_routes' | 'culinary' | 'history_art' | 'slow_down' | 'in_the_air';
 export type RentalType = 'car' | 'motorcycle' | 'bike' | 'buggy' | 'boat';
 export type EventCategory = 'market' | 'food' | 'music' | 'art' | 'cinema' | 'wine' | 'wellness' | 'festival' | 'sport' | 'other';
 export type ArticleCategory = 'guide' | 'food' | 'culture' | 'nature' | 'events' | 'tips';
@@ -93,6 +93,8 @@ export interface Activity {
   external_rating: number | null;
   external_rating_count: number | null;
   external_rating_source: string | null;
+  mood_tags: string[] | null;
+  secondary_categories: string[] | null;
   sort_order: number;
   item_type: 'activity' | 'service';
   is_featured: boolean;

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { BottomNav } from '@/components/ui/bottom-nav';
 import { CategoryChip, ActivityCard } from '@/components/ui/components';
 import { ProfileAvatar } from '@/app/_components/profile-avatar';
-import { ACTIVITY_CATEGORIES, getSession } from '@/lib/utils';
+import { CATEGORY_LABELS, MOOD_LABELS, getSession } from '@/lib/utils';
 import { createClient } from '@/lib/supabase';
 import type { Activity } from '@/lib/types';
 
@@ -24,36 +24,52 @@ export default function ActivitiesPage() {
   const router = useRouter();
   const session = getSession();
   const [activeTab, setActiveTab] = useState<Tab>('activity');
-  const [activeCategory, setActiveCategory] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
   const [activeRegion, setActiveRegion] = useState(session?.region ?? 'all');
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    setLoading(true);
     const supabase = createClient();
-    supabase
+    let query = supabase
       .from('activities')
       .select('*')
       .eq('is_active', true)
+      .eq('item_type', activeTab)
       .order('sort_order')
-      .order('title')
-      .then(({ data, error }) => {
-        if (error) setError(error.message);
-        else setActivities(data ?? []);
-        setLoading(false);
-      });
-  }, []);
+      .order('title');
+
+    if (selectedMoods.length > 0) {
+      query = query.overlaps('mood_tags', selectedMoods);
+    }
+
+    if (selectedCategory) {
+      query = query.or(
+        `category.eq.${selectedCategory},secondary_categories.cs.{${selectedCategory}}`
+      );
+    }
+
+    query.then(({ data, error }) => {
+      if (error) setError(error.message);
+      else setActivities(data ?? []);
+      setLoading(false);
+    });
+  }, [activeTab, selectedCategory, selectedMoods]);
+
+  function toggleMood(mood: string) {
+    setSelectedMoods(prev =>
+      prev.includes(mood) ? prev.filter(m => m !== mood) : [...prev, mood]
+    );
+  }
 
   const filtered = activities
-    // Tab filter: activity vs service
-    .filter(a => a.item_type === activeTab)
     // Region filter: 'all' shows everything; otherwise match selected region (+ island-wide)
     .filter(a => activeRegion === 'all' || a.region === 'island-wide' || a.region === activeRegion)
     // Tier filter: guest's tier must be in tier_visibility (skip if no session)
-    .filter(a => !session || !a.tier_visibility?.length || a.tier_visibility.includes(session.tier))
-    // Category filter
-    .filter(a => activeCategory === 'all' || a.category === activeCategory);
+    .filter(a => !session || !a.tier_visibility?.length || a.tier_visibility.includes(session.tier));
 
   const emptyMessage = activeTab === 'service'
     ? 'No services available yet.'
@@ -118,17 +134,41 @@ export default function ActivitiesPage() {
           </div>
           */}
 
-          {/* Category chips */}
-          <div className="flex gap-1.5 px-5 overflow-x-auto no-scrollbar mb-3 flex-shrink-0">
-            {ACTIVITY_CATEGORIES.map(cat => (
+          {/* Category chips (single-select) */}
+          <div className="flex gap-1.5 px-5 overflow-x-auto no-scrollbar mb-2 flex-shrink-0">
+            <CategoryChip
+              label="All"
+              active={selectedCategory === null}
+              onClick={() => setSelectedCategory(null)}
+            />
+            {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
               <CategoryChip
-                key={cat.key}
-                label={cat.key === 'all' ? 'All' : cat.label}
-                icon={cat.icon || undefined}
-                active={activeCategory === cat.key}
-                onClick={() => setActiveCategory(cat.key)}
+                key={key}
+                label={label}
+                active={selectedCategory === key}
+                onClick={() => setSelectedCategory(selectedCategory === key ? null : key)}
               />
             ))}
+          </div>
+
+          {/* Mood chips (multi-select) */}
+          <div className="px-5 mb-3 flex-shrink-0">
+            <p className="text-[10px] font-semibold text-tx-light uppercase tracking-wide mb-1.5">How are you feeling?</p>
+            <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
+              {Object.entries(MOOD_LABELS).map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => toggleMood(key)}
+                  className={`px-3 py-[5px] rounded-full text-[11px] font-medium whitespace-nowrap transition-all border flex-shrink-0 ${
+                    selectedMoods.includes(key)
+                      ? 'bg-teal/10 text-teal border-teal/40'
+                      : 'bg-transparent text-tx-light border-border-light hover:border-teal/30 hover:text-teal'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
         </>
       )}

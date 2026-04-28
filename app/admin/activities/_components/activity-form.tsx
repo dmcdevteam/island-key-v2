@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import type { Activity, Provider } from '@/lib/types'
+import { CATEGORY_LABELS } from '@/lib/utils'
 
 type FormData = Omit<Activity, 'id' | 'created_at' | 'updated_at'>
 
@@ -74,7 +75,8 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
     title:               activity?.title ?? '',
     slug:                activity?.slug ?? '',
     description:         activity?.description ?? '',
-    category:            activity?.category ?? 'sea',
+    category:            activity?.category ?? 'on_water',
+    secondary_categories: activity?.secondary_categories ?? ([] as string[]),
     region:              (activity?.region ?? 'chania') as string,
     tier_visibility:     activity?.tier_visibility ?? (['B', 'M', 'P'] as string[]),
     price_from:          activity?.price_from?.toString() ?? '',
@@ -117,6 +119,15 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
       form.tier_visibility.includes(tier)
         ? form.tier_visibility.filter(t => t !== tier)
         : [...form.tier_visibility, tier]
+    )
+  }
+
+  function toggleSecondaryCategory(cat: string) {
+    set(
+      'secondary_categories',
+      form.secondary_categories.includes(cat)
+        ? form.secondary_categories.filter(c => c !== cat)
+        : [...form.secondary_categories, cat]
     )
   }
 
@@ -383,6 +394,7 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
         good_to_know:        form.good_to_know || null,
         cancellation_policy: form.cancellation_policy || null,
         provider_id:         form.provider_id || null,
+        secondary_categories: form.secondary_categories.length > 0 ? form.secondary_categories : null,
         images:              imageItems.map(i => i.url),
         image_alts:          imageItems.map(i => i.alt),
         item_type:           form.item_type as 'activity' | 'service',
@@ -446,8 +458,8 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
               <div>
                 <label className={LABEL}>Category *</label>
                 <select className={SELECT} value={form.category} onChange={e => set('category', e.target.value)}>
-                  {['sea', 'land', 'table', 'culture', 'adventure', 'wellness'].map(c => (
-                    <option key={c} value={c}>{c}</option>
+                  {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
                   ))}
                 </select>
               </div>
@@ -484,6 +496,28 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
                   onChange={e => set('description', e.target.value)}
                   required
                 />
+              </div>
+              <div className="col-span-2">
+                <label className={LABEL}>Secondary Categories</label>
+                <p className="text-[11px] text-tx-light mb-2">Activity also appears under these categories</p>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(CATEGORY_LABELS)
+                    .filter(([key]) => key !== form.category)
+                    .map(([key, label]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => toggleSecondaryCategory(key)}
+                        className={`px-3 py-1.5 rounded-sm text-xs font-semibold border transition-colors ${
+                          form.secondary_categories.includes(key)
+                            ? 'bg-navy text-white border-navy'
+                            : 'bg-white text-tx-mid border-border hover:border-navy/40'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                </div>
               </div>
             </div>
           </section>

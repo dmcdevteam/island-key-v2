@@ -54,14 +54,39 @@ export const TIER_COLORS: Record<Tier, { bg: string; text: string }> = {
 };
 
 // ─── Category display helpers ───
+export const CATEGORY_LABELS: Record<string, string> = {
+  on_water:    'On the Water',
+  on_foot:     'On Foot',
+  wild_routes: 'Wild Routes',
+  culinary:    'Culinary',
+  history_art: 'History & Art',
+  slow_down:   'Slow Down',
+  in_the_air:  'In the Air',
+};
+
+export const MOOD_LABELS: Record<string, string> = {
+  romantic:   'Romantic',
+  family:     'Family',
+  low_effort: 'Easy day',
+  iconic:     'Iconic',
+  off_path:   'Off the path',
+  wow_factor: 'Wow factor',
+  rainy_day:  'Rainy day',
+  sunset:     'Sunset',
+  foodie:     'Foodie',
+  adrenaline: 'Adrenaline',
+  slow:       'Slow',
+};
+
 export const ACTIVITY_CATEGORIES = [
-  { key: 'all', label: 'All', icon: '' },
-  { key: 'sea', label: 'Sea', icon: '🌊' },
-  { key: 'land', label: 'Land', icon: '⛰️' },
-  { key: 'table', label: 'Table', icon: '🍷' },
-  { key: 'culture', label: 'Culture', icon: '🏛' },
-  { key: 'adventure', label: 'Adventure', icon: '🧗' },
-  { key: 'wellness', label: 'Wellness', icon: '🧘' },
+  { key: 'all',         label: 'All',           icon: '' },
+  { key: 'on_water',    label: 'On the Water',   icon: '🌊' },
+  { key: 'on_foot',     label: 'On Foot',        icon: '🥾' },
+  { key: 'wild_routes', label: 'Wild Routes',    icon: '🏔️' },
+  { key: 'culinary',    label: 'Culinary',       icon: '🍷' },
+  { key: 'history_art', label: 'History & Art',  icon: '🏛️' },
+  { key: 'slow_down',   label: 'Slow Down',      icon: '🧘' },
+  { key: 'in_the_air',  label: 'In the Air',     icon: '🪂' },
 ] as const;
 
 export const RENTAL_TYPES = [

@@ -2,7 +2,7 @@
 
 import { clsx } from 'clsx';
 import type { Tier, ActivityCategory, Deal } from '@/lib/types';
-import { TIER_LABELS, TIER_COLORS, formatPrice, timeRemaining } from '@/lib/utils';
+import { TIER_LABELS, TIER_COLORS, CATEGORY_LABELS, formatPrice, timeRemaining } from '@/lib/utils';
 import { useFavourites } from '@/app/_components/favourites-provider';
 import type { FavouriteToggleItem } from '@/app/_components/favourites-provider';
 
@@ -144,7 +144,8 @@ export function SelectionChip({ label, selected, onClick }: { label: string; sel
 
 // ─── ACTIVITY CARD (List item) ───
 const CATEGORY_ICONS: Record<string, string> = {
-  sea: '🌊', land: '⛰️', table: '🍷', culture: '🏛️', adventure: '🧗', wellness: '🧘',
+  on_water: '🌊', on_foot: '🥾', wild_routes: '🏔️', culinary: '🍷',
+  history_art: '🏛️', slow_down: '🧘', in_the_air: '🪂',
 };
 
 interface ActivityCardProps {
@@ -183,7 +184,7 @@ export function ActivityCard({ title, description, category, priceFrom, duration
         ) : (
           <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
             <span style={{ fontSize: 28 }}>{icon}</span>
-            <span style={{ fontSize: 10, fontWeight: 700, color: '#F5F0E8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{category}</span>
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#F5F0E8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{CATEGORY_LABELS[category] ?? category}</span>
           </div>
         )}
         {heartItem && (
@@ -239,7 +240,7 @@ export function ActivityMiniCard({ title, subtitle, priceFrom, category, imageUr
         ) : (
           <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
             <span style={{ fontSize: 26 }}>{icon}</span>
-            <span style={{ fontSize: 9, fontWeight: 700, color: '#F5F0E8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{category}</span>
+            <span style={{ fontSize: 9, fontWeight: 700, color: '#F5F0E8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{CATEGORY_LABELS[category] ?? category}</span>
           </div>
         )}
         {heartItem && (
