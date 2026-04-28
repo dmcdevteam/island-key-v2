@@ -156,7 +156,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* ── Main area ── */}
-      <div className="flex-1 flex flex-col min-h-screen md:ml-[210px]">
+      <div className="flex-1 flex flex-col min-h-screen md:ml-[210px] min-w-0 overflow-x-hidden">
 
         {/* Mobile top bar */}
         <header className="md:hidden flex items-center gap-3 px-4 py-3 bg-navy sticky top-0 z-20 flex-shrink-0">

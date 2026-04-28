@@ -248,7 +248,7 @@ export function BookingsSection() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         {[
           { label: 'Total enquiries', value: total },
           { label: 'Pending',         value: pending },
@@ -282,27 +282,27 @@ export function BookingsSection() {
         </div>
 
         {/* Search + date range */}
-        <div className="flex flex-wrap gap-3 p-4">
+        <div className="flex flex-col gap-3 p-4">
           <input
             type="text"
             placeholder="Search name, reference, email, activity…"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="flex-1 min-w-[200px] px-3 py-2 border border-gray-200 rounded text-[13px] focus:outline-none focus:ring-2 focus:ring-navy/20"
+            className="w-full px-3 py-2 border border-gray-200 rounded text-[13px] focus:outline-none focus:ring-2 focus:ring-navy/20"
           />
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <input
               type="date"
               value={dateFrom}
               onChange={e => setDateFrom(e.target.value)}
-              className="px-3 py-2 border border-gray-200 rounded text-[13px] focus:outline-none focus:ring-2 focus:ring-navy/20"
+              className="flex-1 min-w-[130px] px-3 py-2 border border-gray-200 rounded text-[13px] focus:outline-none focus:ring-2 focus:ring-navy/20"
             />
             <span className="text-gray-400 text-[12px]">to</span>
             <input
               type="date"
               value={dateTo}
               onChange={e => setDateTo(e.target.value)}
-              className="px-3 py-2 border border-gray-200 rounded text-[13px] focus:outline-none focus:ring-2 focus:ring-navy/20"
+              className="flex-1 min-w-[130px] px-3 py-2 border border-gray-200 rounded text-[13px] focus:outline-none focus:ring-2 focus:ring-navy/20"
             />
           </div>
         </div>
