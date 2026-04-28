@@ -33,6 +33,7 @@ interface BookingRow {
   pax: number
   status: string
   created_at: string
+  activity_slug?: string
 }
 
 function formatDate(d: string) {
@@ -201,20 +202,28 @@ export default function ProfilePage() {
             <div className="flex flex-col gap-2.5">
               {bookings.map(b => {
                 const st = STATUS_STYLES[b.status] ?? STATUS_STYLES.pending
+                const dest = b.activity_slug ? `/activities/${b.activity_slug}` : null
                 return (
-                  <div key={b.id} className="bg-white border border-border-light rounded-sm p-3.5">
-                    <div className="flex items-start justify-between gap-2 mb-1">
-                      <p className="text-xs font-semibold text-navy leading-snug flex-1">{b.item_title}</p>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded flex-shrink-0"
-                        style={{ background: st.bg, color: st.text }}>
-                        {st.label}
-                      </span>
+                  <button
+                    key={b.id}
+                    onClick={() => dest && router.push(dest)}
+                    className={`w-full text-left bg-white border border-border-light rounded-sm p-3.5 flex items-start gap-2 ${dest ? 'active:bg-sand cursor-pointer' : 'cursor-default'}`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <p className="text-xs font-semibold text-navy leading-snug flex-1">{b.item_title}</p>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded flex-shrink-0"
+                          style={{ background: st.bg, color: st.text }}>
+                          {st.label}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-tx-light mb-1">{formatDate(b.booking_date)} · {b.pax} {b.pax === 1 ? 'person' : 'people'}</p>
+                      {b.confirmation_code && (
+                        <p className="text-[10px] text-tx-light font-mono">{b.confirmation_code}</p>
+                      )}
                     </div>
-                    <p className="text-[11px] text-tx-light mb-1">{formatDate(b.booking_date)} · {b.pax} {b.pax === 1 ? 'person' : 'people'}</p>
-                    {b.confirmation_code && (
-                      <p className="text-[10px] text-tx-light font-mono">{b.confirmation_code}</p>
-                    )}
-                  </div>
+                    {dest && <span className="text-[11px] text-teal self-center flex-shrink-0 ml-1">→</span>}
+                  </button>
                 )
               })}
             </div>

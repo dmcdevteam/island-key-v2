@@ -221,6 +221,7 @@ export default function ActivityDetailPage() {
           guest_notes:    guestNotes.trim() || null,
           guest_name:     resolvedName,
           guest_email:    guestEmail.trim() || null,
+          activity_slug:  slug,
         }),
       });
 

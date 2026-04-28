@@ -7,6 +7,7 @@ import { BottomNav } from '@/components/ui/bottom-nav';
 import { SectionHeader, ActivityMiniCard, ArticleCard } from '@/components/ui/components';
 import { ProfileAvatar } from '@/app/_components/profile-avatar';
 import { createClient } from '@/lib/supabase';
+import { useBookingCard } from '@/app/_components/booking-card-context';
 import type { GuestSession, Activity, DealFull, ArticleFull, EventFull } from '@/lib/types';
 
 // ─── Weather ──────────────────────────────────────────────────────────────────
@@ -147,6 +148,7 @@ interface BookingCard {
   booking_date: string
   confirmation_code: string
   status: string
+  activity_slug?: string
 }
 
 interface HomeData {
@@ -169,6 +171,7 @@ export default function HomePage() {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [activeBooking, setActiveBooking] = useState<BookingCard | null>(null);
   const [bookingDismissed, setBookingDismissed] = useState(false);
+  const { setVisible } = useBookingCard();
 
   useEffect(() => {
     const s = getSession();
@@ -193,6 +196,10 @@ export default function HomePage() {
     const interval = setInterval(() => setTick(t => t + 1), 60000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    setVisible(!!activeBooking && !bookingDismissed);
+  }, [activeBooking, bookingDismissed, setVisible]);
 
   useEffect(() => {
     async function refresh() {
@@ -554,7 +561,7 @@ export default function HomePage() {
               </p>
             </div>
             <button
-              onClick={() => router.push('/profile')}
+              onClick={() => router.push(activeBooking.activity_slug ? `/activities/${activeBooking.activity_slug}` : '/profile')}
               className="text-[11px] font-semibold text-teal px-2.5 py-1.5 border border-teal/30 rounded-sm flex-shrink-0 active:bg-teal/5"
             >
               View →

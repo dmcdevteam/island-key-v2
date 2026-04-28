@@ -3,14 +3,21 @@
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { getSession } from '@/lib/utils';
+import { useBookingCard } from './booking-card-context';
 import type { GuestSession } from '@/lib/types';
 
 const PHONE = '306974176759';
 const HIDDEN_ON = ['/admin', '/splash', '/onboard'];
 
+// Card height 72px + 12px gap + 90px normal = 174px when card visible
+const CARD_H = 72
+const CARD_GAP = 12
+const BASE_BOTTOM = 90
+
 export function WhatsAppFAB() {
   const pathname = usePathname();
   const [session, setSession] = useState<GuestSession | null>(null);
+  const { visible: bookingCardVisible } = useBookingCard();
 
   useEffect(() => {
     setSession(getSession());
@@ -31,8 +38,11 @@ export function WhatsAppFAB() {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="fixed z-[500]"
-      style={{ bottom: 90, right: 'max(1rem, calc(50% - 224px))' }}
+      className="fixed z-[500] transition-all duration-300"
+      style={{
+        bottom: bookingCardVisible ? BASE_BOTTOM + CARD_H + CARD_GAP : BASE_BOTTOM,
+        right: 'max(1rem, calc(50% - 224px))',
+      }}
       aria-label="Chat on WhatsApp"
     >
       {/* Pulsing ring */}

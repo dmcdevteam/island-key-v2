@@ -40,6 +40,7 @@ export async function POST(request: Request) {
     guest_notes:    body.guest_notes    ?? null,
     guest_name:     body.guest_name     ?? null,
     guest_email:    body.guest_email    ?? null,
+    ...(body.activity_slug ? { activity_slug: body.activity_slug } : {}),
   }
 
   console.log('[POST /api/bookings] inserting:', JSON.stringify(insertPayload))
@@ -103,7 +104,7 @@ export async function GET(request: Request) {
   const supabase = createServerClient()
   const { data, error } = await supabase
     .from('bookings')
-    .select('id, confirmation_code, item_type, item_title, booking_date, pax, status, created_at')
+    .select('id, confirmation_code, item_type, item_title, booking_date, pax, status, created_at, activity_slug')
     .eq('guest_id', guestId)
     .order('created_at', { ascending: false })
     .limit(10)

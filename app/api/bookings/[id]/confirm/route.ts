@@ -1,7 +1,20 @@
 import { createServerClient } from '@/lib/supabase'
-import { sendGuestBookingConfirmed } from '@/lib/email'
+import { sendAllConfirmationEmails } from '@/lib/email'
 
-function html(title: string, heading: string, body: string, color: string) {
+function html(title: string, heading: string, body: string, color: string, showAdminBtn = false) {
+  const icon = heading === 'Confirmed' ? '✓' : '✕'
+  const adminBtn = showAdminBtn
+    ? `<a href="https://app.islandkey.gr/admin/bookings"
+         style="display:block;width:100%;box-sizing:border-box;padding:13px 0;background:#1B2D4F;color:white;font-size:14px;font-weight:700;border-radius:8px;text-decoration:none;text-align:center;margin-bottom:10px">
+         Go to Admin Panel →
+       </a>
+       <button onclick="(function(){var closed=false;try{window.close();setTimeout(function(){if(!closed)document.getElementById('close-fallback').style.display='block'},400)}catch(e){document.getElementById('close-fallback').style.display='block'}})()"
+         style="display:block;width:100%;box-sizing:border-box;padding:13px 0;background:white;color:#6B7280;font-size:14px;font-weight:600;border-radius:8px;border:1px solid #E5E7EB;cursor:pointer;text-align:center">
+         Close tab
+       </button>
+       <p id="close-fallback" style="display:none;margin-top:12px;font-size:12px;color:#9CA3AF">You can now close this tab manually.</p>`
+    : `<p style="margin-top:4px;font-size:12px;color:#9CA3AF">You can close this tab.</p>`
+
   return new Response(
     `<!DOCTYPE html>
 <html>
@@ -14,11 +27,11 @@ function html(title: string, heading: string, body: string, color: string) {
   <div style="max-width:420px;margin:0 auto">
     <p style="margin:0 0 12px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#9CA3AF">Island Key</p>
     <div style="background:white;border-radius:12px;padding:36px 28px;box-shadow:0 2px 12px rgba(0,0,0,0.06)">
-      <div style="width:56px;height:56px;background:${color};border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:24px;line-height:56px">${heading === 'Confirmed' ? '✓' : '✕'}</div>
+      <div style="width:56px;height:56px;background:${color};border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:24px;line-height:56px">${icon}</div>
       <h1 style="margin:0 0 8px;font-size:20px;font-weight:700;color:#1B2D4F">${heading}</h1>
-      <p style="margin:0;font-size:14px;color:#6B7280;line-height:1.6">${body}</p>
+      <p style="margin:0 0 24px;font-size:14px;color:#6B7280;line-height:1.6">${body}</p>
+      ${adminBtn}
     </div>
-    <p style="margin-top:20px;font-size:12px;color:#9CA3AF">You can close this tab.</p>
   </div>
 </body>
 </html>`,
@@ -70,37 +83,15 @@ export async function GET(
     return html('Error', 'Something went wrong', 'Could not update the booking. Please try again or contact support.', '#FEE2E2')
   }
 
-  // Resolve guest email
-  let guestEmail = booking.guest_email as string | null
-  let guestName  = (booking.guest_name as string | null) ?? 'Guest'
-
-  if (!guestEmail && booking.guest_id) {
-    const { data: guest } = await supabase
-      .from('guests')
-      .select('first_name')
-      .eq('id', booking.guest_id)
-      .single()
-    if (guest?.first_name && !guestName) guestName = guest.first_name
-  }
-
-  // Fire confirmation email
-  if (guestEmail) {
-    sendGuestBookingConfirmed({
-      to: guestEmail,
-      bookingId: booking.id,
-      guestName,
-      itemTitle: booking.item_title,
-      bookingDate: booking.booking_date,
-      pax: booking.pax,
-      confirmationCode: booking.confirmation_code,
-      itemId: booking.item_type === 'activity' ? booking.item_id : null,
-    }).catch(err => console.error('confirm route: email error', err))
-  }
+  // Fire all four confirmation emails (guest, host, internal, provider)
+  sendAllConfirmationEmails(booking.id)
+    .catch(err => console.error('confirm route: email error', err))
 
   return html(
     'Booking confirmed',
     'Confirmed',
-    `Booking <strong>${booking.confirmation_code}</strong> — <em>${booking.item_title}</em> — has been confirmed. A confirmation email has been sent to the guest.`,
-    '#D1FAE5'
+    `Booking <strong>${booking.confirmation_code}</strong> — <em>${booking.item_title}</em> — has been confirmed. Confirmation emails are being sent.`,
+    '#D1FAE5',
+    true
   )
 }
