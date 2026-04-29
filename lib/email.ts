@@ -581,6 +581,161 @@ export async function sendGuestBookingCancelled(data: {
   else console.log('Email: booking cancelled sent to', data.to, 'ref', data.confirmationCode);
 }
 
+// ─── Transfer enquiry emails ─────────────────────────────────────────────────
+// Sends internal alert + guest receipt when a transfer enquiry is submitted.
+export async function sendTransferEnquiryEmails(bookingId: string): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey || apiKey === 're_your-api-key-here') {
+    console.warn('[transferEmails] RESEND_API_KEY not set — skipping');
+    return;
+  }
+
+  const supabase = createServerClient();
+
+  const { data: b, error } = await supabase
+    .from('bookings')
+    .select('id, confirmation_code, item_title, booking_date, booking_time, pax, pax_count, total_price, payment_method, guest_name, guest_email, guest_id, pickup_at, pickup_location, dropoff_location, vehicle_class, flight_number, luggage_count, distance_km, duration_min, extras, notes, guest_notes, transfer_type')
+    .eq('id', bookingId)
+    .single();
+
+  if (error || !b) {
+    console.error('[transferEmails] booking not found', bookingId, error?.message);
+    return;
+  }
+
+  const ref       = b.confirmation_code as string;
+  const guestName = (b.guest_name as string | null) ?? 'Guest';
+  const guestEmail = (b.guest_email as string | null) ?? null;
+
+  // Resolve phone from guest record
+  let guestPhone: string | null = null;
+  if (b.guest_id) {
+    const { data: g } = await supabase
+      .from('guests').select('first_name, whatsapp_number').eq('id', b.guest_id as string).single();
+    if (g?.whatsapp_number) guestPhone = g.whatsapp_number;
+  }
+
+  const pickupAt   = b.pickup_at as string | null;
+  const pickupFmt  = pickupAt
+    ? new Date(pickupAt).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    : ((b.booking_date as string) ? new Date((b.booking_date as string) + 'T' + ((b.booking_time as string) ?? '00:00') + ':00').toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—');
+
+  const route      = `${b.pickup_location ?? '—'} → ${b.dropoff_location ?? '—'}`;
+  const vehicle    = (b.vehicle_class as string | null) ?? '—';
+  const pax        = (b.pax_count ?? b.pax ?? '—') as string | number;
+  const luggage    = (b.luggage_count as number | null) ?? '—';
+  const flight     = (b.flight_number as string | null) ?? 'N/A';
+  const extrasArr  = (b.extras as string[] | null) ?? [];
+  const notes      = (b.notes ?? b.guest_notes) as string | null;
+  const distKm     = b.distance_km as number | null;
+
+  const tableRow = (k: string, v: string) =>
+    `<tr><td style="padding:5px 12px 5px 0;color:#6B7280;font-size:13px;white-space:nowrap;vertical-align:top">${k}</td>` +
+    `<td style="padding:5px 0;font-size:13px;font-weight:600;color:#111">${v}</td></tr>`;
+
+  const resend = new Resend(apiKey);
+
+  // ── 1. Internal email ──────────────────────────────────────────────────────
+  const internalRows = [
+    tableRow('Ref',       `<span style="font-family:monospace;color:#1A8A7D">${ref}</span>`),
+    tableRow('Route',     route),
+    tableRow('Pickup',    pickupFmt),
+    tableRow('Vehicle',   vehicle),
+    tableRow('Pax',       String(pax)),
+    tableRow('Luggage',   String(luggage)),
+    tableRow('Flight',    flight),
+    extrasArr.length > 0 ? tableRow('Extras', extrasArr.join(', ')) : '',
+    notes ? tableRow('Notes', notes) : '',
+    distKm ? tableRow('Distance', `~${distKm} km`) : '',
+    tableRow('Guest',     guestName),
+    guestEmail ? tableRow('Email',   guestEmail) : '',
+    guestPhone ? tableRow('WhatsApp', `<a href="https://wa.me/${guestPhone.replace(/\D/g,'')}" style="color:#25D366">${guestPhone}</a>`) : '',
+  ].join('');
+
+  const internalHtml = `<!DOCTYPE html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:24px;background:#F5F0E8">
+<div style="max-width:520px;margin:0 auto">
+  <div style="background:#1B2D4F;border-radius:8px 8px 0 0;padding:20px 24px">
+    <p style="margin:0;color:rgba(255,255,255,0.5);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase">Island Key — Transfer Enquiry</p>
+    <h1 style="margin:4px 0 0;color:white;font-size:17px;font-weight:700">${route}</h1>
+  </div>
+  <div style="background:white;padding:24px;border-radius:0 0 8px 8px">
+    <table style="border-collapse:collapse;width:100%">${internalRows}</table>
+    <div style="margin-top:20px;padding:14px 16px;background:#F0FAF9;border-left:3px solid #1A8A7D;border-radius:0 6px 6px 0">
+      <p style="margin:0;font-size:13px;color:#1A8A7D;font-weight:600">Action required: assign a driver and confirm via WhatsApp.</p>
+    </div>
+  </div>
+  <p style="text-align:center;font-size:11px;color:#9CA3AF;margin-top:16px">Island Key &mdash; Crete</p>
+</div></body></html>`;
+
+  try {
+    const { error: e } = await resend.emails.send({
+      from: FROM,
+      to:   INTERNAL_EMAIL,
+      subject: `[IK Transfer] ${ref} — ${route} — ${guestName}`,
+      html: internalHtml,
+    });
+    if (e) throw e;
+    console.log('[transferEmails] internal sent, ref', ref);
+  } catch (e) {
+    console.error('[transferEmails] internal failed:', e);
+  }
+
+  // ── 2. Guest email ─────────────────────────────────────────────────────────
+  if (guestEmail) {
+    const guestRows = [
+      tableRow('Reference', `<span style="font-family:monospace;font-size:15px;color:#1A8A7D">${ref}</span>`),
+      tableRow('Route',     route),
+      tableRow('Pickup',    pickupFmt),
+      tableRow('Vehicle',   vehicle),
+      tableRow('Passengers', String(pax)),
+      tableRow('Payment',   'Via WhatsApp'),
+    ].join('');
+
+    const waNumber = TEAM_WHATSAPP.replace(/\D/g, '');
+    const guestHtml = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:24px;background:#F5F0E8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+  <div style="max-width:520px;margin:0 auto">
+    <div style="background:#1B2D4F;border-radius:8px 8px 0 0;padding:24px;text-align:center">
+      <p style="margin:0;color:rgba(255,255,255,0.5);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase">Island Key</p>
+      <h1 style="margin:6px 0 0;color:white;font-size:18px;font-weight:600">Transfer request received</h1>
+    </div>
+    <div style="background:white;padding:28px;border-radius:0 0 8px 8px">
+      <p style="margin:0 0 20px;font-size:14px;color:#374151">Hi ${guestName}, we've received your transfer request! We'll confirm your driver and send full details via WhatsApp within 2 hours.</p>
+      <table style="width:100%;border-collapse:collapse">${guestRows}</table>
+      <div style="margin-top:24px;padding:14px 16px;background:#F0FAF9;border-left:3px solid #1A8A7D;border-radius:0 6px 6px 0">
+        <p style="margin:0;font-size:13px;color:#1A8A7D;font-weight:600">We'll confirm your driver within 2 hours.</p>
+        <p style="margin:4px 0 0;font-size:12px;color:#6B7280">Keep your reference number handy: <strong>${ref}</strong></p>
+      </div>
+      <div style="margin-top:24px;text-align:center">
+        <a href="https://wa.me/${waNumber}" style="display:inline-block;padding:12px 28px;background:#25D366;color:white;font-size:14px;font-weight:700;border-radius:24px;text-decoration:none">
+          Message us on WhatsApp
+        </a>
+      </div>
+    </div>
+    <p style="text-align:center;font-size:11px;color:#9CA3AF;margin-top:16px">
+      Island Key &mdash; Crete &mdash; <a href="https://app.islandkey.gr" style="color:#9CA3AF">app.islandkey.gr</a>
+    </p>
+  </div>
+</body>
+</html>`;
+
+    try {
+      const { error: e } = await resend.emails.send({
+        from: FROM,
+        to:   guestEmail,
+        subject: `Transfer request received — Ref: ${ref}`,
+        html: guestHtml,
+      });
+      if (e) throw e;
+      console.log('[transferEmails] guest sent to', guestEmail, 'ref', ref);
+    } catch (e) {
+      console.error('[transferEmails] guest failed:', e);
+    }
+  }
+}
+
 // ─── All-in-one confirmation email sender ────────────────────────────────────
 // Sends to all four parties: guest, host, internal (IK), provider.
 // Each send is wrapped in its own try/catch so one failure never blocks others.
