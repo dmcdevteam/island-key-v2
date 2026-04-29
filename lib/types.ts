@@ -14,6 +14,8 @@ export type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed' 
 export type PaymentMethod = 'stripe' | 'whatsapp' | 'cash' | 'pending';
 export type ItemType = 'activity' | 'deal' | 'transfer' | 'rental';
 export type ProviderType = 'activity' | 'transfer' | 'rental' | 'multi';
+export type TransferType = 'arrival' | 'departure' | 'point_to_point';
+export type VehicleSlug = 'sedan' | 'minivan' | 'minibus' | 'premium_suv';
 
 export interface Property {
   id: string;
@@ -230,6 +232,60 @@ export interface Booking {
   cancelled_at: string | null;
   created_at: string;
   updated_at: string;
+  // Transfer-specific fields
+  pickup_at: string | null;
+  pickup_location: string | null;
+  dropoff_location: string | null;
+  flight_number: string | null;
+  pax_count: number | null;
+  vehicle_class: string | null;
+  driver_name: string | null;
+  driver_phone: string | null;
+  transfer_type: string | null;
+  distance_km: number | null;
+  duration_min: number | null;
+  extras: string[];
+  luggage_count: number | null;
+  notes: string | null;
+}
+
+export interface TransferRoute {
+  id: string;
+  from_location: string;
+  to_location: string;
+  from_type: string | null;
+  to_type: string | null;
+  distance_km: number | null;
+  duration_minutes: number | null;
+  image: string | null;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface VehicleType {
+  id: string;
+  name: string;
+  slug: string | null;
+  category: string;
+  subcategory: string | null;
+  description: string | null;
+  seats: number | null;
+  icon: string | null;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface TransferPrice {
+  id: string;
+  route_id: string;
+  vehicle_type_id: string;
+  price: number;
+  max_passengers: number | null;
+  max_luggage: number | null;
+  notes: string | null;
+  is_active: boolean;
 }
 
 export interface AccessKey {

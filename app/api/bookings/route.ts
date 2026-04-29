@@ -41,6 +41,18 @@ export async function POST(request: Request) {
     guest_name:     body.guest_name     ?? null,
     guest_email:    body.guest_email    ?? null,
     ...(body.activity_slug ? { activity_slug: body.activity_slug } : {}),
+    ...(body.transfer_type ? {
+      transfer_type:    body.transfer_type,
+      pickup_at:        body.pickup_at        ?? null,
+      pickup_location:  body.pickup_location  ?? null,
+      dropoff_location: body.dropoff_location ?? null,
+      flight_number:    body.flight_number    ?? null,
+      pax_count:        body.pax_count        ?? null,
+      vehicle_class:    body.vehicle_class    ?? null,
+      distance_km:      body.distance_km      ?? null,
+      duration_min:     body.duration_min     ?? null,
+      extras:           body.extras           ?? [],
+    } : {}),
   }
 
   console.log('[POST /api/bookings] inserting:', JSON.stringify(insertPayload))
