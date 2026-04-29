@@ -130,7 +130,7 @@ export async function GET(request: Request) {
   const supabase = createServerClient()
   const { data, error } = await supabase
     .from('bookings')
-    .select('id, confirmation_code, item_type, item_title, booking_date, booking_time, pax, pax_count, status, created_at, activity_slug, pickup_at, pickup_location, dropoff_location, vehicle_class')
+    .select('id, confirmation_code, item_type, item_title, booking_date, booking_time, pax, pax_count, luggage_count, status, created_at, activity_slug, pickup_at, pickup_location, dropoff_location, vehicle_class')
     .eq('guest_id', guestId)
     .order('created_at', { ascending: false })
     .limit(20)

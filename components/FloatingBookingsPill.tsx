@@ -16,6 +16,7 @@ export interface UpcomingBooking {
   dropoff_location: string | null
   vehicle_class: string | null
   pax_count: number | null
+  luggage_count: number | null
   pax: number
   activity_slug?: string
   confirmation_code: string
@@ -44,7 +45,7 @@ function pillLabel(sorted: UpcomingBooking[]): string {
   if (b.item_type === 'transfer' && b.pickup_location && b.dropoff_location) {
     const from = b.pickup_location.split(',')[0].trim()
     const to   = b.dropoff_location.split(',')[0].trim()
-    return `${from} → ${to} · ${formatWhen(b)}`
+    return `${from} → ${to}`
   }
   return b.item_title
 }
@@ -66,73 +67,159 @@ export function FloatingBookingsPill({ bookings }: { bookings: UpcomingBooking[]
 
   return (
     <>
-      {/* Collapsed pill — sits above BottomNav */}
-      <div className="fixed left-1/2 -translate-x-1/2 w-full max-w-[480px] z-40 px-4" style={{ bottom: 86 }}>
+      {/* Pulsing dot keyframes */}
+      <style>{`
+        @keyframes ik-pulse {
+          0%, 100% { opacity: 1; }
+          50%       { opacity: 0.35; }
+        }
+        .ik-pulse-dot { animation: ik-pulse 2s ease-in-out infinite; }
+      `}</style>
+
+      {/* Pill — centered, above bottom nav (nav ≈ 64px + 12px gap + 48px pill = 92px from bottom) */}
+      <div
+        className="fixed left-1/2 -translate-x-1/2 z-40 px-4"
+        style={{ bottom: 80, width: '100%', maxWidth: 480 }}
+      >
         <button
           onClick={() => setOpen(true)}
-          className="w-full flex items-center gap-3 bg-navy text-white rounded-full px-4 py-3 shadow-lg border-l-4 border-teal active:opacity-90 transition-opacity"
+          className="w-full flex items-center gap-3 bg-white rounded-full shadow-lg active:opacity-90 transition-opacity"
+          style={{
+            height: 48,
+            paddingLeft: 16,
+            paddingRight: 16,
+            borderRadius: 24,
+            border: '1px solid #E5E7EB',
+            borderLeft: '4px solid #1A8A7D',
+          }}
         >
-          <span className="text-base flex-shrink-0">🗓</span>
-          <span className="flex-1 text-sm font-semibold truncate text-left">{pillLabel(sorted)}</span>
-          <span className="text-teal font-bold flex-shrink-0">→</span>
+          {/* Live pulse dot */}
+          <span
+            className="ik-pulse-dot flex-shrink-0 w-2 h-2 rounded-full"
+            style={{ background: '#1A8A7D' }}
+          />
+          {/* Label */}
+          <span
+            className="flex-1 text-sm font-semibold truncate text-left"
+            style={{ color: '#1B2D4F' }}
+          >
+            {pillLabel(sorted)}
+          </span>
+          {/* Chevron */}
+          <span className="flex-shrink-0 text-sm font-bold" style={{ color: '#1A8A7D' }}>›</span>
         </button>
       </div>
 
       {/* Backdrop */}
       {open && (
-        <div className="fixed inset-0 bg-black/40 z-50" onClick={() => setOpen(false)} />
+        <div
+          className="fixed inset-0 z-50"
+          style={{ background: 'rgba(0,0,0,0.4)' }}
+          onClick={() => setOpen(false)}
+        />
       )}
 
-      {/* Bottom drawer */}
+      {/* Bottom drawer — full screen width */}
       <div
-        className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] bg-white rounded-t-2xl shadow-2xl z-50 transition-transform duration-300"
+        className="fixed bottom-0 left-0 right-0 bg-white z-50 transition-transform duration-300"
         style={{
-          maxHeight: '70vh',
+          borderRadius: '20px 20px 0 0',
+          maxHeight: '65vh',
+          boxShadow: '0 -4px 32px rgba(0,0,0,0.12)',
           transform: open ? 'translateY(0)' : 'translateY(100%)',
         }}
       >
+        {/* Drag handle */}
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="w-12 h-1 rounded-full" style={{ background: '#D1D5DB' }} />
+        </div>
+
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border-light">
-          <h2 className="font-display text-base font-semibold text-navy">Your upcoming bookings</h2>
+        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+          <h2 className="text-base font-semibold" style={{ color: '#1B2D4F' }}>
+            Your upcoming bookings
+          </h2>
           <button
             onClick={() => setOpen(false)}
-            className="w-8 h-8 flex items-center justify-center text-tx-light rounded-full hover:bg-navy/5 text-xl leading-none"
+            className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 text-xl leading-none"
           >
             ×
           </button>
         </div>
 
         {/* Cards */}
-        <div className="overflow-y-auto" style={{ maxHeight: 'calc(70vh - 65px)' }}>
-          <div className="p-4 space-y-3">
+        <div className="overflow-y-auto" style={{ maxHeight: 'calc(65vh - 80px)' }}>
+          <div style={{ padding: '12px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
             {sorted.map(b => {
               const isTransfer = b.item_type === 'transfer'
-              const icon  = isTransfer ? '🚗' : '🌊'
+              const icon  = isTransfer ? '🚗' : '🏄'
               const title = isTransfer && b.pickup_location && b.dropoff_location
                 ? `${b.pickup_location} → ${b.dropoff_location}`
                 : b.item_title
-              const sub   = isTransfer
-                ? [
-                    b.vehicle_class ? (VEHICLE_LABELS[b.vehicle_class as VehicleSlug] ?? b.vehicle_class) : null,
-                    `${b.pax_count ?? b.pax} pax`,
-                  ].filter(Boolean).join(' · ')
-                : `${b.pax} pax`
+
+              const subParts: string[] = []
+              if (isTransfer) {
+                if (b.vehicle_class) subParts.push(VEHICLE_LABELS[b.vehicle_class as VehicleSlug] ?? b.vehicle_class)
+                subParts.push(`${b.pax_count ?? b.pax} pax`)
+                if (b.luggage_count != null) subParts.push(`${b.luggage_count} bags`)
+              } else {
+                subParts.push(`${b.pax} pax`)
+              }
 
               return (
                 <button
                   key={b.id}
                   onClick={() => go(b)}
-                  className="w-full flex items-start gap-3 bg-cream border border-border-light rounded-xl p-3.5 text-left active:bg-sand transition-colors"
+                  className="w-full text-left active:opacity-80 transition-opacity"
+                  style={{
+                    background: '#fff',
+                    border: '1px solid #E5E7EB',
+                    borderRadius: 12,
+                    padding: 12,
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 12,
+                  }}
                 >
-                  <span className="text-xl flex-shrink-0 mt-0.5">{icon}</span>
+                  {/* Icon circle */}
+                  <span
+                    className="flex-shrink-0 flex items-center justify-center text-lg"
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: '50%',
+                      background: '#E6F4F3',
+                    }}
+                  >
+                    {icon}
+                  </span>
+
+                  {/* Text */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-navy leading-snug truncate">{title}</p>
-                    <p className="text-xs text-tx-light mt-0.5">{formatWhen(b)}</p>
-                    <p className="text-xs text-tx-light">{sub}</p>
+                    <p
+                      className="text-sm font-semibold leading-snug"
+                      style={{
+                        color: '#1B2D4F',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {title}
+                    </p>
+                    <p className="text-xs mt-0.5" style={{ color: '#6B7280' }}>{formatWhen(b)}</p>
+                    <p className="text-xs" style={{ color: '#6B7280' }}>{subParts.join(' · ')}</p>
                   </div>
-                  <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-green-50 text-green-700">Confirmed ●</span>
-                    <span className="text-[11px] text-teal font-semibold">→</span>
+
+                  {/* Status badge */}
+                  <div className="flex-shrink-0 flex items-start pt-0.5">
+                    <span
+                      className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                      style={{ background: '#E6F4F3', color: '#1A8A7D', whiteSpace: 'nowrap' }}
+                    >
+                      ● Confirmed
+                    </span>
                   </div>
                 </button>
               )
