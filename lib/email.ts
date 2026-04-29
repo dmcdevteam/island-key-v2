@@ -1048,8 +1048,10 @@ export async function sendTransferEnquiryEmails(bookingId: string): Promise<void
 }
 
 // ─── All-in-one confirmation email sender ────────────────────────────────────
-// Sends to all four parties: guest, host, internal (IK), provider.
+// Sends to four parties: guest, internal (IK/Spyros), host, provider.
 // Each send is wrapped in its own try/catch so one failure never blocks others.
+// IMPORTANT: must be awaited by the caller — do NOT call fire-and-forget in
+// serverless environments or emails after the first may be dropped.
 export async function sendAllConfirmationEmails(bookingId: string): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey || apiKey === 're_your-api-key-here') {
@@ -1071,10 +1073,10 @@ export async function sendAllConfirmationEmails(bookingId: string): Promise<void
     return;
   }
 
-  const ref       = booking.confirmation_code as string;
-  const itemTitle = booking.item_title as string;
+  const ref        = booking.confirmation_code as string;
+  const itemTitle  = booking.item_title as string;
   const bookingDate = booking.booking_date as string;
-  const pax       = booking.pax as number;
+  const pax        = booking.pax as number;
   const guestNotes = (booking.guest_notes as string | null) ?? null;
 
   const formattedDate = new Date(bookingDate + 'T00:00:00').toLocaleDateString('en-GB', {
@@ -1083,16 +1085,20 @@ export async function sendAllConfirmationEmails(bookingId: string): Promise<void
 
   // ── Fetch property + host ──
   let propertyName = '—';
-  let hostEmail: string | null = null;
+  let hostEmail:  string | null = null;
+  let hostName:   string | null = null;
+  let hostPhone:  string | null = null;
   if (booking.property_id) {
     const { data: prop } = await supabase
       .from('properties')
-      .select('name, host_email')
+      .select('name, host_name, host_email, host_phone')
       .eq('id', booking.property_id)
       .single();
     if (prop) {
       propertyName = prop.name ?? '—';
-      hostEmail = prop.host_email ?? null;
+      hostEmail    = (prop as Record<string, unknown>).host_email as string ?? null;
+      hostName     = (prop as Record<string, unknown>).host_name  as string ?? null;
+      hostPhone    = (prop as Record<string, unknown>).host_phone as string ?? null;
     }
   }
 
@@ -1109,83 +1115,55 @@ export async function sendAllConfirmationEmails(bookingId: string): Promise<void
       .single();
     if (guest) {
       if (!guestName || guestName === 'Guest') guestName = guest.first_name ?? 'Guest';
-      if (!guestEmail) guestEmail = null; // email not in guests table
       if (guest.whatsapp_number) guestPhone = guest.whatsapp_number;
     }
   }
 
-  // ── Fetch activity for provider_id ──
-  let providerId: string | null = null;
-  let activitySlug: string | null = null;
+  // ── Fetch activity details ──
+  let providerId:       string | null   = null;
+  let meetingPoint:     string | null   = null;
+  let activityIncludes: string[] | null = null;
+
   if (booking.item_type === 'activity' && booking.item_id) {
     const { data: act } = await supabase
       .from('activities')
-      .select('slug, provider_id')
+      .select('provider_id, meeting_point, includes')
       .eq('id', booking.item_id as string)
       .single();
     if (act) {
-      providerId   = act.provider_id ?? null;
-      activitySlug = act.slug ?? null;
+      providerId       = act.provider_id   ?? null;
+      meetingPoint     = act.meeting_point ?? null;
+      activityIncludes = act.includes      ?? null;
     }
   }
 
-  // ── Fetch provider contact email ──
+  // ── Fetch provider ──
+  // Column is 'email', not 'contact_email'
   let providerEmail: string | null = null;
-  let providerName: string | null = null;
+  let providerName:  string | null = null;
+  let providerPhone: string | null = null;
   if (providerId) {
     const { data: prov } = await supabase
       .from('providers')
-      .select('name, contact_email')
+      .select('name, email, contact_phone')
       .eq('id', providerId)
       .single();
     if (prov) {
-      providerName  = (prov as Record<string, unknown>).name as string ?? null;
-      providerEmail = (prov as Record<string, unknown>).contact_email as string ?? null;
+      providerName  = (prov as Record<string, unknown>).name          as string ?? null;
+      providerEmail = (prov as Record<string, unknown>).email         as string ?? null;
+      providerPhone = (prov as Record<string, unknown>).contact_phone as string ?? null;
     }
   }
 
-  const resend = new Resend(apiKey);
+  const resend  = new Resend(apiKey);
+  const teamWa  = TEAM_WHATSAPP.replace(/\D/g, '');
+  const adminUrl = 'https://app.islandkey.gr/admin/bookings';
 
-  const tableRow = (k: string, v: string) =>
-    `<tr><td style="padding:5px 12px 5px 0;color:#6B7280;font-size:13px;white-space:nowrap">${k}</td>` +
+  const tr = (k: string, v: string) =>
+    `<tr><td style="padding:5px 12px 5px 0;color:#6B7280;font-size:13px;white-space:nowrap;vertical-align:top">${k}</td>` +
     `<td style="padding:5px 0;font-size:13px;font-weight:600;color:#111">${v}</td></tr>`;
 
-  const baseUrl = 'https://app.islandkey.gr';
-  const adminUrl = `${baseUrl}/admin/bookings`;
-
-  // Shared rows for host + internal emails
-  const sharedRows = [
-    tableRow('Ref',      `<span style="font-family:monospace;color:#1A8A7D">${ref}</span>`),
-    tableRow('Activity', itemTitle),
-    tableRow('Date',     formattedDate),
-    tableRow('Guests',   `${pax} ${pax === 1 ? 'person' : 'people'}`),
-    tableRow('Property', propertyName),
-    tableRow('Guest',    guestName),
-    guestEmail ? tableRow('Guest email', guestEmail) : '',
-    guestPhone ? tableRow('Guest WA',    `<a href="https://wa.me/${guestPhone.replace(/\D/g,'')}" style="color:#25D366">${guestPhone}</a>`) : '',
-    guestNotes ? tableRow('Notes',       guestNotes) : '',
-  ].join('');
-
-  function buildStaffHtml(subject: string) {
-    return `<!DOCTYPE html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:24px;background:#F5F0E8">
-<div style="max-width:520px;margin:0 auto">
-  <div style="background:#1A8A7D;border-radius:8px 8px 0 0;padding:20px 24px">
-    <p style="margin:0;color:rgba(255,255,255,0.7);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase">Island Key</p>
-    <h1 style="margin:4px 0 0;color:white;font-size:17px;font-weight:700">${subject}</h1>
-  </div>
-  <div style="background:white;padding:24px;border-radius:0 0 8px 8px">
-    <table style="border-collapse:collapse;width:100%">${sharedRows}</table>
-    <div style="margin-top:20px">
-      <a href="${adminUrl}" style="display:inline-block;padding:10px 20px;background:#1B2D4F;color:white;font-size:13px;font-weight:700;border-radius:6px;text-decoration:none">
-        View in Admin →
-      </a>
-    </div>
-  </div>
-  <p style="text-align:center;font-size:11px;color:#9CA3AF;margin-top:16px">Island Key &mdash; Crete</p>
-</div></body></html>`;
-  }
-
-  // 1. Guest confirmation email
+  // ── 1. Guest confirmation email ────────────────────────────────────────────
   if (guestEmail) {
     try {
       await sendGuestBookingConfirmed({
@@ -1204,29 +1182,54 @@ export async function sendAllConfirmationEmails(bookingId: string): Promise<void
     }
   }
 
-  // 2. Host email
-  if (hostEmail) {
-    try {
-      const { error } = await resend.emails.send({
-        from: FROM,
-        to: hostEmail,
-        subject: `[IK Confirmed] ${ref} — ${itemTitle} — ${guestName}`,
-        html: buildStaffHtml(`Booking Confirmed — ${ref}`),
-      });
-      if (error) throw error;
-      console.log('[confirmEmails] host email sent to', hostEmail);
-    } catch (e) {
-      console.error('[confirmEmails] host email failed:', e);
-    }
-  }
-
-  // 3. Internal (dmcdevteam@gmail.com)
+  // ── 2. Internal / Spyros email ─────────────────────────────────────────────
+  // Full details: guest contacts, host contacts, provider contacts, notes.
   try {
+    const internalRows = [
+      tr('Ref',      `<span style="font-family:monospace;color:#1A8A7D">${ref}</span>`),
+      tr('Activity', itemTitle),
+      tr('Date',     formattedDate),
+      tr('Guests',   `${pax} ${pax === 1 ? 'person' : 'people'}`),
+      tr('Property', propertyName),
+      hostName  ? tr('Host',       hostName + (hostPhone ? ` · ${hostPhone}` : '')) : '',
+      hostEmail ? tr('Host email', `<a href="mailto:${hostEmail}" style="color:#1B2D4F">${hostEmail}</a>`) : '',
+      tr('Guest',    guestName),
+      guestEmail ? tr('Guest email', guestEmail) : '',
+      guestPhone ? tr('Guest WA',    `<a href="https://wa.me/${guestPhone.replace(/\D/g,'')}" style="color:#25D366">${guestPhone}</a>`) : '',
+      guestNotes ? tr('Notes',       guestNotes) : '',
+      providerName  ? tr('Provider',       providerName + (providerPhone ? ` · ${providerPhone}` : '')) : '',
+      providerEmail ? tr('Provider email', `<a href="mailto:${providerEmail}" style="color:#1B2D4F">${providerEmail}</a>`) : '',
+    ].join('');
+
+    const providerReminder = providerEmail
+      ? `<div style="margin-top:16px;padding:12px 16px;background:#FFFBEB;border-left:3px solid #D97706;border-radius:0 6px 6px 0">
+          <p style="margin:0;font-size:13px;color:#92400E;font-weight:600">Reminder: confirm with provider</p>
+          <p style="margin:4px 0 0;font-size:12px;color:#374151">Verify ${providerName ?? 'the provider'} has the booking locked in if not done yet.</p>
+        </div>`
+      : '';
+
+    const internalHtml = `<!DOCTYPE html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:24px;background:#F5F0E8">
+<div style="max-width:520px;margin:0 auto">
+  <div style="background:#1A8A7D;border-radius:8px 8px 0 0;padding:20px 24px">
+    <p style="margin:0;color:rgba(255,255,255,0.7);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase">Island Key — Booking Confirmed</p>
+    <h1 style="margin:4px 0 0;color:white;font-size:17px;font-weight:700">CONFIRMED — ${ref}</h1>
+  </div>
+  <div style="background:white;padding:24px;border-radius:0 0 8px 8px">
+    <table style="border-collapse:collapse;width:100%">${internalRows}</table>
+    ${providerReminder}
+    <div style="margin-top:20px">
+      <a href="${adminUrl}" style="display:inline-block;padding:10px 20px;background:#1B2D4F;color:white;font-size:13px;font-weight:700;border-radius:6px;text-decoration:none">
+        View in Admin →
+      </a>
+    </div>
+  </div>
+  <p style="text-align:center;font-size:11px;color:#9CA3AF;margin-top:16px">Island Key &mdash; Crete</p>
+</div></body></html>`;
+
     const { error } = await resend.emails.send({
-      from: FROM,
-      to: INTERNAL_EMAIL,
-      subject: `[INTERNAL Confirmed] ${ref} — ${itemTitle} — ${guestName}`,
-      html: buildStaffHtml(`[INTERNAL] Booking Confirmed — ${ref}`),
+      from: FROM, to: INTERNAL_EMAIL,
+      subject: `CONFIRMED — ${ref} — ${itemTitle} — ${guestName}`,
+      html: internalHtml,
     });
     if (error) throw error;
     console.log('[confirmEmails] internal email sent');
@@ -1234,26 +1237,82 @@ export async function sendAllConfirmationEmails(bookingId: string): Promise<void
     console.error('[confirmEmails] internal email failed:', e);
   }
 
-  // 4. Provider email — no guest personal contact details
-  if (providerEmail) {
-    const teamWa = TEAM_WHATSAPP.replace(/\D/g, '');
-    const providerHtml = `<!DOCTYPE html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:24px;background:#F5F0E8">
+  // ── 3. Host email ──────────────────────────────────────────────────────────
+  // Guest info + commission note. No provider details.
+  if (hostEmail) {
+    try {
+      const hostRows = [
+        tr('Ref',      `<span style="font-family:monospace;color:#1A8A7D">${ref}</span>`),
+        tr('Activity', itemTitle),
+        tr('Date',     formattedDate),
+        tr('Guests',   `${pax} ${pax === 1 ? 'person' : 'people'}`),
+      ].join('');
+
+      const hostHtml = `<!DOCTYPE html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:24px;background:#F5F0E8">
+<div style="max-width:520px;margin:0 auto">
+  <div style="background:#1A8A7D;border-radius:8px 8px 0 0;padding:20px 24px">
+    <p style="margin:0;color:rgba(255,255,255,0.7);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase">Island Key</p>
+    <h1 style="margin:4px 0 0;color:white;font-size:17px;font-weight:700">Guest booking confirmed — ${propertyName}</h1>
+  </div>
+  <div style="background:white;padding:24px;border-radius:0 0 8px 8px">
+    <p style="margin:0 0 16px;font-size:14px;color:#374151"><strong>${guestName}</strong> has confirmed a booking through Island Key for your property <strong>${propertyName}</strong>.</p>
+    <table style="border-collapse:collapse;width:100%">${hostRows}</table>
+    <div style="margin-top:20px;padding:14px 16px;background:#F0FAF9;border-left:3px solid #1A8A7D;border-radius:0 6px 6px 0">
+      <p style="margin:0;font-size:13px;color:#1A8A7D;font-weight:600">Commission</p>
+      <p style="margin:4px 0 0;font-size:12px;color:#374151">Your commission for this booking will be processed at the end of the month.</p>
+    </div>
+    <p style="margin:20px 0 0;font-size:13px;color:#374151">Questions? Message Island Key: <a href="https://wa.me/${teamWa}" style="color:#25D366">+${teamWa}</a></p>
+  </div>
+  <p style="text-align:center;font-size:11px;color:#9CA3AF;margin-top:16px">Island Key &mdash; Crete</p>
+</div></body></html>`;
+
+      const { error } = await resend.emails.send({
+        from: FROM, to: hostEmail,
+        subject: `Guest booking confirmed — ${ref} — ${guestName} · ${propertyName}`,
+        html: hostHtml,
+      });
+      if (error) throw error;
+      console.log('[confirmEmails] host email sent to', hostEmail);
+    } catch (e) {
+      console.error('[confirmEmails] host email failed:', e);
+    }
+  } else {
+    console.log('[confirmEmails] no host email for property', propertyName, '— skipping');
+  }
+
+  // ── 4. Provider email (activities only) ────────────────────────────────────
+  // Operational details only. No guest surname, email, or accommodation address.
+  if (providerEmail && booking.item_type === 'activity') {
+    try {
+      const guestFirstName = guestName.split(' ')[0];
+
+      const includesHtml = activityIncludes && activityIncludes.length > 0
+        ? `<p style="margin:16px 0 6px;font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:0.5px">What's included</p>
+           <ul style="margin:0;padding-left:16px">${activityIncludes.map(i => `<li style="font-size:13px;color:#374151;padding:2px 0">${i}</li>`).join('')}</ul>`
+        : '';
+
+      const provRows = [
+        tr('Ref',      `<span style="font-family:monospace">${ref}</span>`),
+        tr('Activity', itemTitle),
+        tr('Date',     formattedDate),
+        tr('Guests',   `${pax} ${pax === 1 ? 'person' : 'people'}`),
+        meetingPoint ? tr('Meeting point', meetingPoint) : '',
+        tr('Guest',    guestFirstName),
+        guestNotes ? tr('Notes', guestNotes) : '',
+      ].join('');
+
+      const provHtml = `<!DOCTYPE html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:24px;background:#F5F0E8">
 <div style="max-width:520px;margin:0 auto">
   <div style="background:#1B2D4F;border-radius:8px 8px 0 0;padding:20px 24px">
     <p style="margin:0;color:rgba(255,255,255,0.5);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase">Island Key</p>
-    <h1 style="margin:4px 0 0;color:white;font-size:17px;font-weight:700">New Booking — ${itemTitle}</h1>
+    <h1 style="margin:4px 0 0;color:white;font-size:17px;font-weight:700">Booking confirmed — please prepare</h1>
   </div>
   <div style="background:white;padding:24px;border-radius:0 0 8px 8px">
     <p style="margin:0 0 16px;font-size:14px;color:#374151">A booking has been confirmed through Island Key. Please prepare for the following group.</p>
-    <table style="border-collapse:collapse;width:100%">
-      ${tableRow('Activity', itemTitle)}
-      ${tableRow('Date',     formattedDate)}
-      ${tableRow('Guests',   `${pax} ${pax === 1 ? 'person' : 'people'}`)}
-      ${guestNotes ? tableRow('Guest notes', guestNotes) : ''}
-      ${tableRow('Reference', `<span style="font-family:monospace">${ref}</span>`)}
-    </table>
+    <table style="border-collapse:collapse;width:100%">${provRows}</table>
+    ${includesHtml}
     <div style="margin-top:20px;padding:14px 16px;background:#F0FAF9;border-left:3px solid #1A8A7D;border-radius:0 6px 6px 0">
-      <p style="margin:0;font-size:13px;color:#1A8A7D;font-weight:600">Island Key is the point of contact for this booking.</p>
+      <p style="margin:0;font-size:13px;color:#1A8A7D;font-weight:600">Island Key is the point of contact.</p>
       <p style="margin:6px 0 0;font-size:13px;color:#374151">
         WhatsApp: <a href="https://wa.me/${teamWa}" style="color:#25D366">+${teamWa}</a><br>
         Email: <a href="mailto:${INTERNAL_EMAIL}" style="color:#1B2D4F">${INTERNAL_EMAIL}</a>
@@ -1263,21 +1322,17 @@ export async function sendAllConfirmationEmails(bookingId: string): Promise<void
   <p style="text-align:center;font-size:11px;color:#9CA3AF;margin-top:16px">Island Key &mdash; Crete</p>
 </div></body></html>`;
 
-    try {
       const { error } = await resend.emails.send({
-        from: FROM,
-        to: providerEmail,
-        subject: `[Island Key Booking] ${itemTitle} — ${formattedDate} — ${pax} guest${pax !== 1 ? 's' : ''}`,
-        html: providerHtml,
+        from: FROM, to: providerEmail,
+        subject: `Booking confirmed — ${itemTitle} — ${formattedDate} — ${pax} guest${pax !== 1 ? 's' : ''}`,
+        html: provHtml,
       });
       if (error) throw error;
       console.log('[confirmEmails] provider email sent to', providerEmail, providerName);
     } catch (e) {
       console.error('[confirmEmails] provider email failed:', e);
     }
-  } else {
-    console.log('[confirmEmails] no provider email for booking', ref, '— skipping provider');
+  } else if (!providerEmail) {
+    console.log('[confirmEmails] no provider email for booking', ref, '— skipping');
   }
-
-  void activitySlug; // referenced for potential future use
 }

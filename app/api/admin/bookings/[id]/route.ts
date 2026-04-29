@@ -47,7 +47,7 @@ export async function PATCH(
 
   // Fire emails on status transitions
   if (newStatus === 'confirmed') {
-    sendAllConfirmationEmails(booking.id)
+    await sendAllConfirmationEmails(booking.id)
       .catch(err => console.error('admin confirm emails error:', err))
   } else if (newStatus === 'cancelled') {
     const guestEmail = booking.guest_email as string | null
