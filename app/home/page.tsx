@@ -7,7 +7,7 @@ import { BottomNav } from '@/components/ui/bottom-nav';
 import { SectionHeader, ActivityMiniCard, ArticleCard } from '@/components/ui/components';
 import { ProfileAvatar } from '@/app/_components/profile-avatar';
 import { createClient } from '@/lib/supabase';
-import { useBookingCard } from '@/app/_components/booking-card-context';
+import { FloatingBookingsPill, type UpcomingBooking } from '@/components/FloatingBookingsPill';
 import type { GuestSession, Activity, DealFull, ArticleFull, EventFull } from '@/lib/types';
 
 // ─── Weather ──────────────────────────────────────────────────────────────────
@@ -142,15 +142,6 @@ function formatEventWhen(startDate: string): string {
   return `${label} · ${timeStr}`;
 }
 
-interface BookingCard {
-  id: string
-  item_title: string
-  booking_date: string
-  confirmation_code: string
-  status: string
-  activity_slug?: string
-}
-
 interface HomeData {
   deals:         DealFull[];
   activities:    Activity[];   // featured
@@ -169,26 +160,39 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [, setTick] = useState(0);
   const [weather, setWeather] = useState<WeatherData | null>(null);
-  const [activeBooking, setActiveBooking] = useState<BookingCard | null>(null);
-  const [bookingDismissed, setBookingDismissed] = useState(false);
-  const { setVisible } = useBookingCard();
+  const [confirmedBookings, setConfirmedBookings] = useState<UpcomingBooking[]>([]);
 
   useEffect(() => {
     const s = getSession();
     if (!s) { router.replace('/splash'); return; }
     setSession(s);
 
-    // Fetch active confirmed booking for floating card
+    // Fetch confirmed future bookings for floating pill
     if (s.guest_id) {
-      const today = new Date().toISOString().slice(0, 10);
-      fetch(`/api/bookings?guest_id=${encodeURIComponent(s.guest_id)}`)
-        .then(r => r.json())
-        .then(data => {
-          if (!Array.isArray(data)) return;
-          const confirmed = data.find((b: BookingCard) => b.status === 'confirmed' && b.booking_date >= today);
-          if (confirmed) setActiveBooking(confirmed);
-        })
-        .catch(() => {});
+      const guestId = s.guest_id;
+      const today   = new Date().toISOString().slice(0, 10);
+
+      const fetchConfirmed = () => {
+        fetch(`/api/bookings?guest_id=${encodeURIComponent(guestId)}`)
+          .then(r => r.json())
+          .then((rows: UpcomingBooking[]) => {
+            if (!Array.isArray(rows)) return;
+            const future = rows.filter(b => {
+              if (b.status !== 'confirmed') return false;
+              if (b.item_type === 'transfer') return !!b.pickup_at && b.pickup_at >= new Date().toISOString();
+              return b.booking_date >= today;
+            });
+            setConfirmedBookings(future);
+          })
+          .catch(() => {});
+      };
+
+      fetchConfirmed();
+
+      // Re-query whenever the user returns to this tab/app
+      const handleVisibility = () => { if (document.visibilityState === 'visible') fetchConfirmed(); };
+      document.addEventListener('visibilitychange', handleVisibility);
+      return () => document.removeEventListener('visibilitychange', handleVisibility);
     }
   }, [router]);
 
@@ -196,10 +200,6 @@ export default function HomePage() {
     const interval = setInterval(() => setTick(t => t + 1), 60000);
     return () => clearInterval(interval);
   }, []);
-
-  useEffect(() => {
-    setVisible(!!activeBooking && !bookingDismissed);
-  }, [activeBooking, bookingDismissed, setVisible]);
 
   useEffect(() => {
     async function refresh() {
@@ -549,33 +549,8 @@ export default function HomePage() {
 
       </div>
 
-      {/* Floating active booking card */}
-      {activeBooking && !bookingDismissed && (
-        <div className="fixed left-1/2 -translate-x-1/2 w-full max-w-[480px] z-40" style={{ bottom: 86 }}>
-          <div className="mx-4 bg-white rounded-sm shadow-lg border-l-4 border-teal flex items-center gap-3 pr-3 pl-4 py-3">
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-bold text-teal uppercase tracking-wide mb-0.5">Confirmed Booking</p>
-              <p className="text-xs font-semibold text-navy truncate">{activeBooking.item_title}</p>
-              <p className="text-[11px] text-tx-light">
-                {new Date(activeBooking.booking_date + 'T00:00:00').toLocaleDateString('en', { weekday: 'short', day: 'numeric', month: 'short' })}
-              </p>
-            </div>
-            <button
-              onClick={() => router.push(activeBooking.activity_slug ? `/activities/${activeBooking.activity_slug}` : '/profile')}
-              className="text-[11px] font-semibold text-teal px-2.5 py-1.5 border border-teal/30 rounded-sm flex-shrink-0 active:bg-teal/5"
-            >
-              View →
-            </button>
-            <button
-              onClick={() => setBookingDismissed(true)}
-              className="text-tx-light text-lg leading-none ml-1 flex-shrink-0"
-              aria-label="Dismiss"
-            >
-              ×
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Floating bookings pill */}
+      <FloatingBookingsPill bookings={confirmedBookings} />
 
       <BottomNav />
     </div>
