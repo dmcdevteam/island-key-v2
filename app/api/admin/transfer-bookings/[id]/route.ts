@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
+import { sendTransferConfirmationEmails, sendGuestBookingCancelled } from '@/lib/email'
 
 export async function PATCH(
   request: Request,
@@ -31,5 +32,27 @@ export async function PATCH(
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json(data)
+
+  let waLink: string | null = null
+
+  if (body.status === 'confirmed') {
+    waLink = await sendTransferConfirmationEmails(params.id).catch(e => {
+      console.error('[transfer PATCH] confirm emails failed:', e)
+      return null
+    })
+  } else if (body.status === 'cancelled') {
+    const guestEmail = (data as Record<string, unknown>).guest_email as string | null
+    const guestName  = ((data as Record<string, unknown>).guest_name as string | null) ?? 'Guest'
+    if (guestEmail) {
+      sendGuestBookingCancelled({
+        to: guestEmail,
+        guestName,
+        itemTitle:         (data as Record<string, unknown>).item_title as string ?? '',
+        bookingDate:       (data as Record<string, unknown>).booking_date as string ?? '',
+        confirmationCode:  (data as Record<string, unknown>).confirmation_code as string ?? '',
+      }).catch(e => console.error('[transfer PATCH] cancel email failed:', e))
+    }
+  }
+
+  return NextResponse.json({ ...data, waLink })
 }

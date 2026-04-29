@@ -99,6 +99,7 @@ export function TransferBookingsSection() {
   const [loading,      setLoading]      = useState(true)
   const [driverModal,  setDriverModal]  = useState<Booking | null>(null)
   const [copied,       setCopied]       = useState<string | null>(null)
+  const [waLinks,      setWaLinks]      = useState<Record<string, string>>({})
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -111,11 +112,13 @@ export function TransferBookingsSection() {
   useEffect(() => { load() }, [load])
 
   async function patch(id: string, payload: Record<string, unknown>) {
-    await fetch(`/api/admin/transfer-bookings/${id}`, {
+    const res  = await fetch(`/api/admin/transfer-bookings/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     })
+    const json = await res.json().catch(() => ({}))
+    if (json.waLink) setWaLinks(prev => ({ ...prev, [id]: json.waLink }))
     load()
   }
 
@@ -232,6 +235,12 @@ export function TransferBookingsSection() {
                     className="text-xs px-3 py-1.5 bg-teal/10 border border-teal/30 text-teal rounded-lg hover:bg-teal/20">
                     Mark confirmed
                   </button>
+                )}
+                {waLinks[b.id] && (
+                  <a href={waLinks[b.id]} target="_blank" rel="noopener noreferrer"
+                    className="text-xs px-3 py-1.5 bg-[#25D366] text-white rounded-lg hover:bg-green-700 font-medium">
+                    Message guest →
+                  </a>
                 )}
                 {b.status === 'confirmed' && (
                   <button onClick={() => patch(b.id, { status: 'completed' })}

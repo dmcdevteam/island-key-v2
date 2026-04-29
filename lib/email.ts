@@ -581,6 +581,210 @@ export async function sendGuestBookingCancelled(data: {
   else console.log('Email: booking cancelled sent to', data.to, 'ref', data.confirmationCode);
 }
 
+// ─── Transfer confirmation emails ────────────────────────────────────────────
+// Sent by admin when status → 'confirmed'.
+// Returns the pre-filled WhatsApp message text so the API can build a deep link.
+export async function sendTransferConfirmationEmails(bookingId: string): Promise<string | null> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey || apiKey === 're_your-api-key-here') {
+    console.warn('[transferConfirm] RESEND_API_KEY not set — skipping');
+    return null;
+  }
+
+  const supabase = createServerClient();
+
+  const { data: b, error } = await supabase
+    .from('bookings')
+    .select('id, confirmation_code, item_title, booking_date, booking_time, pax, pax_count, luggage_count, total_price, guest_name, guest_email, guest_id, pickup_at, pickup_location, dropoff_location, vehicle_class, flight_number, driver_name, driver_phone, extras, notes, guest_notes, transfer_type, distance_km')
+    .eq('id', bookingId)
+    .single();
+
+  if (error || !b) {
+    console.error('[transferConfirm] booking not found', bookingId, error?.message);
+    return null;
+  }
+
+  const ref        = b.confirmation_code as string;
+  const guestName  = (b.guest_name  as string | null) ?? 'Guest';
+  const guestEmail = (b.guest_email as string | null) ?? null;
+
+  // Resolve guest WhatsApp
+  let guestPhone: string | null = null;
+  if (b.guest_id) {
+    const { data: g } = await supabase
+      .from('guests').select('whatsapp_number').eq('id', b.guest_id as string).single();
+    if (g?.whatsapp_number) guestPhone = g.whatsapp_number;
+  }
+
+  const pickupAt  = b.pickup_at as string | null;
+  const pickupFmt = pickupAt
+    ? new Date(pickupAt).toLocaleString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    : '—';
+  const pickupDateOnly = pickupAt
+    ? new Date(pickupAt).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+    : '—';
+  const pickupTimeOnly = pickupAt
+    ? new Date(pickupAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+    : '—';
+
+  const route      = `${b.pickup_location ?? '—'} → ${b.dropoff_location ?? '—'}`;
+  const vehicle    = (b.vehicle_class as string | null) ?? '—';
+  const pax        = (b.pax_count ?? b.pax ?? '—') as string | number;
+  const luggage    = (b.luggage_count as number | null) ?? '—';
+  const flight     = (b.flight_number as string | null) ?? null;
+  const driverName = (b.driver_name  as string | null) ?? null;
+  const driverPhone= (b.driver_phone as string | null) ?? null;
+  const extrasArr  = (b.extras as string[] | null) ?? [];
+  const notes      = ((b.notes ?? b.guest_notes) as string | null) ?? null;
+
+  const tableRow = (k: string, v: string) =>
+    `<tr><td style="padding:6px 12px 6px 0;color:#6B7280;font-size:13px;white-space:nowrap;vertical-align:top">${k}</td>` +
+    `<td style="padding:6px 0;font-size:13px;font-weight:600;color:#111">${v}</td></tr>`;
+
+  const waNumber = TEAM_WHATSAPP.replace(/\D/g, '');
+  const resend   = new Resend(apiKey);
+
+  // ── 1. Guest confirmation email ────────────────────────────────────────────
+  if (guestEmail) {
+    const driverRow = driverName
+      ? tableRow('Driver', `${driverName}${driverPhone ? ` &mdash; ${driverPhone}` : ''}`)
+      : tableRow('Driver', '<span style="color:#D97706">Your driver details will follow shortly</span>');
+
+    const guestRows = [
+      tableRow('Reference',  `<span style="font-family:monospace;font-size:15px;color:#1A8A7D">${ref}</span>`),
+      tableRow('Route',      route),
+      tableRow('Date & time', pickupFmt),
+      tableRow('Vehicle',    vehicle),
+      tableRow('Passengers', `${pax} passengers · ${luggage} bags`),
+      driverRow,
+      flight ? tableRow('Flight', flight) : '',
+      extrasArr.length > 0 ? tableRow('Extras', extrasArr.join(', ')) : '',
+      notes ? tableRow('Notes', notes) : '',
+    ].join('');
+
+    const guestHtml = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:24px;background:#F5F0E8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+  <div style="max-width:520px;margin:0 auto">
+    <div style="background:#1A8A7D;border-radius:8px 8px 0 0;padding:24px;text-align:center">
+      <p style="margin:0;color:rgba(255,255,255,0.7);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase">Island Key</p>
+      <h1 style="margin:6px 0 4px;color:white;font-size:22px;font-weight:700">Transfer Confirmed!</h1>
+      <p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px">${route}</p>
+    </div>
+    <div style="background:white;padding:28px;border-radius:0 0 8px 8px">
+      <p style="margin:0 0 20px;font-size:14px;color:#374151">Hi ${guestName}, your Island Key transfer is confirmed. Here are your full details.</p>
+      <table style="width:100%;border-collapse:collapse">${guestRows}</table>
+      <div style="margin-top:20px;padding:14px 16px;background:#FFFBEB;border-left:3px solid #D97706;border-radius:0 6px 6px 0">
+        <p style="margin:0;font-size:12px;color:#92400E;font-weight:600">Cancellation policy</p>
+        <p style="margin:4px 0 0;font-size:12px;color:#374151">Free cancellation up to 24h before pickup. Cancellations within 24h are non-refundable.</p>
+      </div>
+      <div style="margin-top:24px;text-align:center">
+        <p style="margin:0 0 12px;font-size:13px;color:#6B7280">Questions? Message your Island Key curator on WhatsApp.</p>
+        <a href="https://wa.me/${waNumber}" style="display:inline-block;padding:12px 28px;background:#25D366;color:white;font-size:14px;font-weight:700;border-radius:24px;text-decoration:none">
+          Message us on WhatsApp
+        </a>
+      </div>
+    </div>
+    <p style="text-align:center;font-size:11px;color:#9CA3AF;margin-top:16px">
+      Island Key &mdash; Crete &mdash; <a href="https://app.islandkey.gr" style="color:#9CA3AF">app.islandkey.gr</a>
+    </p>
+  </div>
+</body>
+</html>`;
+
+    try {
+      const { error: e } = await resend.emails.send({
+        from: FROM, to: guestEmail,
+        subject: `Your transfer is confirmed — ${ref}`,
+        html: guestHtml,
+      });
+      if (e) throw e;
+      console.log('[transferConfirm] guest email sent to', guestEmail, ref);
+    } catch (e) {
+      console.error('[transferConfirm] guest email failed:', e);
+    }
+  }
+
+  // ── 2. Internal / Spyros email ─────────────────────────────────────────────
+  const internalRows = [
+    tableRow('Ref',       `<span style="font-family:monospace;color:#1A8A7D">${ref}</span>`),
+    tableRow('Route',     route),
+    tableRow('Pickup',    pickupFmt),
+    tableRow('Vehicle',   vehicle),
+    tableRow('Pax',       String(pax)),
+    tableRow('Luggage',   String(luggage)),
+    flight ? tableRow('Flight', flight) : '',
+    extrasArr.length > 0 ? tableRow('Extras', extrasArr.join(', ')) : '',
+    notes ? tableRow('Notes', notes) : '',
+    tableRow('Guest',     guestName),
+    guestEmail ? tableRow('Email', guestEmail) : '',
+    guestPhone ? tableRow('WhatsApp', `<a href="https://wa.me/${guestPhone.replace(/\D/g,'')}" style="color:#25D366">${guestPhone}</a>`) : '',
+    tableRow('Driver',    driverName ? `${driverName}${driverPhone ? ` · ${driverPhone}` : ''}` : '<span style="color:#D97706">⚠ Not yet assigned</span>'),
+  ].join('');
+
+  const driverAlert = !driverName
+    ? `<div style="margin-top:20px;padding:14px 16px;background:#FFFBEB;border-left:3px solid #D97706;border-radius:0 6px 6px 0">
+        <p style="margin:0;font-size:13px;color:#92400E;font-weight:600">Action: Assign driver &amp; message guest on WhatsApp</p>
+        <p style="margin:4px 0 0;font-size:12px;color:#374151">No driver has been assigned yet. Once arranged, use the admin panel to assign and send the WhatsApp confirmation to the guest.</p>
+      </div>`
+    : `<div style="margin-top:20px;padding:14px 16px;background:#F0FDF4;border-left:3px solid #15803D;border-radius:0 6px 6px 0">
+        <p style="margin:0;font-size:13px;color:#15803D;font-weight:600">Driver assigned: ${driverName}${driverPhone ? ` · ${driverPhone}` : ''}</p>
+        <p style="margin:4px 0 0;font-size:12px;color:#374151">Send the WhatsApp confirmation to the guest if not done yet.</p>
+      </div>`;
+
+  const internalHtml = `<!DOCTYPE html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:24px;background:#F5F0E8">
+<div style="max-width:520px;margin:0 auto">
+  <div style="background:#1A8A7D;border-radius:8px 8px 0 0;padding:20px 24px">
+    <p style="margin:0;color:rgba(255,255,255,0.7);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase">Island Key — Transfer Confirmed</p>
+    <h1 style="margin:4px 0 0;color:white;font-size:17px;font-weight:700">${ref} — ${route}</h1>
+  </div>
+  <div style="background:white;padding:24px;border-radius:0 0 8px 8px">
+    <table style="border-collapse:collapse;width:100%">${internalRows}</table>
+    ${driverAlert}
+    <div style="margin-top:20px">
+      <a href="https://app.islandkey.gr/admin/transfer-bookings" style="display:inline-block;padding:10px 20px;background:#1B2D4F;color:white;font-size:13px;font-weight:700;border-radius:6px;text-decoration:none">
+        View in Admin →
+      </a>
+    </div>
+  </div>
+  <p style="text-align:center;font-size:11px;color:#9CA3AF;margin-top:16px">Island Key &mdash; Crete</p>
+</div></body></html>`;
+
+  try {
+    const { error: e } = await resend.emails.send({
+      from: FROM, to: INTERNAL_EMAIL,
+      subject: `Transfer confirmed — ${ref}${!driverName ? ' — action needed' : ''}`,
+      html: internalHtml,
+    });
+    if (e) throw e;
+    console.log('[transferConfirm] internal email sent, ref', ref);
+  } catch (e) {
+    console.error('[transferConfirm] internal email failed:', e);
+  }
+
+  // ── 3. Build WhatsApp message for Spyros → guest ───────────────────────────
+  const lines = [
+    `Hi ${guestName}, your Island Key transfer is confirmed! 🎉`,
+    ``,
+    `📍 Route: ${route}`,
+    `📅 Date: ${pickupDateOnly} at ${pickupTimeOnly}`,
+    `🚗 Vehicle: ${vehicle}`,
+    ...(driverName ? [`👤 Driver: ${driverName}${driverPhone ? `, ${driverPhone}` : ''}`] : []),
+    `📋 Reference: ${ref}`,
+    ``,
+    `Free cancellation up to 24h before pickup.`,
+    `Any questions? Reply here anytime. 🌿`,
+  ];
+
+  const waText = lines.join('\n');
+  const waHref = guestPhone
+    ? `https://wa.me/${guestPhone.replace(/\D/g, '')}?text=${encodeURIComponent(waText)}`
+    : `https://wa.me/?text=${encodeURIComponent(waText)}`;
+
+  return waHref;
+}
+
 // ─── Transfer enquiry emails ─────────────────────────────────────────────────
 // Sends internal alert + guest receipt when a transfer enquiry is submitted.
 export async function sendTransferEnquiryEmails(bookingId: string): Promise<void> {
