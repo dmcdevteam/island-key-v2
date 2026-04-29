@@ -17,9 +17,9 @@ const ITEM_TYPE_LABELS: Record<string, string> = {
 }
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
-  enquiry:   { bg: '#F1F5F9', text: '#64748B', label: 'Enquiry sent' },
-  pending:   { bg: '#F1F5F9', text: '#64748B', label: 'Pending' },
-  confirmed: { bg: '#E6F7F5', text: '#1A8A7D', label: 'Confirmed' },
+  enquiry:   { bg: '#FFF7ED', text: '#C2410C', label: 'Pending' },
+  pending:   { bg: '#FFF7ED', text: '#C2410C', label: 'Pending' },
+  confirmed: { bg: '#F0FDF4', text: '#15803D', label: 'Confirmed' },
   cancelled: { bg: '#FEF2F2', text: '#DC2626', label: 'Cancelled' },
   completed: { bg: '#EEF2FF', text: '#1B2D4F', label: 'Completed' },
   refunded:  { bg: '#FFF7ED', text: '#92400E', label: 'Refunded' },
