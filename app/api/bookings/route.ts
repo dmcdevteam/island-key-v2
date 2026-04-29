@@ -25,8 +25,8 @@ export async function POST(request: Request) {
 
   const insertPayload = {
     item_type:      body.item_type      ?? 'activity',
-    // transfers send item_id: null — use '' to satisfy the NOT NULL DB constraint
-    item_id:        (body.item_id as string | null) ?? '',
+    // transfers have no item — item_id is nullable after migration
+    item_id:        (body.item_id as string | null) ?? null,
     item_title:     body.item_title     ?? '',
     booking_date:   body.booking_date   ?? null,
     booking_time:   body.booking_time   ?? null,
