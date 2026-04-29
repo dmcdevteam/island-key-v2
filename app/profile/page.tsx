@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { BottomNav } from '@/components/ui/bottom-nav'
 import { getSession } from '@/lib/utils'
 import { useFavourites } from '@/app/_components/favourites-provider'
+import { VEHICLE_LABELS, type VehicleSlug } from '@/lib/transfers'
 import type { GuestSession } from '@/lib/types'
 
 const ITEM_TYPE_LABELS: Record<string, string> = {
@@ -30,14 +31,24 @@ interface BookingRow {
   item_type: string
   item_title: string
   booking_date: string
+  booking_time: string | null
   pax: number
+  pax_count: number | null
   status: string
   created_at: string
   activity_slug?: string
+  pickup_at: string | null
+  pickup_location: string | null
+  dropoff_location: string | null
+  vehicle_class: string | null
 }
 
 function formatDate(d: string) {
   return new Date(d + 'T00:00:00').toLocaleDateString('en', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+function formatPickup(iso: string) {
+  return new Date(iso).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 }
 
 export default function ProfilePage() {
@@ -183,9 +194,9 @@ export default function ProfilePage() {
           )}
         </div>
 
-        {/* Section 3 — My Enquiries */}
+        {/* Section 3 — My Bookings */}
         <div className="mx-5 mb-4">
-          <h2 className="text-[11px] font-bold text-tx-mid uppercase tracking-wide mb-3">My Enquiries</h2>
+          <h2 className="text-[11px] font-bold text-tx-mid uppercase tracking-wide mb-3">My Bookings</h2>
           {bookingsLoading ? (
             <div className="flex flex-col gap-2">
               {Array.from({ length: 2 }).map((_, i) => (
@@ -195,34 +206,56 @@ export default function ProfilePage() {
           ) : bookings.length === 0 ? (
             <div className="bg-white border border-border-light rounded-sm px-4 py-6 text-center">
               <p className="text-2xl mb-2">📋</p>
-              <p className="text-xs font-semibold text-navy mb-1">No enquiries yet</p>
-              <p className="text-[11px] text-tx-light">Your booking enquiries will appear here</p>
+              <p className="text-xs font-semibold text-navy mb-1">Your bookings will appear here</p>
+              <p className="text-[11px] text-tx-light">Activities and transfers you've booked show up here</p>
             </div>
           ) : (
             <div className="flex flex-col gap-2.5">
               {bookings.map(b => {
-                const st = STATUS_STYLES[b.status] ?? STATUS_STYLES.pending
-                const dest = b.activity_slug ? `/activities/${b.activity_slug}` : null
+                const isTransfer = b.item_type === 'transfer'
+                const st   = STATUS_STYLES[b.status] ?? STATUS_STYLES.pending
+                const icon = isTransfer ? '🚗' : '🌊'
+                const title = isTransfer
+                  ? `${b.pickup_location ?? ''} → ${b.dropoff_location ?? ''}`.trim() || b.item_title
+                  : b.item_title
+                const dateStr = isTransfer && b.pickup_at
+                  ? formatPickup(b.pickup_at)
+                  : formatDate(b.booking_date) + (b.booking_time ? ` · ${b.booking_time.slice(0, 5)}` : '')
+                const paxCount = isTransfer ? (b.pax_count ?? b.pax) : b.pax
+                const dest = !isTransfer && b.activity_slug ? `/activities/${b.activity_slug}` : null
+
                 return (
                   <button
                     key={b.id}
                     onClick={() => dest && router.push(dest)}
-                    className={`w-full text-left bg-white border border-border-light rounded-sm p-3.5 flex items-start gap-2 ${dest ? 'active:bg-sand cursor-pointer' : 'cursor-default'}`}
+                    className={`w-full text-left bg-white border border-border-light rounded-sm p-3.5 flex items-start gap-3 ${dest ? 'active:bg-sand cursor-pointer' : 'cursor-default'}`}
                   >
+                    {/* Icon */}
+                    <div className="w-8 h-8 rounded-full bg-navy/5 flex items-center justify-center flex-shrink-0 text-base mt-0.5">
+                      {icon}
+                    </div>
+
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2 mb-1">
-                        <p className="text-xs font-semibold text-navy leading-snug flex-1">{b.item_title}</p>
+                        <p className="text-xs font-semibold text-navy leading-snug flex-1">{title}</p>
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded flex-shrink-0"
                           style={{ background: st.bg, color: st.text }}>
                           {st.label}
                         </span>
                       </div>
-                      <p className="text-[11px] text-tx-light mb-1">{formatDate(b.booking_date)} · {b.pax} {b.pax === 1 ? 'person' : 'people'}</p>
+                      <p className="text-[11px] text-tx-light">
+                        {dateStr} · {paxCount} {paxCount === 1 ? 'passenger' : 'passengers'}
+                      </p>
+                      {isTransfer && b.vehicle_class && (
+                        <p className="text-[11px] text-tx-light">
+                          {VEHICLE_LABELS[b.vehicle_class as VehicleSlug] ?? b.vehicle_class}
+                        </p>
+                      )}
                       {b.confirmation_code && (
-                        <p className="text-[10px] text-tx-light font-mono">{b.confirmation_code}</p>
+                        <p className="text-[10px] text-tx-light font-mono mt-1">{b.confirmation_code}</p>
                       )}
                     </div>
-                    {dest && <span className="text-[11px] text-teal self-center flex-shrink-0 ml-1">→</span>}
+                    {dest && <span className="text-[11px] text-teal self-center flex-shrink-0">→</span>}
                   </button>
                 )
               })}
