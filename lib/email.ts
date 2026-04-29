@@ -595,7 +595,7 @@ export async function sendTransferConfirmationEmails(bookingId: string): Promise
 
   const { data: b, error } = await supabase
     .from('bookings')
-    .select('id, confirmation_code, item_title, booking_date, booking_time, pax, pax_count, luggage_count, total_price, guest_name, guest_email, guest_id, pickup_at, pickup_location, dropoff_location, vehicle_class, flight_number, driver_name, driver_phone, extras, notes, guest_notes, transfer_type, distance_km')
+    .select('id, confirmation_code, item_title, booking_date, booking_time, pax, pax_count, luggage_count, total_price, guest_name, guest_email, guest_id, property_id, provider_id, pickup_at, pickup_location, dropoff_location, vehicle_class, flight_number, driver_name, driver_phone, extras, notes, guest_notes, transfer_type, distance_km')
     .eq('id', bookingId)
     .single();
 
@@ -763,7 +763,114 @@ export async function sendTransferConfirmationEmails(bookingId: string): Promise
     console.error('[transferConfirm] internal email failed:', e);
   }
 
-  // ── 3. Build WhatsApp message for Spyros → guest ───────────────────────────
+  // ── 3. Host email ──────────────────────────────────────────────────────────
+  if (b.property_id) {
+    const { data: prop } = await supabase
+      .from('properties')
+      .select('name, host_name, host_email')
+      .eq('id', b.property_id as string)
+      .single();
+
+    if (prop?.host_email) {
+      const hostRows = [
+        tableRow('Ref',       `<span style="font-family:monospace;color:#1A8A7D">${ref}</span>`),
+        tableRow('Route',     route),
+        tableRow('Pickup',    pickupFmt),
+        tableRow('Vehicle',   vehicle),
+        tableRow('Pax',       `${pax} passengers · ${luggage} bags`),
+        tableRow('Guest',     guestName),
+        driverName ? tableRow('Driver', `${driverName}${driverPhone ? ` · ${driverPhone}` : ''}`) : '',
+        extrasArr.length > 0 ? tableRow('Extras', extrasArr.join(', ')) : '',
+      ].join('');
+
+      const hostHtml = `<!DOCTYPE html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:24px;background:#F5F0E8">
+<div style="max-width:520px;margin:0 auto">
+  <div style="background:#1A8A7D;border-radius:8px 8px 0 0;padding:20px 24px">
+    <p style="margin:0;color:rgba(255,255,255,0.7);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase">Island Key</p>
+    <h1 style="margin:4px 0 0;color:white;font-size:17px;font-weight:700">Transfer confirmed for your guest</h1>
+  </div>
+  <div style="background:white;padding:24px;border-radius:0 0 8px 8px">
+    <p style="margin:0 0 16px;font-size:14px;color:#374151">A transfer has been confirmed for a guest staying at <strong>${prop.name}</strong>.</p>
+    <table style="border-collapse:collapse;width:100%">${hostRows}</table>
+    <div style="margin-top:20px;padding:14px 16px;background:#F0FAF9;border-left:3px solid #1A8A7D;border-radius:0 6px 6px 0">
+      <p style="margin:0;font-size:13px;color:#1A8A7D;font-weight:600">Island Key is managing this transfer.</p>
+      <p style="margin:4px 0 0;font-size:12px;color:#6B7280">No action needed from you unless you need to coordinate directly with the guest.</p>
+    </div>
+  </div>
+  <p style="text-align:center;font-size:11px;color:#9CA3AF;margin-top:16px">Island Key &mdash; Crete</p>
+</div></body></html>`;
+
+      try {
+        const { error: e } = await resend.emails.send({
+          from: FROM, to: prop.host_email,
+          subject: `[IK Transfer] ${ref} confirmed — ${guestName} · ${prop.name}`,
+          html: hostHtml,
+        });
+        if (e) throw e;
+        console.log('[transferConfirm] host email sent to', prop.host_email);
+      } catch (e) {
+        console.error('[transferConfirm] host email failed:', e);
+      }
+    }
+  }
+
+  // ── 4. Provider email ──────────────────────────────────────────────────────
+  if (b.provider_id) {
+    const { data: prov } = await supabase
+      .from('providers')
+      .select('name, email')
+      .eq('id', b.provider_id as string)
+      .single();
+
+    const providerEmail = (prov as Record<string, unknown> | null)?.email as string | null ?? null;
+
+    if (providerEmail) {
+      const provRows = [
+        tableRow('Ref',      `<span style="font-family:monospace">${ref}</span>`),
+        tableRow('Route',    route),
+        tableRow('Pickup',   pickupFmt),
+        tableRow('Vehicle',  vehicle),
+        tableRow('Pax',      `${pax} passengers · ${luggage} bags`),
+        flight ? tableRow('Flight', flight) : '',
+        extrasArr.length > 0 ? tableRow('Extras', extrasArr.join(', ')) : '',
+        notes ? tableRow('Notes', notes) : '',
+      ].join('');
+
+      const provHtml = `<!DOCTYPE html><html><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:24px;background:#F5F0E8">
+<div style="max-width:520px;margin:0 auto">
+  <div style="background:#1B2D4F;border-radius:8px 8px 0 0;padding:20px 24px">
+    <p style="margin:0;color:rgba(255,255,255,0.5);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase">Island Key</p>
+    <h1 style="margin:4px 0 0;color:white;font-size:17px;font-weight:700">Transfer booking — ${ref}</h1>
+  </div>
+  <div style="background:white;padding:24px;border-radius:0 0 8px 8px">
+    <p style="margin:0 0 16px;font-size:14px;color:#374151">A transfer has been confirmed through Island Key. Please prepare for the following.</p>
+    <table style="border-collapse:collapse;width:100%">${provRows}</table>
+    <div style="margin-top:20px;padding:14px 16px;background:#F0FAF9;border-left:3px solid #1A8A7D;border-radius:0 6px 6px 0">
+      <p style="margin:0;font-size:13px;color:#1A8A7D;font-weight:600">Island Key is the point of contact for this booking.</p>
+      <p style="margin:6px 0 0;font-size:13px;color:#374151">
+        WhatsApp: <a href="https://wa.me/${waNumber}" style="color:#25D366">+${waNumber}</a><br>
+        Email: <a href="mailto:${INTERNAL_EMAIL}" style="color:#1B2D4F">${INTERNAL_EMAIL}</a>
+      </p>
+    </div>
+  </div>
+  <p style="text-align:center;font-size:11px;color:#9CA3AF;margin-top:16px">Island Key &mdash; Crete</p>
+</div></body></html>`;
+
+      try {
+        const { error: e } = await resend.emails.send({
+          from: FROM, to: providerEmail,
+          subject: `[Island Key Transfer] ${ref} — ${route} — ${pickupDateOnly}`,
+          html: provHtml,
+        });
+        if (e) throw e;
+        console.log('[transferConfirm] provider email sent to', providerEmail);
+      } catch (e) {
+        console.error('[transferConfirm] provider email failed:', e);
+      }
+    }
+  }
+
+  // ── 5. Build WhatsApp message for Spyros → guest ───────────────────────────
   const lines = [
     `Hi ${guestName}, your Island Key transfer is confirmed! 🎉`,
     ``,
