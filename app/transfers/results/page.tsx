@@ -121,6 +121,11 @@ function ResultsContent() {
 
   const estArrival = dur > 0 ? addMinutes(time, dur) : '';
 
+  const eligibleVehicles = VEHICLE_ORDER.filter(slug => {
+    const cap = VEHICLE_CAPACITY[slug];
+    return Number(pax) <= cap.pax && Number(luggage) <= cap.luggage;
+  });
+
   const returnWaLink = whatsappLink(
     `Hi, I'd like to add a return transfer to my booking.\nRoute: ${toName} → ${fromName}.\nReference: (to be assigned)`
   );
@@ -203,10 +208,25 @@ function ResultsContent() {
 
       {/* Vehicle cards */}
       <div className="px-5 space-y-3">
-        {VEHICLE_ORDER.map((slug, idx) => {
+        {eligibleVehicles.length === 0 && (
+          <div className="bg-white rounded-2xl border border-border-light p-6 text-center space-y-3">
+            <p className="text-2xl">🚌</p>
+            <p className="text-sm font-semibold text-navy">No vehicles available for this group size</p>
+            <p className="text-xs text-tx-light">For groups this size, please contact us via WhatsApp.</p>
+            <a
+              href={whatsappLink(`Hi, I need a transfer for ${pax} passengers and ${luggage} bags.\nRoute: ${fromName} → ${toName}\nDate: ${date} at ${time}`)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block mt-1 px-4 py-2 bg-[#25D366] text-white text-sm font-semibold rounded-xl"
+            >
+              Contact us on WhatsApp
+            </a>
+          </div>
+        )}
+        {eligibleVehicles.map((slug, idx) => {
           const cap   = VEHICLE_CAPACITY[slug];
           const price = getPrice(slug);
-          const isBest = idx === 0; // Sedan = best value
+          const isBest = idx === 0;
 
           return (
             <div
