@@ -25,9 +25,11 @@ export async function POST(request: Request) {
 
   const insertPayload = {
     item_type:      body.item_type      ?? 'activity',
-    item_id:        body.item_id        ?? null,
+    // transfers send item_id: null — use '' to satisfy the NOT NULL DB constraint
+    item_id:        (body.item_id as string | null) ?? '',
     item_title:     body.item_title     ?? '',
     booking_date:   body.booking_date   ?? null,
+    booking_time:   body.booking_time   ?? null,
     pax:            body.pax            ?? 1,
     days:           body.days           ?? 1,
     unit_price:     body.unit_price     ?? 0,
@@ -48,10 +50,12 @@ export async function POST(request: Request) {
       dropoff_location: body.dropoff_location ?? null,
       flight_number:    body.flight_number    ?? null,
       pax_count:        body.pax_count        ?? null,
+      luggage_count:    body.luggage_count    ?? null,
       vehicle_class:    body.vehicle_class    ?? null,
       distance_km:      body.distance_km      ?? null,
       duration_min:     body.duration_min     ?? null,
       extras:           body.extras           ?? [],
+      notes:            body.notes            ?? null,
     } : {}),
   }
 
@@ -116,10 +120,10 @@ export async function GET(request: Request) {
   const supabase = createServerClient()
   const { data, error } = await supabase
     .from('bookings')
-    .select('id, confirmation_code, item_type, item_title, booking_date, pax, status, created_at, activity_slug')
+    .select('id, confirmation_code, item_type, item_title, booking_date, booking_time, pax, pax_count, status, created_at, activity_slug, pickup_at, pickup_location, dropoff_location, vehicle_class')
     .eq('guest_id', guestId)
     .order('created_at', { ascending: false })
-    .limit(10)
+    .limit(20)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data ?? [])
