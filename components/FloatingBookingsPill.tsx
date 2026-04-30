@@ -63,6 +63,7 @@ export function FloatingBookingsPill({ bookings }: { bookings: UpcomingBooking[]
   function close() {
     setOpen(false)
     setDrawerOpen(false)
+    window.dispatchEvent(new Event('drawer:close'))
   }
 
   function go(b: UpcomingBooking) {
@@ -95,7 +96,7 @@ export function FloatingBookingsPill({ bookings }: { bookings: UpcomingBooking[]
         display: open ? 'none' : 'block',
       }}>
         <button
-          onClick={() => { setOpen(true); setDrawerOpen(true) }}
+          onClick={() => { setOpen(true); setDrawerOpen(true); window.dispatchEvent(new Event('drawer:open')) }}
           style={{
             width: '100%',
             height: 48,
@@ -216,7 +217,7 @@ export function FloatingBookingsPill({ bookings }: { bookings: UpcomingBooking[]
               overflowY: 'scroll',
               WebkitOverflowScrolling: 'touch',
               minHeight: 0,          // critical: lets flex child shrink below content size in Safari
-              padding: '12px 16px 40px',
+              padding: '12px 16px 80px',
             }}>
               {sorted.map(b => {
                 const isTransfer = b.item_type === 'transfer'

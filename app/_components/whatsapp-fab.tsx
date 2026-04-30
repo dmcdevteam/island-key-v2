@@ -18,15 +18,28 @@ const BASE_BOTTOM = 100
 export function WhatsAppFAB() {
   const pathname = usePathname();
   const [session, setSession] = useState<GuestSession | null>(null);
-  const { visible: bookingCardVisible, drawerOpen } = useBookingCard();
+  const [hidden,  setHidden]  = useState(false);
+  const { visible: bookingCardVisible } = useBookingCard();
 
   useEffect(() => {
     setSession(getSession());
   }, [pathname]);
 
-  // Hide on gate page and listed routes
+  useEffect(() => {
+    const show = () => setHidden(true);
+    const hide = () => setHidden(false);
+    window.addEventListener('drawer:open',  show);
+    window.addEventListener('drawer:close', hide);
+    return () => {
+      window.removeEventListener('drawer:open',  show);
+      window.removeEventListener('drawer:close', hide);
+    };
+  }, []);
+
+  // Hide on gate page, listed routes, or when drawer is open
   if (pathname === '/') return null;
   if (HIDDEN_ON.some(p => pathname.startsWith(p))) return null;
+  if (hidden) return null;
 
   const text = session
     ? `Hi, I'm ${session.first_name} staying at ${session.property_name ?? 'my accommodation'} and I have a question about Island Key.`
@@ -43,8 +56,6 @@ export function WhatsAppFAB() {
       style={{
         bottom: bookingCardVisible ? BASE_BOTTOM + CARD_H + CARD_GAP : BASE_BOTTOM,
         right: 'max(1rem, calc(50% - 224px))',
-        opacity: drawerOpen ? 0 : 1,
-        pointerEvents: drawerOpen ? 'none' : 'auto',
       }}
       aria-label="Chat on WhatsApp"
     >
