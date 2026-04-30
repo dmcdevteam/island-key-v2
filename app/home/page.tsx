@@ -416,20 +416,38 @@ export default function HomePage() {
           </>
         )}
 
-        {/* Upcoming Events entry point — shown when no events today */}
-        {eventsStatus === 'empty' && (
-          <button
-            onClick={() => router.push('/events')}
-            className="mx-5 mb-5 w-[calc(100%-40px)] flex items-center gap-3 px-4 py-3 bg-white border border-border-light rounded-sm active:bg-sand transition-colors"
-          >
-            <span className="text-lg">📅</span>
-            <div className="flex-1 text-left">
-              <p className="text-xs font-semibold text-navy">Upcoming Events in Chania</p>
-              <p className="text-[10px] text-tx-light">Festivals, music, food &amp; more</p>
-            </div>
-            <span className="text-[11px] text-teal">→</span>
-          </button>
-        )}
+        {/* Events hero card — always visible */}
+        <button
+          onClick={() => router.push('/events')}
+          className="mx-4 mb-5 block w-[calc(100%-32px)] text-left active:opacity-90 transition-opacity"
+          style={{ borderRadius: 16, overflow: 'hidden', position: 'relative', height: 160 }}
+        >
+          <img
+            src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=800"
+            alt="Events in Chania"
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
+          {/* Dark gradient overlay */}
+          <div
+            style={{
+              position: 'absolute', inset: 0,
+              background: 'linear-gradient(to bottom, transparent 20%, rgba(27,45,79,0.75) 100%)',
+            }}
+          />
+          {/* Text — bottom-left */}
+          <div style={{ position: 'absolute', bottom: 14, left: 16, right: 48 }}>
+            <p style={{ fontSize: 10, color: 'white', letterSpacing: '0.15em', fontWeight: 600, textTransform: 'uppercase', marginBottom: 2 }}>
+              Events &amp; Culture
+            </p>
+            <p className="font-display" style={{ fontSize: 18, color: 'white', fontWeight: 600, lineHeight: 1.2 }}>
+              See what&apos;s on in Chania
+            </p>
+          </div>
+          {/* Arrow — bottom-right */}
+          <div style={{ position: 'absolute', bottom: 14, right: 16, fontSize: 20, color: 'white' }}>
+            →
+          </div>
+        </button>
 
         {/* Deals section — hidden only when fetch completes with no results */}
         {dealsStatus !== 'empty' && (
@@ -490,32 +508,27 @@ export default function HomePage() {
           <p className="px-5 mb-5 text-xs text-tx-light">No featured activities yet.</p>
         )}
 
-        {/* Explore Activities */}
-        <SectionHeader title="Explore Activities" linkText="Browse all →" onLink={() => router.push('/activities')} />
-        {loading ? (
-          <div className="flex gap-2.5 px-5 mb-5">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="min-w-[190px] h-[155px] rounded bg-navy/5 animate-pulse flex-shrink-0" />
-            ))}
-          </div>
-        ) : data.allActivities.length > 0 ? (
-          <div className="flex gap-2.5 px-5 overflow-x-auto snap-x snap-mandatory no-scrollbar mb-5">
-            {data.allActivities.map(a => (
-              <ActivityMiniCard
-                key={a.id}
-                title={a.title}
-                subtitle={[a.duration, a.meeting_point].filter(Boolean).join(' · ')}
-                priceFrom={a.price_from ?? 0}
-                category={a.category}
-                imageUrl={a.images?.[0] ?? null}
-                heartItem={{ id: a.id, type: 'activity', slug: a.slug, title: a.title, image: a.images?.[0] ?? null, price: a.price_from ? `€${a.price_from}pp` : null }}
-                onClick={() => router.push(`/activities/${a.slug}`)}
-              />
-            ))}
-          </div>
-        ) : (
-          <p className="px-5 mb-5 text-xs text-tx-light">No activities yet.</p>
-        )}
+        {/* Explore all experiences CTA */}
+        <div className="mx-4 mb-6" style={{ marginTop: 24 }}>
+          <button
+            onClick={() => router.push('/activities')}
+            className="w-full flex items-center gap-3 active:opacity-80 transition-opacity"
+            style={{
+              height: 56,
+              borderRadius: 14,
+              background: 'transparent',
+              border: '2px solid #1A8A7D',
+              paddingLeft: 20,
+              paddingRight: 20,
+            }}
+          >
+            <span style={{ fontSize: 20 }}>🗺</span>
+            <span className="flex-1 text-left font-semibold" style={{ fontSize: 16, color: '#1A8A7D' }}>
+              Explore all experiences
+            </span>
+            <span style={{ fontSize: 16, color: '#1A8A7D', fontWeight: 700 }}>›</span>
+          </button>
+        </div>
 
         {/* Local Insights */}
         <SectionHeader title="Local Insights" linkText="Read more →" onLink={() => router.push('/insights')} />
