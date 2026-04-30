@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { getSession, TIER_LABELS, formatPrice } from '@/lib/utils';
 import { BottomNav } from '@/components/ui/bottom-nav';
@@ -509,27 +510,64 @@ export default function HomePage() {
           <p className="px-5 mb-5 text-xs text-tx-light">No featured activities yet.</p>
         )}
 
-        {/* Explore all experiences CTA */}
-        <div className="mx-4 mb-6" style={{ marginTop: 24 }}>
-          <button
-            onClick={() => router.push('/activities')}
-            className="w-full flex items-center gap-3 active:opacity-80 transition-opacity"
+        {/* Explore all Experiences hero card */}
+        <button
+          onClick={() => router.push('/activities')}
+          className="mx-4 text-left active:scale-[0.98] transition-transform"
+          style={{
+            marginTop: 24,
+            marginBottom: 32,
+            width: 'calc(100% - 32px)',
+            display: 'block',
+            borderRadius: 16,
+            overflow: 'hidden',
+            position: 'relative',
+            height: 200,
+            boxShadow: '0 8px 32px rgba(27,45,79,0.25)',
+            transitionDuration: '150ms',
+          }}
+        >
+          {/* Background photo */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800"
+            alt="Explore all Experiences"
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
+          {/* Gradient overlay */}
+          <div
             style={{
-              height: 56,
-              borderRadius: 14,
-              background: 'transparent',
-              border: '2px solid #1A8A7D',
-              paddingLeft: 20,
-              paddingRight: 20,
+              position: 'absolute', inset: 0,
+              background: 'linear-gradient(135deg, rgba(27,45,79,0.85) 0%, rgba(26,138,125,0.45) 100%)',
             }}
-          >
-            <span style={{ fontSize: 20 }}>🗺</span>
-            <span className="flex-1 text-left font-semibold" style={{ fontSize: 16, color: '#1A8A7D' }}>
-              Explore all experiences
-            </span>
-            <span style={{ fontSize: 16, color: '#1A8A7D', fontWeight: 700 }}>›</span>
-          </button>
-        </div>
+          />
+          {/* Top-left label */}
+          <p style={{
+            position: 'absolute', top: 20, left: 20,
+            fontSize: 10, color: 'white', letterSpacing: '0.15em',
+            fontWeight: 600, textTransform: 'uppercase', opacity: 0.85, margin: 0,
+          }}>
+            Adventures &amp; Activities
+          </p>
+          {/* Bottom-left title */}
+          <p className="font-display" style={{
+            position: 'absolute', bottom: 20, left: 20,
+            fontSize: 28, color: 'white', fontStyle: 'italic',
+            lineHeight: 1.15, margin: 0,
+          }}>
+            Explore all<br />Experiences
+          </p>
+          {/* Bottom-right arrow circle */}
+          <div style={{
+            position: 'absolute', bottom: 20, right: 20,
+            width: 44, height: 44, borderRadius: '50%',
+            border: '1.5px solid rgba(255,255,255,0.6)',
+            background: 'rgba(255,255,255,0.15)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <ArrowRight size={18} color="white" />
+          </div>
+        </button>
 
         {/* Local Insights */}
         <SectionHeader title="Local Insights" linkText="Read more →" onLink={() => router.push('/insights')} />
