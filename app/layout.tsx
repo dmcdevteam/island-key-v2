@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { AdminPreviewPill } from './_components/admin-preview-pill';
-import { WhatsAppFAB } from './_components/whatsapp-fab';
+import { WhatsappSideTab } from '@/components/WhatsappSideTab';
 import { ServiceWorkerRegister } from './_components/sw-register';
 import { FavouritesProvider } from './_components/favourites-provider';
 import { BookingCardProvider } from './_components/booking-card-context';
@@ -31,7 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <BookingCardProvider>
             <ShellWrapper>
               <AdminPreviewPill />
-              <WhatsAppFAB />
+              <WhatsappSideTab />
               {children}
             </ShellWrapper>
           </BookingCardProvider>
