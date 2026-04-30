@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { VEHICLE_LABELS, type VehicleSlug } from '@/lib/transfers'
+import { useBookingCard } from '@/app/_components/booking-card-context'
 
 export interface UpcomingBooking {
   id: string
@@ -52,13 +53,17 @@ function pillLabel(sorted: UpcomingBooking[]): string {
 
 export function FloatingBookingsPill({ bookings }: { bookings: UpcomingBooking[] }) {
   const router = useRouter()
+  const { setDrawerOpen } = useBookingCard()
   const [open, setOpen] = useState(false)
 
   if (bookings.length === 0) return null
 
   const sorted = [...bookings].sort((a, b) => effectiveMs(a) - effectiveMs(b))
 
-  function close() { setOpen(false) }
+  function close() {
+    setOpen(false)
+    setDrawerOpen(false)
+  }
 
   function go(b: UpcomingBooking) {
     close()
@@ -90,7 +95,7 @@ export function FloatingBookingsPill({ bookings }: { bookings: UpcomingBooking[]
         display: open ? 'none' : 'block',
       }}>
         <button
-          onClick={() => setOpen(true)}
+          onClick={() => { setOpen(true); setDrawerOpen(true) }}
           style={{
             width: '100%',
             height: 48,

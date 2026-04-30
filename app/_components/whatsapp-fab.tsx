@@ -9,15 +9,16 @@ import type { GuestSession } from '@/lib/types';
 const PHONE = '306974176759';
 const HIDDEN_ON = ['/admin', '/splash', '/onboard'];
 
-// Card height 72px + 12px gap + 90px normal = 174px when card visible
+// Card height 72px + 12px gap + 100px normal = 184px when card visible
+// BASE_BOTTOM 100px ensures FAB clears the floating bookings pill (48px pill + ~52px gap)
 const CARD_H = 72
 const CARD_GAP = 12
-const BASE_BOTTOM = 90
+const BASE_BOTTOM = 100
 
 export function WhatsAppFAB() {
   const pathname = usePathname();
   const [session, setSession] = useState<GuestSession | null>(null);
-  const { visible: bookingCardVisible } = useBookingCard();
+  const { visible: bookingCardVisible, drawerOpen } = useBookingCard();
 
   useEffect(() => {
     setSession(getSession());
@@ -42,6 +43,8 @@ export function WhatsAppFAB() {
       style={{
         bottom: bookingCardVisible ? BASE_BOTTOM + CARD_H + CARD_GAP : BASE_BOTTOM,
         right: 'max(1rem, calc(50% - 224px))',
+        opacity: drawerOpen ? 0 : 1,
+        pointerEvents: drawerOpen ? 'none' : 'auto',
       }}
       aria-label="Chat on WhatsApp"
     >
