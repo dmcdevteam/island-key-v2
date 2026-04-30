@@ -140,8 +140,7 @@ export default function BookingDetailPage() {
       .select('slug, description, includes, good_to_know, duration, meeting_point, images')
       .eq('id', booking.item_id)
       .single()
-      .then(({ data }) => { if (data) setActivity(data as ActivityDetail) })
-      .catch(() => {})
+      .then(({ data }) => { if (data) setActivity(data as ActivityDetail) }, () => {})
   }, [booking])
 
   if (loading) {
