@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { VEHICLE_LABELS, VEHICLE_ORDER, formatTransferDate, generateTimeSlots, type VehicleSlug } from '@/lib/transfers'
 import { getSession } from '@/lib/utils'
+import { createClient } from '@/lib/supabase'
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
   enquiry:   { bg: '#FFF7ED', text: '#C2410C', label: 'Pending' },
@@ -14,8 +15,19 @@ const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }>
   refunded:  { bg: '#FFF7ED', text: '#92400E', label: 'Refunded' },
 }
 
+interface ActivityDetail {
+  slug: string
+  description: string | null
+  includes: string[] | null
+  good_to_know: string | null
+  duration: string | null
+  meeting_point: string | null
+  images: string[] | null
+}
+
 interface BookingDetail {
   id: string
+  item_id: string | null
   confirmation_code: string
   item_type: string
   item_title: string
@@ -93,6 +105,11 @@ export default function BookingDetailPage() {
   const [cancelling,       setCancelling]       = useState(false)
   const [cancelDone,       setCancelDone]       = useState(false)
 
+  // Activity detail
+  const [activity,     setActivity]     = useState<ActivityDetail | null>(null)
+  const [descExpanded, setDescExpanded] = useState(false)
+  const [mapImgError,  setMapImgError]  = useState(false)
+
   useEffect(() => {
     const session = getSession()
     if (!session) { router.replace('/splash'); return }
@@ -114,6 +131,18 @@ export default function BookingDetailPage() {
       })
       .catch(() => { setNotFound(true); setLoading(false) })
   }, [id, router])
+
+  useEffect(() => {
+    if (!booking || booking.item_type === 'transfer' || !booking.item_id) return
+    const supabase = createClient()
+    supabase
+      .from('activities')
+      .select('slug, description, includes, good_to_know, duration, meeting_point, images')
+      .eq('id', booking.item_id)
+      .single()
+      .then(({ data }) => { if (data) setActivity(data as ActivityDetail) })
+      .catch(() => {})
+  }, [booking])
 
   if (loading) {
     return (
@@ -295,6 +324,134 @@ export default function BookingDetailPage() {
             </DetailRow>
           )}
         </div>
+
+        {/* About this experience */}
+        {!isTransfer && activity && (
+          <div>
+            <p style={{ fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#9CA3AF', fontWeight: 600, marginBottom: 12 }}>
+              About this experience
+            </p>
+            <div className="bg-white border border-border-light rounded-2xl overflow-hidden">
+              <div className="p-4 space-y-4">
+
+                {/* Hero image */}
+                {activity.images?.[0] && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={activity.images[0]}
+                    alt={booking.item_title}
+                    style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', borderRadius: 12, display: 'block' }}
+                  />
+                )}
+
+                {/* Description */}
+                {activity.description && (
+                  <div>
+                    <p style={{
+                      fontSize: 13, color: '#4B5563', lineHeight: 1.5,
+                      ...(descExpanded ? {} : {
+                        display: '-webkit-box',
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: 'vertical' as const,
+                        overflow: 'hidden',
+                      }),
+                    }}>
+                      {activity.description}
+                    </p>
+                    <button
+                      onClick={() => setDescExpanded(v => !v)}
+                      style={{ fontSize: 13, color: '#1A8A7D', marginTop: 4 }}
+                    >
+                      {descExpanded ? 'Show less ↑' : 'Read more →'}
+                    </button>
+                  </div>
+                )}
+
+                {/* What's included */}
+                {activity.includes && activity.includes.length > 0 && (
+                  <div className="border-t border-border-light pt-4">
+                    <p style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9CA3AF', fontWeight: 600, marginBottom: 8 }}>
+                      ✓ What&apos;s included
+                    </p>
+                    <div className="space-y-1.5">
+                      {activity.includes.map((item, i) => (
+                        <div key={i} className="flex items-start gap-2">
+                          <span style={{ color: '#1A8A7D', fontSize: 13, flexShrink: 0, marginTop: 1 }}>✓</span>
+                          <span style={{ fontSize: 13, color: '#1B2D4F' }}>{item}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Good to know */}
+                {activity.good_to_know && (
+                  <div className="border-t border-border-light pt-4">
+                    <p style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9CA3AF', fontWeight: 600, marginBottom: 6 }}>
+                      📋 Good to know
+                    </p>
+                    <p style={{ fontSize: 13, color: '#4B5563', lineHeight: 1.5 }}>{activity.good_to_know}</p>
+                  </div>
+                )}
+
+                {/* Meeting point */}
+                {activity.meeting_point && (
+                  <div className="border-t border-border-light pt-4">
+                    <p style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9CA3AF', fontWeight: 600, marginBottom: 6 }}>
+                      📍 Meeting point
+                    </p>
+                    <p style={{ fontSize: 13, color: '#4B5563', lineHeight: 1.5 }}>{activity.meeting_point}</p>
+                    {process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY && !mapImgError && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={`https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(activity.meeting_point)}&zoom=15&size=600x200&markers=color:0x1A8A7D%7C${encodeURIComponent(activity.meeting_point)}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`}
+                        alt="Meeting point map"
+                        onError={() => setMapImgError(true)}
+                        style={{ width: '100%', height: 160, objectFit: 'cover', borderRadius: 12, marginTop: 12, display: 'block' }}
+                      />
+                    )}
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(activity.meeting_point)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, color: '#1A8A7D', marginTop: 8, textDecorationLine: 'underline' }}
+                    >
+                      📍 Open in Google Maps
+                    </a>
+                  </div>
+                )}
+
+                {/* Duration */}
+                {activity.duration && (
+                  <div className="border-t border-border-light pt-4">
+                    <p style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9CA3AF', fontWeight: 600, marginBottom: 6 }}>
+                      ⏱ Duration
+                    </p>
+                    <p style={{ fontSize: 13, color: '#4B5563', lineHeight: 1.5 }}>{activity.duration}</p>
+                  </div>
+                )}
+
+                {/* See full activity details */}
+                <div className="border-t border-border-light pt-4">
+                  <button
+                    onClick={() => router.push(`/activities/${activity.slug}`)}
+                    style={{
+                      width: '100%', height: 48, borderRadius: 10,
+                      background: 'white', border: '1px solid #E5E7EB',
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      paddingLeft: 12, paddingRight: 12, cursor: 'pointer',
+                    }}
+                  >
+                    <span style={{ color: '#1A8A7D', fontSize: 18, flexShrink: 0 }}>🔍</span>
+                    <span style={{ flex: 1, fontSize: 14, color: '#1B2D4F', fontWeight: 600, textAlign: 'left' }}>See full activity details</span>
+                    <span style={{ color: '#1A8A7D', fontWeight: 600 }}>→</span>
+                  </button>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* CTAs */}
         {canChange && (
