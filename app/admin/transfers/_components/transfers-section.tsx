@@ -7,7 +7,7 @@ import { FocalPointPicker, type FocalPoint } from '@/components/admin/FocalPoint
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 type VehicleType = {
-  id: string; name: string; category: string; subcategory: string | null
+  id: string; name: string; slug: string | null; category: string; subcategory: string | null
   description: string | null; seats: number | null; icon: string | null
   is_active: boolean; sort_order: number; created_at: string
   image_url: string | null; example_models: string | null
@@ -383,7 +383,7 @@ function VehicleTypesTab({ vehicleTypes, onSaved }: {
   }
 
   function findVt(slug: VehicleSlug): VehicleType | undefined {
-    return vehicleTypes.find(v => v.category === slug)
+    return vehicleTypes.find(v => v.slug === slug)
   }
 
   async function handleUpload(slug: VehicleSlug, file: File) {
@@ -555,7 +555,7 @@ export function TransfersSection() {
     setLoading(true)
     const [r, vt] = await Promise.all([
       fetch('/api/admin/transfers').then(r => r.json()),
-      fetch('/api/admin/vehicle-types').then(r => r.json()),
+      fetch('/api/admin/vehicle-types?category=transfer').then(r => r.json()),
     ])
     const fetchedRoutes: TransferRoute[] = Array.isArray(r) ? r : []
     setRoutes(fetchedRoutes)

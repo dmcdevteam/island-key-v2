@@ -952,7 +952,7 @@ export function RentalsSection() {
     setLoading(true)
     const [r, vt, ex, pr] = await Promise.all([
       fetch('/api/admin/rentals').then(r => r.json()),
-      fetch('/api/admin/vehicle-types').then(r => r.json()),
+      fetch('/api/admin/vehicle-types?exclude=transfer').then(r => r.json()),
       fetch('/api/admin/extras').then(r => r.json()),
       fetch('/api/admin/providers').then(r => r.json()),
     ])
