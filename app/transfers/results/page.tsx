@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  VEHICLE_IMAGES, VEHICLE_LABELS, VEHICLE_CAPACITY, VEHICLE_EXAMPLES,
+  VEHICLE_LABELS, VEHICLE_CAPACITY, VEHICLE_EXAMPLES,
   VEHICLE_ORDER, calculateP2PPrice, parseDbFormulas, formatTransferDate,
-  addMinutes, type VehicleSlug, type VehicleFormula,
+  addMinutes, getVehicleImage, type VehicleSlug, type VehicleFormula,
 } from '@/lib/transfers';
 import { whatsappLink } from '@/lib/utils';
 
@@ -40,17 +40,35 @@ function ResultsContent() {
   const dur      = parseInt(sp.get('dur') ?? '0');
   const isAirport = sp.get('airport') === '1';
 
-  const [formulas, setFormulas] = useState<Record<string, VehicleFormula> | null>(null);
+  const [formulas,     setFormulas]     = useState<Record<string, VehicleFormula> | null>(null);
+  const [vtImages,     setVtImages]     = useState<Record<string, string | null>>({});
+  const [vtExamples,   setVtExamples]   = useState<Record<string, string | null>>({});
   const [selected, setSelected] = useState<VehicleSlug | null>(null);
   const [mapsReady, setMapsReady] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-  // Fetch DB formulas
+  // Fetch DB formulas + vehicle type overrides
   useEffect(() => {
     fetch('/api/transfers/pricing')
       .then(r => r.json())
-      .then(rows => setFormulas(parseDbFormulas(rows)))
+      .then((json: { formulas?: any[]; vehicleTypes?: any[] }) => {
+        setFormulas(parseDbFormulas(json.formulas ?? []));
+        // Build slug-keyed maps for image/examples from vehicle_types rows
+        const images:   Record<string, string | null> = {};
+        const examples: Record<string, string | null> = {};
+        for (const vt of (json.vehicleTypes ?? [])) {
+          // Match by category (slug) or normalized name
+          const slug = vt.category
+            ?? vt.name?.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z_]/g, '');
+          if (slug) {
+            images[slug]   = vt.image_url    ?? null;
+            examples[slug] = vt.example_models ?? null;
+          }
+        }
+        setVtImages(images);
+        setVtExamples(examples);
+      })
       .catch(() => setFormulas(null));
   }, []);
 
@@ -238,7 +256,7 @@ function ResultsContent() {
                 <div className="relative flex-shrink-0" style={{ width: 110 }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={VEHICLE_IMAGES[slug]}
+                    src={getVehicleImage(slug, vtImages[slug])}
                     alt={VEHICLE_LABELS[slug]}
                     className="w-full h-full object-cover"
                     style={{ height: 110 }}
@@ -263,7 +281,7 @@ function ResultsContent() {
                   <p className="text-xs text-tx-light mt-0.5">
                     Up to {cap.pax} 👤 · {cap.luggage} 🧳
                   </p>
-                  <p className="text-[11px] text-tx-light mt-0.5 truncate">{VEHICLE_EXAMPLES[slug]}</p>
+                  <p className="text-[11px] text-tx-light mt-0.5 truncate">{vtExamples[slug] ?? VEHICLE_EXAMPLES[slug]}</p>
                   <div className="flex-1" />
                   <button
                     onClick={() => handleSelect(slug)}

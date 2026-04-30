@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { VEHICLE_ORDER, VEHICLE_LABELS, VEHICLE_IMAGES, VEHICLE_EXAMPLES, VEHICLE_CAPACITY, getVehicleImage, type VehicleSlug } from '@/lib/transfers'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -8,6 +9,7 @@ type VehicleType = {
   id: string; name: string; category: string; subcategory: string | null
   description: string | null; seats: number | null; icon: string | null
   is_active: boolean; sort_order: number; created_at: string
+  image_url: string | null; example_models: string | null
 }
 
 type TransferRoute = {
@@ -40,7 +42,7 @@ const INPUT = 'w-full px-3 py-2 border border-border rounded-sm text-sm text-tx 
 const LABEL = 'block text-[11px] font-bold text-tx-mid uppercase tracking-wide mb-1'
 const SELECT = `${INPUT} cursor-pointer`
 
-const TABS = ['Routes', 'Preview']
+const TABS = ['Routes', 'Vehicle Types', 'Preview']
 
 const LOCATION_TYPES = ['airport', 'port', 'hotel', 'city', 'custom']
 
@@ -348,6 +350,174 @@ function PricesModal({ route, vehicleTypes, onClose }: {
   )
 }
 
+// ── Vehicle Types Tab ──────────────────────────────────────────────────────────
+
+function VehicleTypesTab({ vehicleTypes, onSaved }: {
+  vehicleTypes: VehicleType[]
+  onSaved: () => void
+}) {
+  type SlugState = { example_models: string; saving: boolean; uploading: boolean; error: string }
+
+  const [state, setState] = useState<Record<string, SlugState>>(() => {
+    const s: Record<string, SlugState> = {}
+    for (const slug of VEHICLE_ORDER) {
+      const vt = vehicleTypes.find(v => v.category === slug)
+      s[slug] = {
+        example_models: vt?.example_models ?? VEHICLE_EXAMPLES[slug],
+        saving: false, uploading: false, error: '',
+      }
+    }
+    return s
+  })
+
+  const fileRefs = useRef<Record<string, HTMLInputElement | null>>({})
+
+  function setSlug(slug: string, patch: Partial<SlugState>) {
+    setState(prev => ({ ...prev, [slug]: { ...prev[slug], ...patch } }))
+  }
+
+  function findVt(slug: VehicleSlug): VehicleType | undefined {
+    return vehicleTypes.find(v => v.category === slug)
+  }
+
+  async function handleUpload(slug: VehicleSlug, file: File) {
+    const vt = findVt(slug)
+    if (!vt) { setSlug(slug, { error: 'Vehicle type not found in DB' }); return }
+    if (file.size > 2 * 1024 * 1024) { setSlug(slug, { error: 'File too large (max 2 MB)' }); return }
+
+    setSlug(slug, { uploading: true, error: '' })
+    const fd = new globalThis.FormData()
+    fd.append('file', file)
+    fd.append('bucket', 'transfer-images')
+    fd.append('slug', `vehicle-types/${slug}`)
+    const res  = await fetch('/api/admin/upload', { method: 'POST', body: fd })
+    const json = await res.json()
+    if (!json.url) { setSlug(slug, { uploading: false, error: json.error ?? 'Upload failed' }); return }
+
+    // Save url to DB
+    await fetch(`/api/admin/vehicle-types/${vt.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image_url: json.url }),
+    })
+    setSlug(slug, { uploading: false })
+    onSaved()
+  }
+
+  async function handleRestore(slug: VehicleSlug) {
+    const vt = findVt(slug)
+    if (!vt) return
+    await fetch(`/api/admin/vehicle-types/${vt.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image_url: null }),
+    })
+    onSaved()
+  }
+
+  async function handleSaveText(slug: VehicleSlug) {
+    const vt = findVt(slug)
+    if (!vt) return
+    setSlug(slug, { saving: true, error: '' })
+    const res = await fetch(`/api/admin/vehicle-types/${vt.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ example_models: state[slug].example_models }),
+    })
+    setSlug(slug, { saving: false })
+    if (!res.ok) { const d = await res.json(); setSlug(slug, { error: d.error ?? 'Save failed' }) }
+    else onSaved()
+  }
+
+  return (
+    <div>
+      <h2 className="font-display text-xl text-navy mb-1">Vehicle Types</h2>
+      <p className="text-xs text-tx-mid mb-5">Upload custom images and edit example model text for each vehicle type.</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        {VEHICLE_ORDER.map(slug => {
+          const vt  = findVt(slug)
+          const s   = state[slug]
+          const cap = VEHICLE_CAPACITY[slug]
+          const currentImage = getVehicleImage(slug, vt?.image_url)
+          const hasCustom = !!(vt?.image_url)
+
+          return (
+            <div key={slug} className="bg-white border border-border rounded-sm overflow-hidden">
+              {/* Image — 16:9 approx, 200px tall */}
+              <div className="relative" style={{ height: 200 }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={currentImage} alt={VEHICLE_LABELS[slug]} className="w-full h-full object-cover" />
+                {hasCustom && (
+                  <span className="absolute top-2 right-2 bg-teal text-white text-[9px] font-bold px-2 py-0.5 rounded-full">
+                    Custom
+                  </span>
+                )}
+              </div>
+
+              <div className="p-4 space-y-3">
+                <div>
+                  <p className="font-semibold text-navy">{VEHICLE_LABELS[slug]}</p>
+                  <p className="text-xs text-tx-mid">Up to {cap.pax} passengers · {cap.luggage} bags</p>
+                </div>
+
+                {/* Example models */}
+                <div>
+                  <label className={LABEL}>Example Models</label>
+                  <input
+                    className={INPUT}
+                    value={s.example_models}
+                    onChange={e => setSlug(slug, { example_models: e.target.value })}
+                    placeholder={VEHICLE_EXAMPLES[slug]}
+                  />
+                </div>
+
+                {s.error && <p className="text-xs text-red-500">{s.error}</p>}
+
+                {/* Actions */}
+                <div className="flex gap-2 flex-wrap">
+                  <input
+                    ref={el => { fileRefs.current[slug] = el }}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={e => {
+                      const file = e.target.files?.[0]
+                      if (file) handleUpload(slug, file)
+                      if (e.target) e.target.value = ''
+                    }}
+                  />
+                  <button
+                    onClick={() => fileRefs.current[slug]?.click()}
+                    disabled={s.uploading}
+                    className="px-3 py-1.5 bg-navy text-white text-xs font-semibold rounded-sm hover:bg-navy-light disabled:opacity-50"
+                  >
+                    {s.uploading ? 'Uploading…' : 'Upload new image'}
+                  </button>
+                  {hasCustom && (
+                    <button
+                      onClick={() => handleRestore(slug)}
+                      className="px-3 py-1.5 border border-border text-xs text-tx-mid rounded-sm hover:border-navy hover:text-navy"
+                    >
+                      Restore default
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleSaveText(slug)}
+                    disabled={s.saving}
+                    className="px-3 py-1.5 border border-teal text-teal text-xs font-semibold rounded-sm hover:bg-teal/5 disabled:opacity-50"
+                  >
+                    {s.saving ? 'Saving…' : 'Save text'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 // ── Main Section ───────────────────────────────────────────────────────────────
 
 export function TransfersSection() {
@@ -405,7 +575,7 @@ export function TransfersSection() {
   // Fetch route prices for preview tab
   const [previewPrices, setPreviewPrices] = useState<Record<string, TransferPrice[]>>({})
   useEffect(() => {
-    if (tab !== 1 || routes.length === 0) return
+    if (tab !== 2 || routes.length === 0) return
     Promise.all(
       routes.filter(r => r.is_active).map(async route => {
         const res = await fetch(`/api/admin/transfers/${route.id}/prices`)
@@ -495,8 +665,13 @@ export function TransfersSection() {
         </div>
       )}
 
-      {/* ── Tab 1: Preview ── */}
+      {/* ── Tab 1: Vehicle Types ── */}
       {!loading && tab === 1 && (
+        <VehicleTypesTab vehicleTypes={vehicleTypes} onSaved={fetchAll} />
+      )}
+
+      {/* ── Tab 2: Preview ── */}
+      {!loading && tab === 2 && (
         <div>
           <h2 className="font-display text-xl text-navy mb-4">Active Routes Preview</h2>
           {activeRoutes.length === 0 && (

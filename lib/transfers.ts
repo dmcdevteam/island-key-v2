@@ -37,6 +37,14 @@ export const VEHICLE_EXAMPLES: Record<VehicleSlug, string> = {
 
 export const VEHICLE_ORDER: VehicleSlug[] = ['sedan', 'minivan', 'minibus', 'premium_suv'];
 
+/**
+ * Returns the image URL for a vehicle slug.
+ * Prefers DB-stored image_url; falls back to VEHICLE_IMAGES default.
+ */
+export function getVehicleImage(slug: VehicleSlug, imageUrl?: string | null): string {
+  return imageUrl || VEHICLE_IMAGES[slug];
+}
+
 // ─── Pricing formulas ────────────────────────────────────────────────────────
 
 type Zone = {
