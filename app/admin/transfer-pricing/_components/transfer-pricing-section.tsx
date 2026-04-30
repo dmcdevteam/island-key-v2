@@ -20,7 +20,15 @@ interface PresetRoute {
 interface RoutePrice {
   vehicle_type_id: string
   price: number
+  original_price: number | null
+  discount_label: string | null
   vehicle_types?: { slug: string; name: string }
+}
+
+interface PriceEntry {
+  price: number
+  original_price: number | null
+  discount_label: string | null
 }
 
 type Tab = 'preset' | 'formula'
@@ -29,11 +37,13 @@ type Tab = 'preset' | 'formula'
 
 function PresetTab() {
   const [routes,  setRoutes]  = useState<PresetRoute[]>([])
-  const [prices,  setPrices]  = useState<Record<string, Record<string, number>>>({}) // routeId → slug → price
+  const [prices,  setPrices]  = useState<Record<string, Record<string, PriceEntry>>>({}) // routeId → slug → PriceEntry
   const [vtypes,  setVtypes]  = useState<{ id: string; slug: string | null; name: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState<{ routeId: string; slug: string } | null>(null)
-  const [editVal, setEditVal] = useState('')
+  const [editVal,      setEditVal]      = useState('')
+  const [editOriginal, setEditOriginal] = useState('')
+  const [editLabel,    setEditLabel]    = useState('')
   const [saving,  setSaving]  = useState(false)
 
   const transferSlugs: VehicleSlug[] = VEHICLE_ORDER
@@ -50,7 +60,7 @@ function PresetTab() {
     setVtypes(vtypes.filter(v => v.slug && transferSlugs.includes(v.slug as VehicleSlug)))
 
     // Load prices for every route
-    const priceMap: Record<string, Record<string, number>> = {}
+    const priceMap: Record<string, Record<string, PriceEntry>> = {}
     await Promise.all(routes.map(async r => {
       const pRes = await fetch(`/api/admin/transfers/${r.id}/prices`)
       if (!pRes.ok) return
@@ -58,7 +68,11 @@ function PresetTab() {
       priceMap[r.id] = {}
       for (const row of rows) {
         const slug = row.vehicle_types?.slug ?? vtypes.find(v => v.id === row.vehicle_type_id)?.slug
-        if (slug) priceMap[r.id][slug] = row.price
+        if (slug) priceMap[r.id][slug] = {
+          price:          row.price,
+          original_price: row.original_price ?? null,
+          discount_label: row.discount_label ?? null,
+        }
       }
     }))
     setPrices(priceMap)
@@ -68,18 +82,23 @@ function PresetTab() {
 
   useEffect(() => { load() }, [load])
 
-  async function savePrice(routeId: string, slug: string, newPrice: number) {
+  async function savePrice(routeId: string, slug: string, entry: PriceEntry) {
     setSaving(true)
     const vtype = vtypes.find(v => v.slug === slug)
     if (!vtype) { setSaving(false); return }
 
     // Rebuild all prices for this route
     const existing = prices[routeId] ?? {}
-    const updated  = { ...existing, [slug]: newPrice }
+    const updated  = { ...existing, [slug]: entry }
 
     const rows = vtypes
-      .filter(v => updated[v.slug!] !== undefined && updated[v.slug!] > 0)
-      .map(v => ({ vehicle_type_id: v.id, price: updated[v.slug!] }))
+      .filter(v => updated[v.slug!] !== undefined && updated[v.slug!].price > 0)
+      .map(v => ({
+        vehicle_type_id: v.id,
+        price:           updated[v.slug!].price,
+        original_price:  updated[v.slug!].original_price ?? null,
+        discount_label:  updated[v.slug!].discount_label ?? null,
+      }))
 
     await fetch(`/api/admin/transfers/${routeId}/prices`, {
       method: 'PUT',
@@ -124,35 +143,79 @@ function PresetTab() {
                   const current   = prices[r.id]?.[slug]
 
                   return (
-                    <td key={slug} className="px-3 py-3 text-right">
+                    <td key={slug} className="px-3 py-3 text-right align-top">
                       {isEditing ? (
-                        <div className="flex items-center justify-end gap-1">
-                          <span className="text-xs text-gray-400">€</span>
-                          <input
-                            autoFocus
-                            type="number"
-                            value={editVal}
-                            onChange={e => setEditVal(e.target.value)}
-                            onKeyDown={e => {
-                              if (e.key === 'Enter') savePrice(r.id, slug, Number(editVal))
-                              if (e.key === 'Escape') setEditing(null)
-                            }}
-                            className="w-16 border border-teal rounded px-1.5 py-1 text-sm text-right text-navy outline-none"
-                          />
-                          <button
-                            onClick={() => savePrice(r.id, slug, Number(editVal))}
-                            disabled={saving}
-                            className="text-[10px] text-teal font-semibold"
-                          >
-                            Save
-                          </button>
+                        <div className="flex flex-col items-end gap-1.5 min-w-[120px]">
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px] text-gray-400">Price €</span>
+                            <input
+                              autoFocus
+                              type="number"
+                              value={editVal}
+                              onChange={e => setEditVal(e.target.value)}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') savePrice(r.id, slug, { price: Number(editVal), original_price: editOriginal ? Number(editOriginal) : null, discount_label: editLabel || null })
+                                if (e.key === 'Escape') setEditing(null)
+                              }}
+                              className="w-16 border border-teal rounded px-1.5 py-1 text-sm text-right text-navy outline-none"
+                            />
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px] text-gray-400">Was €</span>
+                            <input
+                              type="number"
+                              value={editOriginal}
+                              placeholder="—"
+                              onChange={e => setEditOriginal(e.target.value)}
+                              className="w-16 border border-gray-200 rounded px-1.5 py-1 text-xs text-right text-navy outline-none focus:border-teal"
+                            />
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px] text-gray-400">Label</span>
+                            <input
+                              type="text"
+                              value={editLabel}
+                              placeholder="e.g. -20%"
+                              onChange={e => setEditLabel(e.target.value)}
+                              className="w-20 border border-gray-200 rounded px-1.5 py-1 text-xs text-navy outline-none focus:border-teal"
+                            />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => savePrice(r.id, slug, { price: Number(editVal), original_price: editOriginal ? Number(editOriginal) : null, discount_label: editLabel || null })}
+                              disabled={saving}
+                              className="text-[10px] text-teal font-semibold"
+                            >
+                              Save
+                            </button>
+                            <button onClick={() => setEditing(null)} className="text-[10px] text-gray-400">✕</button>
+                          </div>
                         </div>
                       ) : (
                         <button
-                          onClick={() => { setEditing({ routeId: r.id, slug }); setEditVal(String(current ?? '')) }}
-                          className={`text-sm font-medium ${current ? 'text-navy hover:text-teal' : 'text-gray-300 hover:text-gray-400'}`}
+                          onClick={() => {
+                            setEditing({ routeId: r.id, slug })
+                            setEditVal(String(current?.price ?? ''))
+                            setEditOriginal(String(current?.original_price ?? ''))
+                            setEditLabel(current?.discount_label ?? '')
+                          }}
+                          className="text-right"
                         >
-                          {current ? `€${current}` : '—'}
+                          {current?.price ? (
+                            <div>
+                              {current.original_price && (
+                                <p className="text-[10px] text-gray-400 line-through">€{current.original_price}</p>
+                              )}
+                              <p className={`text-sm font-medium ${current.discount_label ? 'text-red-500' : 'text-navy hover:text-teal'}`}>
+                                €{current.price}
+                              </p>
+                              {current.discount_label && (
+                                <span className="text-[9px] bg-red-50 text-red-500 px-1 py-0.5 rounded font-medium">{current.discount_label}</span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-gray-300 hover:text-gray-400 text-sm font-medium">—</span>
+                          )}
                         </button>
                       )}
                     </td>

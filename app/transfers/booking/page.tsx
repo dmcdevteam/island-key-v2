@@ -34,6 +34,9 @@ function BookingContent() {
   const isAirport = sp.get('airport')   === '1';
   const vehicle   = (sp.get('vehicle')  ?? 'sedan') as VehicleSlug;
   const price     = parseInt(sp.get('price') ?? '0');
+  const retDate   = sp.get('ret_date')  ?? '';
+  const retTime   = sp.get('ret_time')  ?? '';
+  const hasReturn = !!retDate;
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   const staticMapUrl = apiKey && fromLat && toLat
@@ -51,6 +54,7 @@ function BookingContent() {
   const [submitting, setSubmitting] = useState(false);
   const [confirmed, setConfirmed]   = useState(false);
   const [confCode, setConfCode]     = useState('');
+  const [retCode,  setRetCode]      = useState('');
 
   useEffect(() => {
     const s = getSession();
@@ -62,10 +66,12 @@ function BookingContent() {
     setExtras(prev => prev.includes(key) ? prev.filter(e => e !== key) : [...prev, key]);
   }
 
-  function buildWhatsAppMessage(code: string): string {
-    return [
-      `[ISLAND KEY TRANSFER]`,
+  function buildWhatsAppMessage(code: string, returnCode?: string): string {
+    const lines = [
+      hasReturn ? `[ISLAND KEY TRANSFER — RETURN TRIP]` : `[ISLAND KEY TRANSFER]`,
       `Guest: ${guestName}`,
+      ``,
+      hasReturn ? `--- OUTBOUND ---` : null,
       `Pickup: ${time}, ${formatTransferDate(date)}`,
       `From: ${fromName}`,
       `To: ${toName}`,
@@ -76,55 +82,99 @@ function BookingContent() {
       `Distance: ~${km} km`,
       `Notes: ${notes || 'None'}`,
       `Reference: ${code}`,
-      ``,
-      `Reply ACCEPT to confirm or DECLINE.`,
-    ].join('\n');
+    ].filter((l): l is string => l !== null);
+
+    if (hasReturn && returnCode) {
+      lines.push(
+        ``,
+        `--- RETURN ---`,
+        `Pickup: ${retTime}, ${formatTransferDate(retDate)}`,
+        `From: ${toName}`,
+        `To: ${fromName}`,
+        `Reference: ${returnCode}`,
+      );
+    }
+
+    lines.push(``, `Reply ACCEPT to confirm${hasReturn ? ' both legs' : ''} or DECLINE.`);
+    return lines.join('\n');
   }
 
   async function handleSubmit() {
     if (!guestName.trim() || submitting) return;
     setSubmitting(true);
 
-    let code = '';
+    let code    = '';
+    let retCodeVal = '';
     try {
-      const pickupAt = date && time ? `${date}T${time}:00` : null;
-      const res = await fetch('/api/bookings', {
+      const pickupAt  = date && time ? `${date}T${time}:00` : null;
+      const groupRef  = hasReturn ? `GRP-${Date.now()}` : null;
+
+      const basePayload = {
+        item_type:         'transfer',
+        item_id:           null,
+        pax:               parseInt(pax),
+        unit_price:        price,
+        total_price:       price,
+        payment_method:    'whatsapp',
+        guest_id:          session?.guest_id ?? null,
+        property_slug:     session?.property_id ?? null,
+        guest_name:        guestName  || null,
+        guest_email:       guestEmail || null,
+        guest_notes:       notes      || null,
+        notes:             notes      || null,
+        transfer_type:     isAirport ? 'arrival' : 'point_to_point',
+        pax_count:         parseInt(pax),
+        luggage_count:     parseInt(luggage),
+        vehicle_class:     vehicle,
+        distance_km:       parseFloat(km) || null,
+        duration_min:      parseInt(dur)  || null,
+        extras,
+        group_ref:         groupRef,
+      };
+
+      // Outbound booking
+      const res1 = await fetch('/api/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          item_type:         'transfer',
-          item_id:           null,
-          item_title:        `Transfer: ${fromName} → ${toName}`,
-          booking_date:      date,
-          booking_time:      time,
-          pax:               parseInt(pax),
-          unit_price:        price,
-          total_price:       price,
-          payment_method:    'whatsapp',
-          guest_id:          session?.guest_id ?? null,
-          property_slug:     session?.property_id ?? null,
-          guest_name:        guestName  || null,
-          guest_email:       guestEmail || null,
-          guest_notes:       notes      || null,
-          notes:             notes      || null,
-          // Transfer fields
-          transfer_type:     isAirport ? 'arrival' : 'point_to_point',
-          pickup_at:         pickupAt,
-          pickup_location:   fromName,
-          dropoff_location:  toName,
-          flight_number:     flightNumber || null,
-          pax_count:         parseInt(pax),
-          luggage_count:     parseInt(luggage),
-          vehicle_class:     vehicle,
-          distance_km:       parseFloat(km) || null,
-          duration_min:      parseInt(dur)  || null,
-          extras,
+          ...basePayload,
+          item_title:       `Transfer: ${fromName} → ${toName}`,
+          booking_date:     date,
+          booking_time:     time,
+          pickup_at:        pickupAt,
+          pickup_location:  fromName,
+          dropoff_location: toName,
+          flight_number:    flightNumber || null,
         }),
       });
-      if (res.ok) {
-        const data = await res.json();
+      if (res1.ok) {
+        const data = await res1.json();
         code = data.confirmation_code ?? '';
         setConfCode(code);
+      }
+
+      // Return booking
+      if (hasReturn) {
+        const retPickupAt = retDate && retTime ? `${retDate}T${retTime}:00` : null;
+        const res2 = await fetch('/api/bookings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...basePayload,
+            item_title:       `Transfer: ${toName} → ${fromName}`,
+            booking_date:     retDate,
+            booking_time:     retTime,
+            pickup_at:        retPickupAt,
+            pickup_location:  toName,
+            dropoff_location: fromName,
+            flight_number:    null,
+          }),
+        });
+        if (res2.ok) {
+          const data = await res2.json();
+          retCodeVal = data.confirmation_code ?? '';
+          setRetCode(retCodeVal);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -132,29 +182,38 @@ function BookingContent() {
       setSubmitting(false);
     }
 
-    window.open(whatsappLink(buildWhatsAppMessage(code)), '_blank');
+    window.open(whatsappLink(buildWhatsAppMessage(code, retCodeVal)), '_blank');
     setConfirmed(true);
   }
+
+  const totalPrice = hasReturn ? price * 2 : price;
 
   if (confirmed) {
     return (
       <div className="min-h-screen bg-cream flex flex-col items-center justify-center px-5 text-center space-y-5">
         <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-3xl">✓</div>
         <div>
-          <h2 className="text-xl font-semibold text-navy">Transfer requested!</h2>
+          <h2 className="text-xl font-semibold text-navy">
+            {hasReturn ? 'Return trip requested!' : 'Transfer requested!'}
+          </h2>
           <p className="text-sm text-tx-light mt-1 max-w-xs mx-auto">
-            We'll confirm your driver within 2 hours. Check WhatsApp for updates.
+            We'll confirm your driver{hasReturn ? 's' : ''} within 2 hours. Check WhatsApp for updates.
           </p>
         </div>
         {confCode && (
-          <div className="bg-white rounded-xl border border-border-light px-6 py-3">
-            <p className="text-xs text-tx-light">Reference</p>
+          <div className="bg-white rounded-xl border border-border-light px-6 py-3 w-full">
+            <p className="text-xs text-tx-light mb-1">Reference{retCode ? 's' : ''}</p>
             <p className="font-mono font-bold text-navy text-lg">{confCode}</p>
+            {retCode && (
+              <p className="font-mono font-bold text-navy text-lg mt-1">
+                {retCode} <span className="text-xs font-normal text-tx-light">(return)</span>
+              </p>
+            )}
           </div>
         )}
         <div className="w-full space-y-2">
           <a
-            href={whatsappLink(buildWhatsAppMessage(confCode))}
+            href={whatsappLink(buildWhatsAppMessage(confCode, retCode))}
             target="_blank"
             rel="noopener noreferrer"
             className="block w-full py-3 rounded-xl bg-[#25D366] text-white font-semibold text-sm text-center"
@@ -190,13 +249,26 @@ function BookingContent() {
           />
         )}
         <Row label="Route">{fromName} → {toName}</Row>
-        <Row label="Date">{formatTransferDate(date)} · {time}</Row>
+        {hasReturn && (
+          <Row label="Return">
+            <span className="text-teal font-medium">↩ {toName} → {fromName}</span>
+          </Row>
+        )}
+        <Row label="Outbound">{formatTransferDate(date)} · {time}</Row>
+        {hasReturn && <Row label="Return">{formatTransferDate(retDate)} · {retTime}</Row>}
         <Row label="Vehicle">{VEHICLE_LABELS[vehicle]}</Row>
         <Row label="Passengers">{pax} pax · {luggage} bags</Row>
         <div className="border-t border-border-light pt-2 flex items-center justify-between">
           <span className="text-sm text-tx-light">Total (taxes included)</span>
           {price > 0 ? (
-            <span className="text-xl font-bold text-teal">€{price}</span>
+            hasReturn ? (
+              <div className="text-right">
+                <p className="text-xs text-tx-light">€{price} outbound + €{price} return</p>
+                <span className="text-xl font-bold text-teal">€{totalPrice}</span>
+              </div>
+            ) : (
+              <span className="text-xl font-bold text-teal">€{price}</span>
+            )
           ) : (
             <span className="text-sm text-tx-light italic">Price on enquiry</span>
           )}
@@ -328,9 +400,16 @@ function BookingContent() {
       {/* Sticky submit */}
       <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] bg-white border-t border-border-light px-5 py-4">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-xs text-tx-light">Total incl. taxes &amp; fees</span>
+          <span className="text-xs text-tx-light">Total incl. taxes &amp; fees{hasReturn ? ' · both legs' : ''}</span>
           {price > 0 ? (
-            <span className="text-xl font-bold text-teal">€{price}</span>
+            hasReturn ? (
+              <div className="text-right">
+                <p className="text-[10px] text-tx-light">€{price} × 2</p>
+                <span className="text-xl font-bold text-teal">€{totalPrice}</span>
+              </div>
+            ) : (
+              <span className="text-xl font-bold text-teal">€{price}</span>
+            )
           ) : (
             <span className="text-sm text-tx-light italic">Price on enquiry</span>
           )}
@@ -340,7 +419,7 @@ function BookingContent() {
           disabled={!guestName.trim() || submitting}
           className="w-full py-3.5 rounded-xl bg-teal text-white font-semibold text-sm disabled:opacity-40"
         >
-          {submitting ? 'Processing…' : 'Confirm transfer request →'}
+          {submitting ? 'Processing…' : hasReturn ? 'Confirm both transfer requests →' : 'Confirm transfer request →'}
         </button>
       </div>
     </div>

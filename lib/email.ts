@@ -1047,6 +1047,258 @@ export async function sendTransferEnquiryEmails(bookingId: string): Promise<void
   }
 }
 
+// ─── Change request emails ────────────────────────────────────────────────────
+
+export async function sendChangeRequestSubmissionEmails(changeRequestId: string): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey || apiKey === 're_your-api-key-here') return;
+
+  const supabase = createServerClient();
+  const { data: cr } = await supabase
+    .from('change_requests')
+    .select(`id, notes, requested_date, requested_time, requested_pax, requested_vehicle_class,
+      bookings(confirmation_code, item_title, item_type, guest_name, guest_email, guest_id, pickup_location, dropoff_location)`)
+    .eq('id', changeRequestId)
+    .single();
+  if (!cr) return;
+
+  const b = (Array.isArray(cr.bookings) ? cr.bookings[0] : cr.bookings) as Record<string, unknown> | null;
+  if (!b) return;
+  const ref       = b.confirmation_code as string;
+  const itemTitle = b.item_title as string;
+  const guestName = (b.guest_name as string | null) ?? 'Guest';
+  const guestEmail = (b.guest_email as string | null) ?? null;
+  const isTransfer = b.item_type === 'transfer';
+  const route = isTransfer ? `${b.pickup_location ?? '—'} → ${b.dropoff_location ?? '—'}` : itemTitle;
+
+  let guestPhone: string | null = null;
+  if (b.guest_id) {
+    const { data: g } = await supabase.from('guests').select('whatsapp_number').eq('id', b.guest_id as string).single();
+    if (g?.whatsapp_number) guestPhone = g.whatsapp_number;
+  }
+
+  const resend = new Resend(apiKey);
+  const waNumber = TEAM_WHATSAPP.replace(/\D/g, '');
+
+  const changeLines = [
+    cr.requested_date    ? `New date: ${cr.requested_date}`                    : null,
+    cr.requested_time    ? `New time: ${cr.requested_time}`                    : null,
+    cr.requested_pax     ? `New pax: ${cr.requested_pax}`                      : null,
+    cr.requested_vehicle_class ? `New vehicle: ${cr.requested_vehicle_class}`  : null,
+    `Notes: ${cr.notes}`,
+  ].filter(Boolean).join('\n');
+
+  // Internal / Spyros
+  const internalHtml = `<!DOCTYPE html><html><body style="font-family:-apple-system,sans-serif;padding:24px;background:#F5F0E8">
+<div style="max-width:520px;margin:0 auto;background:white;padding:24px;border-radius:8px;border:1px solid #e5e7eb">
+  <p style="margin:0 0 4px;font-size:11px;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px">Island Key — Change Request</p>
+  <h2 style="margin:0 0 20px;font-size:17px;color:#1B2D4F">${ref} — ${route}</h2>
+  <table style="border-collapse:collapse;width:100%">
+    <tr><td style="padding:5px 12px 5px 0;color:#6B7280;font-size:13px">Booking</td><td style="padding:5px 0;font-size:13px;font-weight:600">${ref}</td></tr>
+    <tr><td style="padding:5px 12px 5px 0;color:#6B7280;font-size:13px">Guest</td><td style="padding:5px 0;font-size:13px;font-weight:600">${guestName}${guestPhone ? ` · <a href="https://wa.me/${guestPhone.replace(/\D/g,'')}" style="color:#25D366">${guestPhone}</a>` : ''}</td></tr>
+    ${cr.requested_date ? `<tr><td style="padding:5px 12px 5px 0;color:#6B7280;font-size:13px">Req. date</td><td style="padding:5px 0;font-size:13px;font-weight:600">${cr.requested_date}</td></tr>` : ''}
+    ${cr.requested_time ? `<tr><td style="padding:5px 12px 5px 0;color:#6B7280;font-size:13px">Req. time</td><td style="padding:5px 0;font-size:13px;font-weight:600">${cr.requested_time}</td></tr>` : ''}
+    ${cr.requested_pax  ? `<tr><td style="padding:5px 12px 5px 0;color:#6B7280;font-size:13px">Req. pax</td><td style="padding:5px 0;font-size:13px;font-weight:600">${cr.requested_pax}</td></tr>` : ''}
+    ${cr.requested_vehicle_class ? `<tr><td style="padding:5px 12px 5px 0;color:#6B7280;font-size:13px">Req. vehicle</td><td style="padding:5px 0;font-size:13px;font-weight:600">${cr.requested_vehicle_class}</td></tr>` : ''}
+    <tr><td style="padding:5px 12px 5px 0;color:#6B7280;font-size:13px">Notes</td><td style="padding:5px 0;font-size:13px;font-weight:600">${cr.notes}</td></tr>
+  </table>
+  <div style="margin-top:20px">
+    <a href="https://app.islandkey.gr/admin/change-requests" style="display:inline-block;padding:10px 20px;background:#1B2D4F;color:white;font-size:13px;font-weight:700;border-radius:6px;text-decoration:none">Review in Admin →</a>
+  </div>
+</div></body></html>`;
+
+  try {
+    await resend.emails.send({ from: FROM, to: INTERNAL_EMAIL, subject: `[IK Change Request] ${ref} — ${guestName}`, html: internalHtml });
+  } catch (e) { console.error('[changeRequest] internal email failed:', e); }
+
+  // Guest acknowledgement
+  if (guestEmail) {
+    const guestHtml = `<!DOCTYPE html><html><body style="font-family:-apple-system,sans-serif;padding:24px;background:#F5F0E8">
+<div style="max-width:520px;margin:0 auto">
+  <div style="background:#1B2D4F;border-radius:8px 8px 0 0;padding:24px;text-align:center">
+    <p style="margin:0;color:rgba(255,255,255,0.5);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase">Island Key</p>
+    <h1 style="margin:6px 0 0;color:white;font-size:18px;font-weight:600">Change Request Received</h1>
+  </div>
+  <div style="background:white;padding:28px;border-radius:0 0 8px 8px">
+    <p style="margin:0 0 16px;font-size:14px;color:#374151">Hi ${guestName}, we've received your change request for booking <strong>${ref}</strong>. We'll review it and get back to you via WhatsApp within a few hours.</p>
+    <div style="padding:14px 16px;background:#FFFBEB;border-left:3px solid #D97706;border-radius:0 6px 6px 0">
+      <p style="margin:0;font-size:13px;color:#92400E;font-weight:600">Your requested changes:</p>
+      <p style="margin:6px 0 0;font-size:13px;color:#374151;white-space:pre-line">${changeLines}</p>
+    </div>
+    <div style="margin-top:24px;text-align:center">
+      <a href="https://wa.me/${waNumber}" style="display:inline-block;padding:12px 28px;background:#25D366;color:white;font-size:14px;font-weight:700;border-radius:24px;text-decoration:none">Message us on WhatsApp</a>
+    </div>
+  </div>
+  <p style="text-align:center;font-size:11px;color:#9CA3AF;margin-top:16px">Island Key &mdash; Crete</p>
+</div></body></html>`;
+    try {
+      await resend.emails.send({ from: FROM, to: guestEmail, subject: `Change request received — Ref: ${ref}`, html: guestHtml });
+    } catch (e) { console.error('[changeRequest] guest email failed:', e); }
+  }
+}
+
+export async function sendChangeRequestApprovalEmails(changeRequestId: string): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey || apiKey === 're_your-api-key-here') return;
+
+  const supabase = createServerClient();
+  const { data: cr } = await supabase
+    .from('change_requests')
+    .select(`id, notes, admin_notes, requested_date, requested_time, requested_pax, requested_vehicle_class,
+      bookings(id, confirmation_code, item_title, item_type, guest_name, guest_email, guest_id, property_id, item_id,
+        pickup_location, dropoff_location, booking_date, booking_time, pax, pax_count)`)
+    .eq('id', changeRequestId)
+    .single();
+  if (!cr) return;
+
+  const b = (Array.isArray(cr.bookings) ? cr.bookings[0] : cr.bookings) as Record<string, unknown> | null;
+  if (!b) return;
+  const ref       = b.confirmation_code as string;
+  const itemTitle = b.item_title as string;
+  const guestName = (b.guest_name as string | null) ?? 'Guest';
+  const guestEmail = (b.guest_email as string | null) ?? null;
+  const isTransfer = b.item_type === 'transfer';
+
+  let guestPhone: string | null = null;
+  if (b.guest_id) {
+    const { data: g } = await supabase.from('guests').select('whatsapp_number').eq('id', b.guest_id as string).single();
+    if (g?.whatsapp_number) guestPhone = g.whatsapp_number;
+  }
+
+  const resend = new Resend(apiKey);
+  const waNumber = TEAM_WHATSAPP.replace(/\D/g, '');
+
+  const newDetails = [
+    cr.requested_date    ? `Date: ${cr.requested_date}`              : null,
+    cr.requested_time    ? `Time: ${cr.requested_time}`              : null,
+    cr.requested_pax     ? `Passengers: ${cr.requested_pax}`         : null,
+    cr.requested_vehicle_class ? `Vehicle: ${cr.requested_vehicle_class}` : null,
+  ].filter(Boolean).join('\n');
+
+  // Guest approved email
+  if (guestEmail) {
+    const guestHtml = `<!DOCTYPE html><html><body style="font-family:-apple-system,sans-serif;padding:24px;background:#F5F0E8">
+<div style="max-width:520px;margin:0 auto">
+  <div style="background:#1A8A7D;border-radius:8px 8px 0 0;padding:24px;text-align:center">
+    <p style="margin:0;color:rgba(255,255,255,0.7);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase">Island Key</p>
+    <h1 style="margin:6px 0 0;color:white;font-size:18px;font-weight:600">Change Request Approved ✓</h1>
+  </div>
+  <div style="background:white;padding:28px;border-radius:0 0 8px 8px">
+    <p style="margin:0 0 16px;font-size:14px;color:#374151">Hi ${guestName}, great news — your change request for booking <strong>${ref}</strong> has been approved.</p>
+    ${newDetails ? `<div style="padding:14px 16px;background:#F0FDF4;border-left:3px solid #15803D;border-radius:0 6px 6px 0">
+      <p style="margin:0;font-size:13px;color:#15803D;font-weight:600">Updated details:</p>
+      <p style="margin:6px 0 0;font-size:13px;color:#374151;white-space:pre-line">${newDetails}</p>
+    </div>` : ''}
+    ${cr.admin_notes ? `<p style="margin:16px 0 0;font-size:13px;color:#374151"><strong>Note from us:</strong> ${cr.admin_notes}</p>` : ''}
+    <div style="margin-top:24px;text-align:center">
+      <a href="https://wa.me/${waNumber}" style="display:inline-block;padding:12px 28px;background:#25D366;color:white;font-size:14px;font-weight:700;border-radius:24px;text-decoration:none">Message us on WhatsApp</a>
+    </div>
+  </div>
+  <p style="text-align:center;font-size:11px;color:#9CA3AF;margin-top:16px">Island Key &mdash; Crete</p>
+</div></body></html>`;
+    try {
+      await resend.emails.send({ from: FROM, to: guestEmail, subject: `Change approved — Ref: ${ref}`, html: guestHtml });
+    } catch (e) { console.error('[changeApprove] guest email failed:', e); }
+  }
+
+  // Internal / Spyros notification
+  try {
+    await resend.emails.send({
+      from: FROM, to: INTERNAL_EMAIL,
+      subject: `[IK] Change approved — ${ref} — ${guestName}`,
+      html: `<p style="font-family:monospace;padding:16px">Change request <strong>${changeRequestId}</strong> for booking <strong>${ref}</strong> (${guestName}) has been approved.${cr.admin_notes ? `<br>Admin notes: ${cr.admin_notes}` : ''}</p>`,
+    });
+  } catch (e) { console.error('[changeApprove] internal email failed:', e); }
+
+  // Host notification
+  if (b.property_id) {
+    const { data: prop } = await supabase.from('properties').select('name, host_email').eq('id', b.property_id as string).single();
+    if (prop?.host_email) {
+      try {
+        await resend.emails.send({
+          from: FROM, to: prop.host_email,
+          subject: `[IK] Booking updated — ${ref}`,
+          html: `<p style="font-family:-apple-system,sans-serif;padding:16px;color:#374151">A booking change has been approved for a guest at <strong>${prop.name}</strong>. Booking ref: <strong>${ref}</strong>.${newDetails ? `<br><br>New details:<br><pre>${newDetails}</pre>` : ''}</p>`,
+        });
+      } catch (e) { console.error('[changeApprove] host email failed:', e); }
+    }
+  }
+
+  // Provider notification (activities only)
+  if (!isTransfer && b.item_id) {
+    const { data: act } = await supabase.from('activities').select('provider_id').eq('id', b.item_id as string).single();
+    if (act?.provider_id) {
+      const { data: prov } = await supabase.from('providers').select('name, email').eq('id', act.provider_id).single();
+      const provEmail = (prov as Record<string, unknown> | null)?.email as string | null;
+      if (provEmail) {
+        try {
+          await resend.emails.send({
+            from: FROM, to: provEmail,
+            subject: `[Island Key] Booking updated — ${ref}`,
+            html: `<p style="font-family:-apple-system,sans-serif;padding:16px;color:#374151">A booking change has been approved. Booking ref: <strong>${ref}</strong>.${newDetails ? `<br><br>New details:<br><pre>${newDetails}</pre>` : ''}</p>`,
+          });
+        } catch (e) { console.error('[changeApprove] provider email failed:', e); }
+      }
+    }
+  }
+}
+
+export async function sendChangeRequestRejectionEmails(changeRequestId: string): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey || apiKey === 're_your-api-key-here') return;
+
+  const supabase = createServerClient();
+  const { data: cr } = await supabase
+    .from('change_requests')
+    .select(`id, notes, admin_notes,
+      bookings(confirmation_code, item_title, guest_name, guest_email, guest_id)`)
+    .eq('id', changeRequestId)
+    .single();
+  if (!cr) return;
+
+  const b = (Array.isArray(cr.bookings) ? cr.bookings[0] : cr.bookings) as Record<string, unknown> | null;
+  if (!b) return;
+  const ref       = b.confirmation_code as string;
+  const guestName = (b.guest_name as string | null) ?? 'Guest';
+  const guestEmail = (b.guest_email as string | null) ?? null;
+
+  const resend = new Resend(apiKey);
+  const waNumber = TEAM_WHATSAPP.replace(/\D/g, '');
+
+  if (guestEmail) {
+    const guestHtml = `<!DOCTYPE html><html><body style="font-family:-apple-system,sans-serif;padding:24px;background:#F5F0E8">
+<div style="max-width:520px;margin:0 auto">
+  <div style="background:#1B2D4F;border-radius:8px 8px 0 0;padding:24px;text-align:center">
+    <p style="margin:0;color:rgba(255,255,255,0.5);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase">Island Key</p>
+    <h1 style="margin:6px 0 0;color:white;font-size:18px;font-weight:600">Change Request Update</h1>
+  </div>
+  <div style="background:white;padding:28px;border-radius:0 0 8px 8px">
+    <p style="margin:0 0 16px;font-size:14px;color:#374151">Hi ${guestName}, unfortunately we were unable to accommodate your change request for booking <strong>${ref}</strong>.</p>
+    ${cr.admin_notes ? `<div style="padding:14px 16px;background:#FEF2F2;border-left:3px solid #DC2626;border-radius:0 6px 6px 0"><p style="margin:0;font-size:13px;color:#374151">${cr.admin_notes}</p></div>` : ''}
+    <div style="margin-top:16px;padding:14px 16px;background:#F0FAF9;border-left:3px solid #1A8A7D;border-radius:0 6px 6px 0">
+      <p style="margin:0;font-size:13px;color:#1A8A7D;font-weight:600">Your original booking remains in place.</p>
+      <p style="margin:4px 0 0;font-size:12px;color:#6B7280">Message us on WhatsApp if you'd like to discuss alternatives.</p>
+    </div>
+    <div style="margin-top:24px;text-align:center">
+      <a href="https://wa.me/${waNumber}" style="display:inline-block;padding:12px 28px;background:#25D366;color:white;font-size:14px;font-weight:700;border-radius:24px;text-decoration:none">Message us on WhatsApp</a>
+    </div>
+  </div>
+  <p style="text-align:center;font-size:11px;color:#9CA3AF;margin-top:16px">Island Key &mdash; Crete</p>
+</div></body></html>`;
+    try {
+      await resend.emails.send({ from: FROM, to: guestEmail, subject: `Change request update — Ref: ${ref}`, html: guestHtml });
+    } catch (e) { console.error('[changeReject] guest email failed:', e); }
+  }
+
+  try {
+    await resend.emails.send({
+      from: FROM, to: INTERNAL_EMAIL,
+      subject: `[IK] Change rejected — ${ref} — ${guestName}`,
+      html: `<p style="font-family:monospace;padding:16px">Change request <strong>${changeRequestId}</strong> for booking <strong>${ref}</strong> (${guestName}) has been rejected.${cr.admin_notes ? `<br>Reason: ${cr.admin_notes}` : ''}</p>`,
+    });
+  } catch (e) { console.error('[changeReject] internal email failed:', e); }
+}
+
 // ─── All-in-one confirmation email sender ────────────────────────────────────
 // Sends to four parties: guest, internal (IK/Spyros), host, provider.
 // Each send is wrapped in its own try/catch so one failure never blocks others.

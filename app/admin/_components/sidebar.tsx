@@ -16,6 +16,7 @@ const navItems = [
   { href: '/admin/transfer-bookings',  label: 'Transfer Bookings' },
   { href: '/admin/transfer-pricing',   label: 'Transfer Pricing' },
   { href: '/admin/transfer-providers', label: 'Transfer Providers' },
+  { href: '/admin/change-requests', label: 'Change Requests' },
   { href: '/admin/deals', label: 'Deals' },
   { href: '/admin/events', label: 'Events' },
   { href: '/admin/articles', label: 'Articles' },

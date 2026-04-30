@@ -7,7 +7,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   const supabase = createServerClient()
   const { data, error } = await supabase
     .from('transfer_prices')
-    .select('*, vehicle_types(name)')
+    .select('*, vehicle_types(name, slug)')
     .eq('route_id', params.id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)
@@ -18,6 +18,8 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   const prices: Array<{
     vehicle_type_id: string | null
     price: number
+    original_price: number | null
+    discount_label: string | null
     max_passengers: number | null
     max_luggage: number | null
     notes: string | null

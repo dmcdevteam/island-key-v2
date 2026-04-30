@@ -222,13 +222,10 @@ export default function ProfilePage() {
                   ? formatPickup(b.pickup_at)
                   : formatDate(b.booking_date) + (b.booking_time ? ` · ${b.booking_time.slice(0, 5)}` : '')
                 const paxCount = isTransfer ? (b.pax_count ?? b.pax) : b.pax
-                const dest = !isTransfer && b.activity_slug ? `/activities/${b.activity_slug}` : null
-
                 return (
-                  <button
+                  <div
                     key={b.id}
-                    onClick={() => dest && router.push(dest)}
-                    className={`w-full text-left bg-white border border-border-light rounded-sm p-3.5 flex items-start gap-3 ${dest ? 'active:bg-sand cursor-pointer' : 'cursor-default'}`}
+                    className="w-full text-left bg-white border border-border-light rounded-sm p-3.5 flex items-start gap-3"
                   >
                     {/* Icon */}
                     <div className="w-8 h-8 rounded-full bg-navy/5 flex items-center justify-center flex-shrink-0 text-base mt-0.5">
@@ -255,8 +252,13 @@ export default function ProfilePage() {
                         <p className="text-[10px] text-tx-light font-mono mt-1">{b.confirmation_code}</p>
                       )}
                     </div>
-                    {dest && <span className="text-[11px] text-teal self-center flex-shrink-0">→</span>}
-                  </button>
+                    <button
+                      onClick={() => router.push(`/profile/bookings/${b.id}`)}
+                      className="text-[11px] font-semibold text-teal self-center flex-shrink-0 border border-teal/30 rounded-lg px-2.5 py-1"
+                    >
+                      View
+                    </button>
+                  </div>
                 )
               })}
             </div>

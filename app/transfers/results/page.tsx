@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, Suspense } from 'react';
+import { Fragment, useEffect, useRef, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   VEHICLE_LABELS, VEHICLE_CAPACITY, VEHICLE_EXAMPLES,
@@ -8,6 +8,7 @@ import {
   addMinutes, getVehicleImage, type VehicleSlug, type VehicleFormula,
 } from '@/lib/transfers';
 import { whatsappLink } from '@/lib/utils';
+import { generateTimeSlots } from '@/lib/transfers';
 
 declare global { interface Window { google: any } }
 
@@ -39,26 +40,35 @@ function ResultsContent() {
   const km       = parseFloat(sp.get('km') ?? '0');
   const dur      = parseInt(sp.get('dur') ?? '0');
   const isAirport = sp.get('airport') === '1';
+  const retDate  = sp.get('ret_date') ?? '';
+  const retTime  = sp.get('ret_time') ?? '';
+  const hasReturn = !!retDate;
 
   const [formulas,     setFormulas]     = useState<Record<string, VehicleFormula> | null>(null);
   const [vtImages,     setVtImages]     = useState<Record<string, string | null>>({});
   const [vtExamples,   setVtExamples]   = useState<Record<string, string | null>>({});
-  const [selected, setSelected] = useState<VehicleSlug | null>(null);
+  // Preset prices keyed by vehicle slug: { price, original_price, discount_label }
+  const [presetPrices, setPresetPrices] = useState<Record<string, { price: number; original_price: number | null; discount_label: string | null }> | null>(null);
   const [mapsReady, setMapsReady] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-  // Fetch DB formulas + vehicle type overrides
+  // Return trip upsell picker state
+  const slots = generateTimeSlots();
+  const [showReturnPicker, setShowReturnPicker] = useState(false);
+  const [bannerRetDate, setBannerRetDate] = useState('');
+  const [bannerRetTime, setBannerRetTime] = useState('10:00');
+
+  // Fetch DB formulas + vehicle type overrides + preset prices
   useEffect(() => {
     fetch('/api/transfers/pricing')
       .then(r => r.json())
-      .then((json: { formulas?: any[]; vehicleTypes?: any[] }) => {
+      .then((json: { formulas?: any[]; vehicleTypes?: any[]; presetRoutes?: any[] }) => {
         setFormulas(parseDbFormulas(json.formulas ?? []));
         // Build slug-keyed maps for image/examples from vehicle_types rows
         const images:   Record<string, string | null> = {};
         const examples: Record<string, string | null> = {};
         for (const vt of (json.vehicleTypes ?? [])) {
-          // Match by category (slug) or normalized name
           const slug = vt.category
             ?? vt.name?.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z_]/g, '');
           if (slug) {
@@ -68,8 +78,25 @@ function ResultsContent() {
         }
         setVtImages(images);
         setVtExamples(examples);
+
+        // Check if current from/to matches a preset route
+        const norm = (s: string) => s.toLowerCase().trim();
+        const matchedRoute = (json.presetRoutes ?? []).find((r: any) => {
+          const fromMatch = norm(fromName).includes(norm(r.from_location)) || norm(r.from_location).includes(norm(fromName));
+          const toMatch   = norm(toName).includes(norm(r.to_location))   || norm(r.to_location).includes(norm(toName));
+          return fromMatch && toMatch;
+        });
+        if (matchedRoute) {
+          const presetMap: Record<string, { price: number; original_price: number | null; discount_label: string | null }> = {};
+          for (const tp of (matchedRoute.transfer_prices ?? [])) {
+            const slug = tp.vehicle_types?.slug;
+            if (slug) presetMap[slug] = { price: tp.price, original_price: tp.original_price ?? null, discount_label: tp.discount_label ?? null };
+          }
+          setPresetPrices(presetMap);
+        }
       })
       .catch(() => setFormulas(null));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Load map
@@ -133,8 +160,16 @@ function ResultsContent() {
   }, [mapsReady, fromLat, fromLng, toLat, toLng]);
 
   function getPrice(slug: VehicleSlug): number {
+    if (presetPrices?.[slug]) return presetPrices[slug].price;
     if (km <= 0) return 0;
     return calculateP2PPrice(km, slug, isAirport, formulas ?? undefined);
+  }
+
+  function getDiscount(slug: VehicleSlug): { original_price: number | null; discount_label: string | null } {
+    return {
+      original_price: presetPrices?.[slug]?.original_price ?? null,
+      discount_label: presetPrices?.[slug]?.discount_label ?? null,
+    };
   }
 
   const estArrival = dur > 0 ? addMinutes(time, dur) : '';
@@ -144,16 +179,28 @@ function ResultsContent() {
     return Number(pax) <= cap.pax && Number(luggage) <= cap.luggage;
   });
 
-  const returnWaLink = whatsappLink(
-    `Hi, I'd like to add a return transfer to my booking.\nRoute: ${toName} → ${fromName}.\nReference: (to be assigned)`
-  );
-
   function handleSelect(slug: VehicleSlug) {
     const price = getPrice(slug);
     const params = new URLSearchParams(sp.toString());
     params.set('vehicle', slug);
     params.set('price', String(price));
     router.push(`/transfers/booking?${params.toString()}`);
+  }
+
+  function applyReturnTrip() {
+    if (!bannerRetDate) return;
+    const newParams = new URLSearchParams(sp.toString());
+    newParams.set('ret_date', bannerRetDate);
+    newParams.set('ret_time', bannerRetTime);
+    router.replace(`/transfers/results?${newParams.toString()}`);
+    setShowReturnPicker(false);
+  }
+
+  function removeReturnTrip() {
+    const newParams = new URLSearchParams(sp.toString());
+    newParams.delete('ret_date');
+    newParams.delete('ret_time');
+    router.replace(`/transfers/results?${newParams.toString()}`);
   }
 
   return (
@@ -198,6 +245,18 @@ function ResultsContent() {
             </div>
           </div>
         </div>
+
+        {/* Return trip indicator */}
+        {hasReturn && (
+          <div className="flex items-center justify-between border-t border-border-light pt-3">
+            <div className="flex items-center gap-2 text-xs text-teal font-medium">
+              <span>↩</span>
+              <span>Return: {formatTransferDate(retDate)} · {retTime}</span>
+            </div>
+            <button onClick={removeReturnTrip} className="text-xs text-tx-light">Remove</button>
+          </div>
+        )}
+
         <div className="flex items-center justify-between text-xs text-tx-light">
           <span>{formatTransferDate(date)} · {pax} passenger{Number(pax) !== 1 ? 's' : ''} · {luggage} bag{Number(luggage) !== 1 ? 's' : ''}</span>
           <button
@@ -222,7 +281,7 @@ function ResultsContent() {
         )}
       </div>
 
-      <p className="px-5 mb-4 text-xs text-tx-light">All prices include taxes &amp; fees</p>
+      <p className="px-5 mb-4 text-xs text-tx-light">All prices include taxes &amp; fees{hasReturn ? ' · Both legs' : ''}</p>
 
       {/* Vehicle cards */}
       <div className="px-5 space-y-3">
@@ -244,54 +303,128 @@ function ResultsContent() {
         {eligibleVehicles.map((slug, idx) => {
           const cap   = VEHICLE_CAPACITY[slug];
           const price = getPrice(slug);
+          const { original_price, discount_label } = getDiscount(slug);
           const isBest = idx === 0;
+          const totalPrice = hasReturn ? price * 2 : price;
 
           return (
-            <div
-              key={slug}
-              className="bg-white rounded-2xl border border-border-light overflow-hidden shadow-sm"
-            >
-              <div className="flex gap-0">
-                {/* Vehicle image */}
-                <div className="relative flex-shrink-0" style={{ width: 110 }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={getVehicleImage(slug, vtImages[slug])}
-                    alt={VEHICLE_LABELS[slug]}
-                    className="w-full h-full object-cover"
-                    style={{ height: 110 }}
-                  />
-                  {isBest && (
-                    <span className="absolute top-2 left-2 bg-teal text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full tracking-wide">
-                      BEST VALUE
-                    </span>
+            <Fragment key={slug}>
+              {/* Upsell banner — between card 0 and 1 when no return trip */}
+              {!hasReturn && idx === 1 && (
+                <div key="upsell" className="rounded-2xl border border-teal/30 bg-teal/5 p-4">
+                  {!showReturnPicker ? (
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-navy">Add a return trip</p>
+                        <p className="text-xs text-tx-light mt-0.5">Same vehicle, same price — book both in one go</p>
+                      </div>
+                      <button
+                        onClick={() => setShowReturnPicker(true)}
+                        className="flex-shrink-0 ml-3 px-3 py-1.5 bg-teal text-white text-xs font-semibold rounded-lg"
+                      >
+                        + Add ↩
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-semibold text-navy">Return trip date &amp; time</p>
+                        <button onClick={() => setShowReturnPicker(false)} className="text-xs text-tx-light">Cancel</button>
+                      </div>
+                      <div className="flex items-center gap-3 bg-white rounded-xl border border-border-light px-3 py-2">
+                        <span className="text-base leading-none flex-shrink-0">↩</span>
+                        <input
+                          type="date"
+                          value={bannerRetDate}
+                          min={date || new Date().toISOString().split('T')[0]}
+                          onChange={e => setBannerRetDate(e.target.value)}
+                          className="flex-1 text-sm text-navy outline-none bg-transparent"
+                        />
+                        <select
+                          value={bannerRetTime}
+                          onChange={e => setBannerRetTime(e.target.value)}
+                          className="text-sm text-navy outline-none bg-transparent"
+                        >
+                          {slots.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                      </div>
+                      <button
+                        onClick={applyReturnTrip}
+                        disabled={!bannerRetDate}
+                        className="w-full py-2.5 rounded-xl bg-teal text-white text-sm font-semibold disabled:opacity-40"
+                      >
+                        Apply return trip
+                      </button>
+                    </div>
                   )}
                 </div>
+              )}
 
-                {/* Info */}
-                <div className="flex-1 flex flex-col p-3 min-w-0">
-                  <div className="flex items-start justify-between gap-1">
-                    <p className="font-semibold text-navy text-sm">{VEHICLE_LABELS[slug]}</p>
-                    {price > 0 ? (
-                      <p className="text-base font-bold text-navy flex-shrink-0">€{price}</p>
-                    ) : (
-                      <p className="text-xs text-tx-light flex-shrink-0">Enquire</p>
+              <div
+                className="bg-white rounded-2xl border border-border-light overflow-hidden shadow-sm"
+              >
+                <div className="flex gap-0">
+                  {/* Vehicle image */}
+                  <div className="relative flex-shrink-0" style={{ width: 110 }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={getVehicleImage(slug, vtImages[slug])}
+                      alt={VEHICLE_LABELS[slug]}
+                      className="w-full h-full object-cover"
+                      style={{ height: 110 }}
+                    />
+                    {isBest && (
+                      <span className="absolute top-2 left-2 bg-teal text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full tracking-wide">
+                        BEST VALUE
+                      </span>
                     )}
                   </div>
-                  <p className="text-xs text-tx-light mt-0.5">
-                    Up to {cap.pax} 👤 · {cap.luggage} 🧳
-                  </p>
-                  <p className="text-[11px] text-tx-light mt-0.5 truncate">{vtExamples[slug] ?? VEHICLE_EXAMPLES[slug]}</p>
-                  <div className="flex-1" />
-                  <button
-                    onClick={() => handleSelect(slug)}
-                    className="mt-2 self-end bg-navy text-white text-xs font-semibold px-3 py-1.5 rounded-lg"
-                  >
-                    Select →
-                  </button>
+
+                  {/* Info */}
+                  <div className="flex-1 flex flex-col p-3 min-w-0">
+                    <div className="flex items-start justify-between gap-1">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-navy text-sm">{VEHICLE_LABELS[slug]}</p>
+                        {discount_label && (
+                          <span className="text-[9px] bg-red-50 text-red-500 px-1.5 py-0.5 rounded-full font-semibold">{discount_label}</span>
+                        )}
+                      </div>
+                      {totalPrice > 0 ? (
+                        <div className="text-right flex-shrink-0">
+                          {original_price && !hasReturn && (
+                            <p className="text-[10px] text-tx-light line-through">€{original_price}</p>
+                          )}
+                          {hasReturn ? (
+                            <>
+                              <p className="text-[10px] text-tx-light">€{price} × 2</p>
+                              <p className={`text-base font-bold ${original_price ? 'text-red-500' : 'text-navy'}`}>€{totalPrice}</p>
+                            </>
+                          ) : (
+                            <p className={`text-base font-bold ${original_price ? 'text-red-500' : 'text-navy'}`}>€{price}</p>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-tx-light flex-shrink-0">Enquire</p>
+                      )}
+                    </div>
+                    <p className="text-xs text-tx-light mt-0.5">
+                      Up to {cap.pax} 👤 · {cap.luggage} 🧳
+                    </p>
+                    <p className="text-[11px] text-tx-light mt-0.5 truncate">{vtExamples[slug] ?? VEHICLE_EXAMPLES[slug]}</p>
+                    {hasReturn && (
+                      <p className="text-[10px] text-teal mt-0.5 font-medium">↩ Return included</p>
+                    )}
+                    <div className="flex-1" />
+                    <button
+                      onClick={() => handleSelect(slug)}
+                      className="mt-2 self-end bg-navy text-white text-xs font-semibold px-3 py-1.5 rounded-lg"
+                    >
+                      Select →
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
+            </Fragment>
           );
         })}
       </div>
@@ -304,9 +437,11 @@ function ResultsContent() {
         </div>
         <div className="flex items-center justify-between text-xs text-tx-light">
           <span>✓ Flight delays? We adjust</span>
-          <a href={returnWaLink} target="_blank" rel="noopener noreferrer" className="text-[#25D366] font-medium">
-            + Add return trip
-          </a>
+          {hasReturn ? (
+            <span className="text-teal font-medium">↩ Return trip added</span>
+          ) : (
+            <span className="text-tx-light">✓ Professional drivers</span>
+          )}
         </div>
       </div>
     </div>

@@ -57,6 +57,7 @@ export async function POST(request: Request) {
       extras:           body.extras           ?? [],
       notes:            body.notes            ?? null,
     } : {}),
+    ...(body.group_ref ? { group_ref: body.group_ref } : {}),
   }
 
   console.log('[POST /api/bookings] inserting:', JSON.stringify(insertPayload))

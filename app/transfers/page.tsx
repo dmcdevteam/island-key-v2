@@ -44,6 +44,10 @@ export default function TransfersSearchPage() {
   const [luggage, setLuggage] = useState(1);
   const [searching, setSearching] = useState(false);
 
+  const [returnTrip, setReturnTrip] = useState(false);
+  const [retDate, setRetDate] = useState('');
+  const [retTime, setRetTime] = useState('10:00');
+
   const [fromSuggestions, setFromSuggestions] = useState<Suggestion[]>([]);
   const [toSuggestions,   setToSuggestions]   = useState<Suggestion[]>([]);
   const [fromOpen, setFromOpen] = useState(false);
@@ -166,6 +170,11 @@ export default function TransfersSearchPage() {
       airport:   (from.isAirport || to.isAirport) ? '1' : '0',
     });
 
+    if (returnTrip && retDate) {
+      params.set('ret_date', retDate);
+      params.set('ret_time', retTime);
+    }
+
     router.push(`/transfers/results?${params.toString()}`);
     setSearching(false);
   }
@@ -274,6 +283,46 @@ export default function TransfersSearchPage() {
               {slots.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
+
+          <div className="border-t border-gray-100" />
+
+          {/* Return trip toggle */}
+          {!returnTrip ? (
+            <button
+              onClick={() => setReturnTrip(true)}
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-teal font-medium"
+            >
+              <span className="text-base leading-none">↩</span>
+              <span>+ Add return trip</span>
+            </button>
+          ) : (
+            <div className="px-4 py-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-navy">Return trip</span>
+                <button
+                  onClick={() => { setReturnTrip(false); setRetDate(''); }}
+                  className="text-xs text-tx-light hover:text-navy"
+                >Remove ✕</button>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-base leading-none flex-shrink-0">↩</span>
+                <input
+                  type="date"
+                  value={retDate}
+                  min={date || new Date().toISOString().split('T')[0]}
+                  onChange={e => setRetDate(e.target.value)}
+                  className="flex-1 text-sm text-navy outline-none bg-transparent"
+                />
+                <select
+                  value={retTime}
+                  onChange={e => setRetTime(e.target.value)}
+                  className="text-sm text-navy outline-none bg-transparent"
+                >
+                  {slots.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+            </div>
+          )}
 
           <div className="border-t border-gray-100" />
 
