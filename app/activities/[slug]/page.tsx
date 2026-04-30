@@ -155,6 +155,7 @@ export default function ActivityDetailPage() {
   const [enquiryLoading, setEnquiryLoading] = useState(false);
   const [enquiryError, setEnquiryError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState(false);
+  const [mapImgError, setMapImgError] = useState(false);
 
   // Read session client-side only (localStorage unavailable during SSR)
   useEffect(() => {
@@ -334,7 +335,7 @@ export default function ActivityDetailPage() {
       {/* Body */}
       <div className="flex-1 overflow-y-auto px-5 pt-4 pb-[100px]">
         <h1 className="font-display text-[21px] font-medium text-navy mb-0.5">{activity.title}</h1>
-        <p className="text-xs text-tx-light mb-1">{activity.meeting_point ?? activity.region}</p>
+        <p className="text-xs text-tx-light mb-1">{activity.region}</p>
 
         {activity.external_rating && (
           <div className="flex items-center gap-1.5 mb-3">
@@ -405,6 +406,51 @@ export default function ActivityDetailPage() {
             <p className="text-[13px] text-tx-mid leading-relaxed mb-4">{activity.good_to_know}</p>
           </>
         )}
+
+        {activity.meeting_point && (() => {
+          const mp = activity.meeting_point;
+          const encoded = encodeURIComponent(mp);
+          const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+          const isGeneric = /confirmation|pickup included/i.test(mp);
+          const staticMapUrl = apiKey && !isGeneric && !mapImgError
+            ? `https://maps.googleapis.com/maps/api/staticmap?center=${encoded}&zoom=15&size=600x300&scale=2&markers=color:0x1A8A7D|${encoded}&key=${apiKey}`
+            : null;
+          const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encoded}`;
+          return (
+            <div style={{ marginTop: 24, marginBottom: 24 }}>
+              <h3 className="text-[11px] font-bold text-[#6B7280] uppercase tracking-[0.12em] mb-2">
+                Meeting point
+              </h3>
+              <p style={{ fontSize: 13, color: '#4B5563', lineHeight: 1.5, marginBottom: 10 }}>{mp}</p>
+              {staticMapUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={staticMapUrl}
+                  alt="Meeting point map"
+                  onError={() => setMapImgError(true)}
+                  style={{ width: '100%', height: 180, objectFit: 'cover', borderRadius: 12, display: 'block', marginBottom: 8 }}
+                />
+              )}
+              <a
+                href={mapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  height: 44, borderRadius: 10, marginTop: 8,
+                  background: 'white', border: '1px solid #E5E7EB',
+                  paddingLeft: 12, paddingRight: 12, textDecoration: 'none',
+                }}
+              >
+                <span style={{ color: '#1A8A7D', fontSize: 16, flexShrink: 0 }}>📍</span>
+                <span style={{ flex: 1, fontSize: 13, color: '#1A8A7D', fontWeight: 600 }}>Open in Google Maps</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A8A7D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                </svg>
+              </a>
+            </div>
+          );
+        })()}
 
         {activity.cancellation_policy && (
           <p className="text-[11px] text-tx-light italic">{activity.cancellation_policy}</p>
