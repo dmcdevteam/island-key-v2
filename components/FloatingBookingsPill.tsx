@@ -58,8 +58,10 @@ export function FloatingBookingsPill({ bookings }: { bookings: UpcomingBooking[]
 
   const sorted = [...bookings].sort((a, b) => effectiveMs(a) - effectiveMs(b))
 
+  function close() { setOpen(false) }
+
   function go(b: UpcomingBooking) {
-    setOpen(false)
+    close()
     if (b.item_type === 'transfer') router.push('/profile')
     else if (b.activity_slug)       router.push(`/activities/${b.activity_slug}`)
     else                            router.push('/profile')
@@ -67,7 +69,6 @@ export function FloatingBookingsPill({ bookings }: { bookings: UpcomingBooking[]
 
   return (
     <>
-      {/* Pulsing dot keyframes */}
       <style>{`
         @keyframes ik-pulse {
           0%, 100% { opacity: 1; }
@@ -76,165 +77,235 @@ export function FloatingBookingsPill({ bookings }: { bookings: UpcomingBooking[]
         .ik-pulse-dot { animation: ik-pulse 2s ease-in-out infinite; }
       `}</style>
 
-      {/* Pill — centered, above bottom nav (nav ≈ 64px + 12px gap + 48px pill = 92px from bottom) */}
-      <div
-        className="fixed left-1/2 -translate-x-1/2 z-40 px-4"
-        style={{ bottom: 80, width: '100%', maxWidth: 480 }}
-      >
+      {/* Pill — z-index 49 so drawer (50/51) always renders on top */}
+      <div style={{
+        position: 'fixed',
+        bottom: 80,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: '100%',
+        maxWidth: 480,
+        padding: '0 16px',
+        zIndex: 49,
+        display: open ? 'none' : 'block',
+      }}>
         <button
           onClick={() => setOpen(true)}
-          className="w-full flex items-center gap-3 bg-white rounded-full shadow-lg active:opacity-90 transition-opacity"
           style={{
+            width: '100%',
             height: 48,
-            paddingLeft: 16,
-            paddingRight: 16,
-            borderRadius: 24,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            background: 'white',
             border: '1px solid #E5E7EB',
             borderLeft: '4px solid #1A8A7D',
+            borderRadius: 24,
+            paddingLeft: 16,
+            paddingRight: 16,
+            boxShadow: '0 2px 12px rgba(0,0,0,0.10)',
+            cursor: 'pointer',
           }}
         >
-          {/* Live pulse dot */}
-          <span
-            className="ik-pulse-dot flex-shrink-0 w-2 h-2 rounded-full"
-            style={{ background: '#1A8A7D' }}
-          />
-          {/* Label */}
-          <span
-            className="flex-1 text-sm font-semibold truncate text-left"
-            style={{ color: '#1B2D4F' }}
-          >
+          <span className="ik-pulse-dot" style={{
+            flexShrink: 0,
+            width: 8,
+            height: 8,
+            borderRadius: '50%',
+            background: '#1A8A7D',
+          }} />
+          <span style={{
+            flex: 1,
+            fontSize: 14,
+            fontWeight: 600,
+            color: '#1B2D4F',
+            textAlign: 'left',
+            overflow: 'hidden',
+            whiteSpace: 'nowrap',
+            textOverflow: 'ellipsis',
+          }}>
             {pillLabel(sorted)}
           </span>
-          {/* Chevron */}
-          <span className="flex-shrink-0 text-sm font-bold" style={{ color: '#1A8A7D' }}>›</span>
+          <span style={{ flexShrink: 0, fontSize: 16, fontWeight: 700, color: '#1A8A7D' }}>›</span>
         </button>
       </div>
 
-      {/* Backdrop */}
       {open && (
-        <div
-          className="fixed inset-0 z-50"
-          style={{ background: 'rgba(0,0,0,0.4)' }}
-          onClick={() => setOpen(false)}
-        />
-      )}
+        <>
+          {/* Backdrop — z-index 50 */}
+          <div
+            onClick={close}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              backgroundColor: 'rgba(0,0,0,0.4)',
+              zIndex: 50,
+            }}
+          />
 
-      {/* Bottom drawer — full screen width, flex column so cards area can scroll */}
-      <div
-        className="fixed bottom-0 left-0 right-0 bg-white z-50 transition-transform duration-300"
-        style={{
-          borderRadius: '20px 20px 0 0',
-          maxHeight: '70vh',
-          boxShadow: '0 -4px 32px rgba(0,0,0,0.12)',
-          transform: open ? 'translateY(0)' : 'translateY(100%)',
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
-        {/* Drag handle — fixed */}
-        <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
-          <div className="w-12 h-1 rounded-full" style={{ background: '#D1D5DB' }} />
-        </div>
+          {/* Drawer panel — z-index 51, fixed so no parent overflow can clip it */}
+          <div style={{
+            position: 'fixed',
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 51,
+            backgroundColor: 'white',
+            borderRadius: '20px 20px 0 0',
+            boxShadow: '0 -4px 32px rgba(0,0,0,0.15)',
+            display: 'flex',
+            flexDirection: 'column',
+            maxHeight: '75vh',
+          }}>
 
-        {/* Header — fixed */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 flex-shrink-0">
-          <h2 className="text-base font-semibold" style={{ color: '#1B2D4F' }}>
-            Your upcoming bookings
-          </h2>
-          <button
-            onClick={() => setOpen(false)}
-            className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 text-xl leading-none"
-          >
-            ×
-          </button>
-        </div>
+            {/* Drag handle — never scrolls */}
+            <div style={{
+              flexShrink: 0,
+              padding: '12px 0 4px',
+              display: 'flex',
+              justifyContent: 'center',
+            }}>
+              <div style={{
+                width: 40,
+                height: 4,
+                borderRadius: 2,
+                backgroundColor: '#E5E7EB',
+              }} />
+            </div>
 
-        {/* Cards — scrollable */}
-        <div
-          style={{
-            flex: 1,
-            overflowY: 'auto',
-            WebkitOverflowScrolling: 'touch' as const,
-          }}
-        >
-          <div style={{ padding: '12px 20px', display: 'flex', flexDirection: 'column', gap: 12, paddingBottom: 24 }}>
-            {sorted.map(b => {
-              const isTransfer = b.item_type === 'transfer'
-              const icon  = isTransfer ? '🚗' : '🏄'
-              const title = isTransfer && b.pickup_location && b.dropoff_location
-                ? `${b.pickup_location} → ${b.dropoff_location}`
-                : b.item_title
+            {/* Header — never scrolls */}
+            <div style={{
+              flexShrink: 0,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '8px 20px 12px',
+              borderBottom: '1px solid #F3F4F6',
+            }}>
+              <span style={{ fontSize: 18, fontWeight: 600, color: '#1B2D4F' }}>
+                Your upcoming bookings
+              </span>
+              <button
+                onClick={close}
+                style={{
+                  width: 32,
+                  height: 32,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '50%',
+                  border: 'none',
+                  background: 'transparent',
+                  fontSize: 18,
+                  color: '#9CA3AF',
+                  cursor: 'pointer',
+                }}
+              >
+                ✕
+              </button>
+            </div>
 
-              const subParts: string[] = []
-              if (isTransfer) {
-                if (b.vehicle_class) subParts.push(VEHICLE_LABELS[b.vehicle_class as VehicleSlug] ?? b.vehicle_class)
-                subParts.push(`${b.pax_count ?? b.pax} pax`)
-                if (b.luggage_count != null) subParts.push(`${b.luggage_count} bags`)
-              } else {
-                subParts.push(`${b.pax} pax`)
-              }
+            {/* Cards — THE scrollable region */}
+            <div style={{
+              flex: 1,
+              overflowY: 'scroll',
+              WebkitOverflowScrolling: 'touch',
+              minHeight: 0,          // critical: lets flex child shrink below content size in Safari
+              padding: '12px 16px 40px',
+            }}>
+              {sorted.map(b => {
+                const isTransfer = b.item_type === 'transfer'
+                const icon  = isTransfer ? '🚗' : '🏄'
+                const title = isTransfer && b.pickup_location && b.dropoff_location
+                  ? `${b.pickup_location} → ${b.dropoff_location}`
+                  : b.item_title
 
-              return (
-                <button
-                  key={b.id}
-                  onClick={() => go(b)}
-                  className="w-full text-left active:opacity-80 transition-opacity"
-                  style={{
-                    background: '#fff',
-                    border: '1px solid #E5E7EB',
-                    borderRadius: 12,
-                    padding: 12,
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 12,
-                  }}
-                >
-                  {/* Icon circle */}
-                  <span
-                    className="flex-shrink-0 flex items-center justify-center text-lg"
+                const subParts: string[] = []
+                if (isTransfer) {
+                  if (b.vehicle_class) subParts.push(VEHICLE_LABELS[b.vehicle_class as VehicleSlug] ?? b.vehicle_class)
+                  subParts.push(`${b.pax_count ?? b.pax} pax`)
+                  if (b.luggage_count != null) subParts.push(`${b.luggage_count} bags`)
+                } else {
+                  subParts.push(`${b.pax} pax`)
+                }
+
+                return (
+                  <button
+                    key={b.id}
+                    onClick={() => go(b)}
                     style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: 12,
+                      background: 'white',
+                      border: '1px solid #E5E7EB',
+                      borderRadius: 12,
+                      padding: 12,
+                      marginBottom: 10,
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {/* Icon circle */}
+                    <span style={{
+                      flexShrink: 0,
                       width: 36,
                       height: 36,
                       borderRadius: '50%',
                       background: '#E6F4F3',
-                    }}
-                  >
-                    {icon}
-                  </span>
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 18,
+                    }}>
+                      {icon}
+                    </span>
 
-                  {/* Text */}
-                  <div className="flex-1 min-w-0">
-                    <p
-                      className="text-sm font-semibold leading-snug"
-                      style={{
+                    {/* Text */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{
+                        fontSize: 14,
+                        fontWeight: 600,
                         color: '#1B2D4F',
+                        lineHeight: 1.3,
+                        margin: 0,
                         display: '-webkit-box',
                         WebkitLineClamp: 2,
                         WebkitBoxOrient: 'vertical',
                         overflow: 'hidden',
-                      }}
-                    >
-                      {title}
-                    </p>
-                    <p className="text-xs mt-0.5" style={{ color: '#6B7280' }}>{formatWhen(b)}</p>
-                    <p className="text-xs" style={{ color: '#6B7280' }}>{subParts.join(' · ')}</p>
-                  </div>
+                      }}>
+                        {title}
+                      </p>
+                      <p style={{ fontSize: 12, color: '#6B7280', margin: '3px 0 0' }}>
+                        {formatWhen(b)}
+                      </p>
+                      <p style={{ fontSize: 12, color: '#6B7280', margin: '1px 0 0' }}>
+                        {subParts.join(' · ')}
+                      </p>
+                    </div>
 
-                  {/* Status badge */}
-                  <div className="flex-shrink-0 flex items-start pt-0.5">
-                    <span
-                      className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-                      style={{ background: '#E6F4F3', color: '#1A8A7D', whiteSpace: 'nowrap' }}
-                    >
+                    {/* Status badge */}
+                    <span style={{
+                      flexShrink: 0,
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: '#1A8A7D',
+                      background: '#E6F4F3',
+                      padding: '3px 8px',
+                      borderRadius: 99,
+                      whiteSpace: 'nowrap',
+                      marginTop: 2,
+                    }}>
                       ● Confirmed
                     </span>
-                  </div>
-                </button>
-              )
-            })}
+                  </button>
+                )
+              })}
+            </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
     </>
   )
 }
