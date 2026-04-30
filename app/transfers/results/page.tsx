@@ -281,7 +281,29 @@ function ResultsContent() {
         )}
       </div>
 
-      <p className="px-5 mb-4 text-xs text-tx-light">All prices include taxes &amp; fees{hasReturn ? ' · Both legs' : ''}</p>
+      <p className="px-5 mb-3 text-xs text-tx-light">All prices include taxes &amp; fees{hasReturn ? ' · Both legs' : ''}</p>
+
+      {/* Persistent return trip row */}
+      <div className="mx-5 mb-4">
+        <button
+          onClick={() => { setBannerRetDate(retDate || ''); setBannerRetTime(retTime || '10:00'); setShowReturnPicker(true); }}
+          style={{
+            width: '100%', height: 44, borderRadius: 10,
+            background: '#FDFCFA', border: '1.5px solid #1A8A7D',
+            display: 'flex', alignItems: 'center',
+            paddingLeft: 12, paddingRight: 12, gap: 8,
+            cursor: 'pointer',
+          }}
+        >
+          <span style={{ color: '#1A8A7D', fontSize: 16, flexShrink: 0 }}>↔</span>
+          <span style={{ flex: 1, fontSize: 13, color: '#1B2D4F', textAlign: 'left' }}>
+            {hasReturn ? `Return: ${formatTransferDate(retDate)} at ${retTime}` : 'One way · Add return trip'}
+          </span>
+          <span style={{ color: '#1A8A7D', fontSize: 13, fontWeight: 600 }}>
+            {hasReturn ? 'edit' : '+'}
+          </span>
+        </button>
+      </div>
 
       {/* Vehicle cards */}
       <div className="px-5 space-y-3">
@@ -309,57 +331,6 @@ function ResultsContent() {
 
           return (
             <Fragment key={slug}>
-              {/* Upsell banner — between card 0 and 1 when no return trip */}
-              {!hasReturn && idx === 1 && (
-                <div key="upsell" className="rounded-2xl border border-teal/30 bg-teal/5 p-4">
-                  {!showReturnPicker ? (
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-semibold text-navy">Add a return trip</p>
-                        <p className="text-xs text-tx-light mt-0.5">Same vehicle, same price — book both in one go</p>
-                      </div>
-                      <button
-                        onClick={() => setShowReturnPicker(true)}
-                        className="flex-shrink-0 ml-3 px-3 py-1.5 bg-teal text-white text-xs font-semibold rounded-lg"
-                      >
-                        + Add ↩
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-navy">Return trip date &amp; time</p>
-                        <button onClick={() => setShowReturnPicker(false)} className="text-xs text-tx-light">Cancel</button>
-                      </div>
-                      <div className="flex items-center gap-3 bg-white rounded-xl border border-border-light px-3 py-2">
-                        <span className="text-base leading-none flex-shrink-0">↩</span>
-                        <input
-                          type="date"
-                          value={bannerRetDate}
-                          min={date || new Date().toISOString().split('T')[0]}
-                          onChange={e => setBannerRetDate(e.target.value)}
-                          className="flex-1 text-sm text-navy outline-none bg-transparent"
-                        />
-                        <select
-                          value={bannerRetTime}
-                          onChange={e => setBannerRetTime(e.target.value)}
-                          className="text-sm text-navy outline-none bg-transparent"
-                        >
-                          {slots.map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
-                      </div>
-                      <button
-                        onClick={applyReturnTrip}
-                        disabled={!bannerRetDate}
-                        className="w-full py-2.5 rounded-xl bg-teal text-white text-sm font-semibold disabled:opacity-40"
-                      >
-                        Apply return trip
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-
               <div
                 className="bg-white rounded-2xl border border-border-light overflow-hidden shadow-sm"
               >
@@ -428,6 +399,54 @@ function ResultsContent() {
           );
         })}
       </div>
+
+      {/* Return trip bottom sheet */}
+      {showReturnPicker && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setShowReturnPicker(false)} />
+          <div className="relative bg-white rounded-t-2xl px-5 pt-5 pb-10 w-full max-w-[480px] mx-auto">
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
+            <h2 className="font-display text-lg text-navy mb-4">Return trip</h2>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs text-tx-light mb-1">Return date</label>
+                <input
+                  type="date"
+                  value={bannerRetDate}
+                  min={date || new Date().toISOString().split('T')[0]}
+                  onChange={e => setBannerRetDate(e.target.value)}
+                  className="w-full border border-border-light rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-navy/40"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-tx-light mb-1">Return time</label>
+                <select
+                  value={bannerRetTime}
+                  onChange={e => setBannerRetTime(e.target.value)}
+                  className="w-full border border-border-light rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-navy/40"
+                >
+                  {slots.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <button
+                onClick={applyReturnTrip}
+                disabled={!bannerRetDate}
+                className="w-full py-3 rounded-xl bg-teal text-white text-sm font-semibold disabled:opacity-40"
+              >
+                {hasReturn ? 'Update return trip' : 'Add return trip'}
+              </button>
+              {hasReturn && (
+                <button
+                  onClick={() => { removeReturnTrip(); setShowReturnPicker(false); }}
+                  className="w-full py-2 text-sm text-red-500"
+                >
+                  Remove return trip
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Sticky bottom summary */}
       <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] bg-white border-t border-border-light px-5 py-4 space-y-2">

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { VEHICLE_LABELS, VEHICLE_CAPACITY, formatTransferDate, type VehicleSlug } from '@/lib/transfers';
+import { VEHICLE_LABELS, VEHICLE_CAPACITY, formatTransferDate, generateTimeSlots, type VehicleSlug } from '@/lib/transfers';
 import { getSession, whatsappLink } from '@/lib/utils';
 
 const EXTRAS = [
@@ -56,6 +56,11 @@ function BookingContent() {
   const [confCode, setConfCode]     = useState('');
   const [retCode,  setRetCode]      = useState('');
 
+  const [showReturnPicker, setShowReturnPicker] = useState(false);
+  const [pickerRetDate, setPickerRetDate] = useState('');
+  const [pickerRetTime, setPickerRetTime] = useState('10:00');
+  const slots = generateTimeSlots();
+
   useEffect(() => {
     const s = getSession();
     if (s?.first_name)      setGuestName(s.first_name);
@@ -64,6 +69,22 @@ function BookingContent() {
 
   function toggleExtra(key: string) {
     setExtras(prev => prev.includes(key) ? prev.filter(e => e !== key) : [...prev, key]);
+  }
+
+  function applyReturnTrip() {
+    if (!pickerRetDate) return;
+    const newParams = new URLSearchParams(sp.toString());
+    newParams.set('ret_date', pickerRetDate);
+    newParams.set('ret_time', pickerRetTime);
+    router.replace(`/transfers/booking?${newParams.toString()}`);
+    setShowReturnPicker(false);
+  }
+
+  function removeReturnTrip() {
+    const newParams = new URLSearchParams(sp.toString());
+    newParams.delete('ret_date');
+    newParams.delete('ret_time');
+    router.replace(`/transfers/booking?${newParams.toString()}`);
   }
 
   function buildWhatsAppMessage(code: string, returnCode?: string): string {
@@ -378,6 +399,35 @@ function BookingContent() {
           </div>
         </div>
 
+        {/* Return trip row */}
+        <button
+          onClick={() => { setPickerRetDate(retDate || ''); setPickerRetTime(retTime || '10:00'); setShowReturnPicker(true); }}
+          style={{
+            width: '100%', borderRadius: 10,
+            background: '#FDFCFA', border: '1.5px solid #1A8A7D',
+            display: 'flex', alignItems: 'flex-start',
+            padding: '10px 12px', gap: 8,
+            cursor: 'pointer', textAlign: 'left',
+          }}
+        >
+          <span style={{ color: '#1A8A7D', fontSize: 16, flexShrink: 0, marginTop: 1 }}>↔</span>
+          <span style={{ flex: 1 }}>
+            {hasReturn ? (
+              <span style={{ fontSize: 13, color: '#1B2D4F', fontWeight: 600 }}>
+                Return: {formatTransferDate(retDate)} at {retTime}
+              </span>
+            ) : (
+              <>
+                <span style={{ display: 'block', fontSize: 13, color: '#1B2D4F', fontWeight: 600 }}>Add a return trip?</span>
+                <span style={{ display: 'block', fontSize: 11, color: '#9E9E9E', marginTop: 2 }}>Same vehicle, same price.</span>
+              </>
+            )}
+          </span>
+          <span style={{ color: '#1A8A7D', fontSize: 13, fontWeight: 600, flexShrink: 0 }}>
+            {hasReturn ? 'edit' : '+'}
+          </span>
+        </button>
+
         {/* Notes */}
         <div>
           <label className="block text-xs text-tx-light mb-1">Notes for driver (optional)</label>
@@ -396,6 +446,54 @@ function BookingContent() {
           Cancellations within 24h are non-refundable.
         </p>
       </div>
+
+      {/* Return trip bottom sheet */}
+      {showReturnPicker && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setShowReturnPicker(false)} />
+          <div className="relative bg-white rounded-t-2xl px-5 pt-5 pb-10 w-full max-w-[480px] mx-auto">
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
+            <h2 className="font-display text-lg text-navy mb-4">Return trip</h2>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs text-tx-light mb-1">Return date</label>
+                <input
+                  type="date"
+                  value={pickerRetDate}
+                  min={date || new Date().toISOString().split('T')[0]}
+                  onChange={e => setPickerRetDate(e.target.value)}
+                  className="w-full border border-border-light rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-navy/40"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-tx-light mb-1">Return time</label>
+                <select
+                  value={pickerRetTime}
+                  onChange={e => setPickerRetTime(e.target.value)}
+                  className="w-full border border-border-light rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-navy/40"
+                >
+                  {slots.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <button
+                onClick={applyReturnTrip}
+                disabled={!pickerRetDate}
+                className="w-full py-3 rounded-xl bg-teal text-white text-sm font-semibold disabled:opacity-40"
+              >
+                {hasReturn ? 'Update return trip' : 'Add return trip'}
+              </button>
+              {hasReturn && (
+                <button
+                  onClick={() => { removeReturnTrip(); setShowReturnPicker(false); }}
+                  className="w-full py-2 text-sm text-red-500"
+                >
+                  Remove return trip
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Sticky submit */}
       <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] bg-white border-t border-border-light px-5 py-4">
