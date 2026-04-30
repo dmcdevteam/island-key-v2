@@ -499,6 +499,7 @@ export default function HomePage() {
                 priceFrom={a.price_from ?? 0}
                 category={a.category}
                 imageUrl={a.images?.[0] ?? null}
+                focalPoint={a.focal_x != null && a.focal_y != null ? { x: a.focal_x, y: a.focal_y } : null}
                 heartItem={{ id: a.id, type: 'activity', slug: a.slug, title: a.title, image: a.images?.[0] ?? null, price: a.price_from ? `€${a.price_from}pp` : null }}
                 onClick={() => router.push(`/activities/${a.slug}`)}
               />

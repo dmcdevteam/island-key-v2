@@ -213,6 +213,7 @@ export default function ActivitiesPage() {
                 priceFrom={activity.price_from ?? 0}
                 duration={activity.duration ?? ''}
                 imageUrl={activity.images?.[0] ?? null}
+                focalPoint={activity.focal_x != null && activity.focal_y != null ? { x: activity.focal_x, y: activity.focal_y } : null}
                 externalRating={activity.external_rating}
                 externalRatingCount={activity.external_rating_count}
                 externalRatingSource={activity.external_rating_source}

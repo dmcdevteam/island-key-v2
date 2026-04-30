@@ -5,6 +5,8 @@ import { useRouter, useParams } from 'next/navigation';
 import { BookButton } from '@/components/ui/components';
 import { formatPrice, getSession } from '@/lib/utils';
 import { createClient } from '@/lib/supabase';
+import { FocalImage } from '@/components/FocalImage';
+import type { FocalPoint } from '@/components/FocalImage';
 import type { Activity } from '@/lib/types';
 
 const CATEGORY_GRADIENTS: Record<string, string> = {
@@ -54,10 +56,11 @@ interface CarouselProps {
   alts: string[]
   category: string
   categoryIcon: string
+  coverFocalPoint?: FocalPoint | null
   onBack: () => void
 }
 
-function ImageCarousel({ images, alts, category, categoryIcon, onBack }: CarouselProps) {
+function ImageCarousel({ images, alts, category, categoryIcon, coverFocalPoint, onBack }: CarouselProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [activeIndex, setActiveIndex] = useState(0)
 
@@ -85,11 +88,11 @@ function ImageCarousel({ images, alts, category, categoryIcon, onBack }: Carouse
       >
         {images.map((url, i) => (
           <div key={url} className="flex-shrink-0 w-full h-full snap-start relative">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <FocalImage
               src={url}
               alt={alts[i] || `${category} activity`}
-              className="w-full h-full object-cover"
+              focalPoint={i === 0 ? coverFocalPoint : null}
+              className="w-full h-full"
               draggable={false}
             />
             {/* Gradient overlay for readability */}
@@ -313,6 +316,7 @@ export default function ActivityDetailPage() {
           alts={alts}
           category={activity.category}
           categoryIcon={categoryIcon}
+          coverFocalPoint={activity.focal_x != null && activity.focal_y != null ? { x: activity.focal_x, y: activity.focal_y } : null}
           onBack={() => window.history.length <= 1 ? router.push('/activities') : router.back()}
         />
       ) : (

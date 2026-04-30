@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { VEHICLE_ORDER, VEHICLE_LABELS, VEHICLE_IMAGES, VEHICLE_EXAMPLES, VEHICLE_CAPACITY, getVehicleImage, type VehicleSlug } from '@/lib/transfers'
+import { FocalPointPicker, type FocalPoint } from '@/components/admin/FocalPointPicker'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -10,6 +11,7 @@ type VehicleType = {
   description: string | null; seats: number | null; icon: string | null
   is_active: boolean; sort_order: number; created_at: string
   image_url: string | null; example_models: string | null
+  focal_x: number | null; focal_y: number | null
 }
 
 type TransferRoute = {
@@ -356,7 +358,10 @@ function VehicleTypesTab({ vehicleTypes, onSaved }: {
   vehicleTypes: VehicleType[]
   onSaved: () => void
 }) {
-  type SlugState = { example_models: string; saving: boolean; uploading: boolean; error: string }
+  type SlugState = {
+    example_models: string; saving: boolean; uploading: boolean; error: string
+    focalPoint: FocalPoint | null
+  }
 
   const [state, setState] = useState<Record<string, SlugState>>(() => {
     const s: Record<string, SlugState> = {}
@@ -365,6 +370,7 @@ function VehicleTypesTab({ vehicleTypes, onSaved }: {
       s[slug] = {
         example_models: vt?.example_models ?? VEHICLE_EXAMPLES[slug],
         saving: false, uploading: false, error: '',
+        focalPoint: vt?.focal_x != null && vt?.focal_y != null ? { x: vt.focal_x, y: vt.focal_y } : null,
       }
     }
     return s
@@ -419,10 +425,15 @@ function VehicleTypesTab({ vehicleTypes, onSaved }: {
     const vt = findVt(slug)
     if (!vt) return
     setSlug(slug, { saving: true, error: '' })
+    const fp = state[slug].focalPoint
     const res = await fetch(`/api/admin/vehicle-types/${vt.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ example_models: state[slug].example_models }),
+      body: JSON.stringify({
+        example_models: state[slug].example_models,
+        focal_x: fp?.x ?? null,
+        focal_y: fp?.y ?? null,
+      }),
     })
     setSlug(slug, { saving: false })
     if (!res.ok) { const d = await res.json(); setSlug(slug, { error: d.error ?? 'Save failed' }) }
@@ -453,6 +464,16 @@ function VehicleTypesTab({ vehicleTypes, onSaved }: {
                   </span>
                 )}
               </div>
+
+              {hasCustom && (
+                <div className="px-4 pt-3">
+                  <FocalPointPicker
+                    imageUrl={currentImage}
+                    focalPoint={state[slug].focalPoint}
+                    onChange={fp => setSlug(slug, { focalPoint: fp })}
+                  />
+                </div>
+              )}
 
               <div className="p-4 space-y-3">
                 <div>

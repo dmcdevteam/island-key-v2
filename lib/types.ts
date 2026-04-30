@@ -92,6 +92,8 @@ export interface Activity {
   provider_id: string | null;
   images: string[] | null;
   image_alts: string[] | null;
+  focal_x: number | null;
+  focal_y: number | null;
   external_rating: number | null;
   external_rating_count: number | null;
   external_rating_source: string | null;
@@ -156,6 +158,8 @@ export interface Rental {
   provider_id: string | null;
   region: string;
   images: string[] | null;
+  focal_x: number | null;
+  focal_y: number | null;
   is_active: boolean;
   created_at: string;
 }
@@ -368,6 +372,8 @@ export interface EventFull {
   region: string;
   tier_visibility: string[];
   images: string[] | null;
+  focal_x: number | null;
+  focal_y: number | null;
   is_featured: boolean;
   is_active: boolean;
   sort_order: number;
@@ -387,6 +393,8 @@ export interface ArticleFull {
   read_time_minutes: number | null;
   cover_image: string | null;
   images: string[] | null;
+  focal_x: number | null;
+  focal_y: number | null;
   tags: string[] | null;
   meta_title: string | null;
   meta_description: string | null;

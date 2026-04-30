@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { slugify } from '@/lib/slugify'
 import type { EventFull } from '@/lib/types'
+import { FocalPointPicker, type FocalPoint } from '@/components/admin/FocalPointPicker'
 
 const INPUT = 'w-full px-3 py-2 border border-border rounded-sm text-sm text-tx bg-white outline-none focus:border-navy transition-colors'
 const LABEL = 'block text-[11px] font-bold text-tx-mid uppercase tracking-wide mb-1'
@@ -40,7 +41,7 @@ function emptyForm(): FormState {
     location_name: null, location_address: null, location_lat: null, location_lng: null,
     price_from: null, price_label: null, is_free: true, booking_url: null,
     organiser: null, region: 'chania', tier_visibility: ['B', 'M', 'P'],
-    images: null, is_featured: false, is_active: true, sort_order: 0,
+    images: null, focal_x: null, focal_y: null, is_featured: false, is_active: true, sort_order: 0,
   }
 }
 
@@ -50,7 +51,12 @@ function EventForm({ event, onSave, onClose }: { event: EventFull | null; onSave
   const [error, setError] = useState('')
   const [uploadingCount, setUploadingCount] = useState(0)
   const [uploadError, setUploadError] = useState('')
-  const [images, setImages] = useState<string[]>(event?.images ?? [])
+  const [images, setImages]       = useState<string[]>(event?.images ?? [])
+  const [focalPoint, setFocalPoint] = useState<FocalPoint | null>(
+    event?.focal_x != null && event?.focal_y != null
+      ? { x: event.focal_x, y: event.focal_y }
+      : null
+  )
 
   const [form, setForm] = useState<FormState>(() => event ? {
     title: event.title, slug: event.slug, description: event.description,
@@ -62,6 +68,7 @@ function EventForm({ event, onSave, onClose }: { event: EventFull | null; onSave
     price_from: event.price_from, price_label: event.price_label, is_free: event.is_free,
     booking_url: event.booking_url, organiser: event.organiser, region: event.region,
     tier_visibility: event.tier_visibility, images: event.images,
+    focal_x: event.focal_x ?? null, focal_y: event.focal_y ?? null,
     is_featured: event.is_featured, is_active: event.is_active, sort_order: event.sort_order,
   } : emptyForm())
 
@@ -154,12 +161,14 @@ function EventForm({ event, onSave, onClose }: { event: EventFull | null; onSave
     try {
       await onSave({
         ...form,
-        images: images.length ? images : null,
-        price_from: form.price_from ? Number(form.price_from) : null,
+        images:       images.length ? images : null,
+        focal_x:      focalPoint?.x ?? null,
+        focal_y:      focalPoint?.y ?? null,
+        price_from:   form.price_from ? Number(form.price_from) : null,
         location_lat: form.location_lat ? Number(form.location_lat) : null,
         location_lng: form.location_lng ? Number(form.location_lng) : null,
-        sort_order: Number(form.sort_order) || 0,
-      })
+        sort_order:   Number(form.sort_order) || 0,
+      } as any)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Save failed')
       setSaving(false)
@@ -347,9 +356,18 @@ function EventForm({ event, onSave, onClose }: { event: EventFull | null; onSave
                 ))}
               </div>
             )}
+            {images.length > 0 && (
+              <div className="mt-3">
+                <FocalPointPicker
+                  imageUrl={images[0]}
+                  focalPoint={focalPoint}
+                  onChange={setFocalPoint}
+                />
+              </div>
+            )}
             <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFilesSelect} />
             <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadingCount > 0}
-              className="px-4 py-2 border border-dashed border-border rounded-sm text-sm text-tx-mid hover:border-navy hover:text-navy transition-colors disabled:opacity-50">
+              className="mt-3 px-4 py-2 border border-dashed border-border rounded-sm text-sm text-tx-mid hover:border-navy hover:text-navy transition-colors disabled:opacity-50">
               {uploadingCount > 0 ? `Uploading ${uploadingCount}…` : '+ Upload Images'}
             </button>
             {uploadError && <p className="mt-2 text-xs text-red-500 bg-red-50 px-3 py-1.5 rounded-sm">{uploadError}</p>}

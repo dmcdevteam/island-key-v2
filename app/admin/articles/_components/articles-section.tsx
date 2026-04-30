@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { slugify } from '@/lib/slugify'
 import type { ArticleFull } from '@/lib/types'
+import { FocalPointPicker, type FocalPoint } from '@/components/admin/FocalPointPicker'
 
 const INPUT = 'w-full px-3 py-2 border border-border rounded-sm text-sm text-tx bg-white outline-none focus:border-navy transition-colors'
 const LABEL = 'block text-[11px] font-bold text-tx-mid uppercase tracking-wide mb-1'
@@ -57,6 +58,7 @@ function emptyForm(): FormState {
     meta_title: null, meta_description: null, og_image: null,
     region: 'chania', is_featured: false, is_active: true,
     sort_order: 0, published_at: new Date().toISOString(),
+    focal_x: null, focal_y: null,
   }
 }
 
@@ -74,6 +76,11 @@ function ArticleEditor({ article, onSave, onClose }: {
   const [seoOpen, setSeoOpen] = useState(false)
   const [tagInput, setTagInput] = useState('')
   const [scheduleMode, setScheduleMode] = useState(false)
+  const [focalPoint, setFocalPoint] = useState<FocalPoint | null>(
+    article?.focal_x != null && article?.focal_y != null
+      ? { x: article.focal_x, y: article.focal_y }
+      : null
+  )
 
   const [form, setForm] = useState<FormState>(() => article ? {
     title: article.title, slug: article.slug, subtitle: article.subtitle, body: article.body,
@@ -83,6 +90,7 @@ function ArticleEditor({ article, onSave, onClose }: {
     meta_title: article.meta_title, meta_description: article.meta_description, og_image: article.og_image,
     region: article.region, is_featured: article.is_featured, is_active: article.is_active,
     sort_order: article.sort_order, published_at: article.published_at,
+    focal_x: article.focal_x ?? null, focal_y: article.focal_y ?? null,
   } : emptyForm())
 
   function set<K extends keyof FormState>(field: K, value: FormState[K]) {
@@ -135,6 +143,8 @@ function ArticleEditor({ article, onSave, onClose }: {
         meta_description: form.meta_description || form.excerpt || null,
         og_image: form.og_image || form.cover_image,
         sort_order: Number(form.sort_order) || 0,
+        focal_x: focalPoint?.x ?? null,
+        focal_y: focalPoint?.y ?? null,
       }
       await onSave(payload)
     } catch (err) {
@@ -315,6 +325,11 @@ function ArticleEditor({ article, onSave, onClose }: {
                 <img src={form.cover_image} alt="" className="w-full aspect-video object-cover rounded-sm border border-border" />
                 <button onClick={() => set('cover_image', null)}
                   className="absolute top-1 right-1 w-6 h-6 bg-white border border-border rounded-full text-xs text-red-500 flex items-center justify-center">×</button>
+              </div>
+            )}
+            {form.cover_image && (
+              <div className="mb-3">
+                <FocalPointPicker imageUrl={form.cover_image} focalPoint={focalPoint} onChange={setFocalPoint} />
               </div>
             )}
             <input ref={coverRef} type="file" accept="image/*" className="hidden"

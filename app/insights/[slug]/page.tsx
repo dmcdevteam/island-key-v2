@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { BottomNav } from '@/components/ui/bottom-nav'
+import { FocalImage } from '@/components/FocalImage'
 import type { ArticleFull } from '@/lib/types'
 
 const CATEGORY_STYLES: Record<string, { bg: string; tagColor: string }> = {
@@ -102,8 +103,7 @@ export default function ArticleDetailPage() {
     <div className="min-h-screen bg-cream flex flex-col pb-[90px]">
       {/* Hero */}
       {article.cover_image ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={article.cover_image} alt={article.title} className="w-full aspect-video object-cover" />
+        <FocalImage src={article.cover_image} alt={article.title} className="w-full aspect-video object-cover" focalPoint={article.focal_x != null && article.focal_y != null ? { x: article.focal_x, y: article.focal_y } : null} />
       ) : (
         <div className="aspect-video flex items-center justify-center" style={{ background: style.bg }}>
           <span className="text-5xl">📖</span>
@@ -178,8 +178,7 @@ export default function ArticleDetailPage() {
                 <button key={rel.id} onClick={() => router.push(`/insights/${rel.slug}`)}
                   className="w-full text-left flex gap-3 bg-white border border-border-light rounded-sm p-3 active:scale-[0.98] transition-transform">
                   {rel.cover_image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={rel.cover_image} alt={rel.title} className="w-16 h-12 object-cover rounded-sm flex-shrink-0" />
+                    <FocalImage src={rel.cover_image} alt={rel.title} className="w-16 h-12 object-cover rounded-sm flex-shrink-0" focalPoint={rel.focal_x != null && rel.focal_y != null ? { x: rel.focal_x, y: rel.focal_y } : null} />
                   ) : (
                     <div className="w-16 h-12 rounded-sm flex-shrink-0 flex items-center justify-center"
                       style={{ background: (CATEGORY_STYLES[rel.category ?? ''] ?? CATEGORY_STYLES.other).bg }}>

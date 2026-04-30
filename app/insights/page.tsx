@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { BottomNav } from '@/components/ui/bottom-nav'
 import { CategoryChip, HeartButton } from '@/components/ui/components'
+import { FocalImage } from '@/components/FocalImage'
 import { ProfileAvatar } from '@/app/_components/profile-avatar'
 import type { ArticleFull } from '@/lib/types'
 
@@ -108,8 +109,7 @@ export default function InsightsPage() {
               >
                 {featured.cover_image ? (
                   <div className="relative">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={featured.cover_image} alt={featured.title} className="w-full h-52 object-cover" />
+                    <FocalImage src={featured.cover_image} alt={featured.title} className="w-full h-52 object-cover" focalPoint={featured.focal_x != null && featured.focal_y != null ? { x: featured.focal_x, y: featured.focal_y } : null} />
                     <div className="absolute top-2 right-2 z-10">
                       <HeartButton item={{ id: featured.id, type: 'article', slug: featured.slug, title: featured.title, image: featured.cover_image, price: null }} />
                     </div>
@@ -152,8 +152,7 @@ export default function InsightsPage() {
                   >
                     {article.cover_image ? (
                       <div className="relative">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={article.cover_image} alt={article.title} className="w-full aspect-video object-cover" />
+                        <FocalImage src={article.cover_image} alt={article.title} className="w-full aspect-video object-cover" focalPoint={article.focal_x != null && article.focal_y != null ? { x: article.focal_x, y: article.focal_y } : null} />
                         <div className="absolute top-1.5 right-1.5 z-10">
                           <HeartButton item={{ id: article.id, type: 'article', slug: article.slug, title: article.title, image: article.cover_image, price: null }} />
                         </div>

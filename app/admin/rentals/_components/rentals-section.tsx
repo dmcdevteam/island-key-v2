@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { FocalPointPicker, type FocalPoint } from '@/components/admin/FocalPointPicker'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -18,6 +19,7 @@ type Rental = {
   tier_visibility: string[]; images: string[] | null; features: string[] | null
   requirements: string | null; provider_id: string | null; is_active: boolean
   is_featured: boolean; sort_order: number; created_at: string
+  focal_x: number | null; focal_y: number | null
 }
 
 type RentalExtra = {
@@ -169,6 +171,11 @@ function VehicleForm({
   const [featureInput, setFeatureInput] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [focalPoint, setFocalPoint] = useState<FocalPoint | null>(
+    initial?.focal_x != null && initial?.focal_y != null
+      ? { x: initial.focal_x, y: initial.focal_y }
+      : null
+  )
 
   // Image state
   const [imageItems, setImageItems] = useState<ImageItem[]>(
@@ -351,6 +358,8 @@ function VehicleForm({
       is_active: form.is_active,
       sort_order: Number(form.sort_order) || 0,
       images: imageItems.map(i => i.url),
+      focal_x: focalPoint?.x ?? null,
+      focal_y: focalPoint?.y ?? null,
     }
     const url = initial ? `/api/admin/rentals/${initial.id}` : '/api/admin/rentals'
     const method = initial ? 'PUT' : 'POST'
@@ -516,6 +525,13 @@ function VehicleForm({
                   className="absolute top-0.5 right-0.5 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center hover:bg-red-600">×</button>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Focal point */}
+        {imageItems.length > 0 && (
+          <div className="mb-3">
+            <FocalPointPicker imageUrl={imageItems[0].url} focalPoint={focalPoint} onChange={setFocalPoint} />
           </div>
         )}
 

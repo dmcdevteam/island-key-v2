@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import type { Activity, Provider } from '@/lib/types'
 import { CATEGORY_LABELS } from '@/lib/utils'
+import { FocalPointPicker, type FocalPoint } from '@/components/admin/FocalPointPicker'
 
 type FormData = Omit<Activity, 'id' | 'created_at' | 'updated_at'>
 
@@ -70,6 +71,11 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
   const [folderSuccess, setFolderSuccess]     = useState('')
 
   const [imageItems, setImageItems] = useState<ImageItem[]>(() => initImages(activity))
+  const [focalPoint, setFocalPoint] = useState<FocalPoint | null>(
+    activity?.focal_x != null && activity?.focal_y != null
+      ? { x: activity.focal_x, y: activity.focal_y }
+      : null
+  )
 
   const [form, setForm] = useState({
     title:               activity?.title ?? '',
@@ -397,6 +403,8 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
         secondary_categories: form.secondary_categories.length > 0 ? form.secondary_categories : null,
         images:              imageItems.map(i => i.url),
         image_alts:          imageItems.map(i => i.alt),
+        focal_x:             focalPoint?.x ?? null,
+        focal_y:             focalPoint?.y ?? null,
         item_type:           form.item_type as 'activity' | 'service',
         sort_order:          parseInt(form.sort_order) || 0,
         is_featured:         form.is_featured,
@@ -735,6 +743,17 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Focal point picker — cover image only */}
+            {imageItems.length > 0 && (
+              <div className="mb-3">
+                <FocalPointPicker
+                  imageUrl={imageItems[0].url}
+                  focalPoint={focalPoint}
+                  onChange={setFocalPoint}
+                />
               </div>
             )}
 

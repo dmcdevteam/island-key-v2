@@ -5,6 +5,8 @@ import type { Tier, ActivityCategory, Deal } from '@/lib/types';
 import { TIER_LABELS, TIER_COLORS, CATEGORY_LABELS, formatPrice, timeRemaining } from '@/lib/utils';
 import { useFavourites } from '@/app/_components/favourites-provider';
 import type { FavouriteToggleItem } from '@/app/_components/favourites-provider';
+import { FocalImage } from '@/components/FocalImage';
+import type { FocalPoint } from '@/components/FocalImage';
 
 // ─── HEART BUTTON ───
 export function HeartButton({ item, className }: { item: FavouriteToggleItem; className?: string }) {
@@ -155,6 +157,7 @@ interface ActivityCardProps {
   priceFrom: number;
   duration: string;
   imageUrl?: string | null;
+  focalPoint?: FocalPoint | null;
   externalRating?: number | null;
   externalRatingCount?: number | null;
   externalRatingSource?: string | null;
@@ -165,7 +168,7 @@ interface ActivityCardProps {
   onClick?: () => void;
 }
 
-export function ActivityCard({ title, description, category, priceFrom, duration, imageUrl, externalRating, externalRatingCount, externalRatingSource, heartItem, onClick }: ActivityCardProps) {
+export function ActivityCard({ title, description, category, priceFrom, duration, imageUrl, focalPoint, externalRating, externalRatingCount, externalRatingSource, heartItem, onClick }: ActivityCardProps) {
   const icon = CATEGORY_ICONS[category] ?? '🌟';
   return (
     <div
@@ -175,11 +178,11 @@ export function ActivityCard({ title, description, category, priceFrom, duration
       {/* 16:9 image */}
       <div style={{ aspectRatio: '16/9', overflow: 'hidden', background: '#1B2D4F', position: 'relative' }}>
         {imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <FocalImage
             src={imageUrl}
             alt={title}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            focalPoint={focalPoint}
+            style={{ width: '100%', height: '100%', display: 'block' }}
           />
         ) : (
           <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
@@ -215,8 +218,9 @@ export function ActivityCard({ title, description, category, priceFrom, duration
 }
 
 // ─── ACTIVITY MINI CARD (Horizontal scroll — Home screen) ───
-export function ActivityMiniCard({ title, subtitle, priceFrom, category, imageUrl, heartItem, onClick }: {
+export function ActivityMiniCard({ title, subtitle, priceFrom, category, imageUrl, focalPoint, heartItem, onClick }: {
   title: string; subtitle: string; priceFrom: number; category: string; imageUrl?: string | null;
+  focalPoint?: FocalPoint | null;
   heartItem?: FavouriteToggleItem;
   // kept for legacy call sites
   icon?: string; bgGradient?: string;
@@ -231,11 +235,11 @@ export function ActivityMiniCard({ title, subtitle, priceFrom, category, imageUr
       {/* 16:9 image — 200px wide → ~112px tall */}
       <div style={{ aspectRatio: '16/9', overflow: 'hidden', background: '#1B2D4F', position: 'relative' }}>
         {imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <FocalImage
             src={imageUrl}
             alt={title}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            focalPoint={focalPoint}
+            style={{ width: '100%', height: '100%', display: 'block' }}
           />
         ) : (
           <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
