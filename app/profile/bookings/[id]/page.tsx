@@ -55,6 +55,8 @@ interface BookingDetail {
   duration_min: number | null
   group_ref: string | null
   guest_id: string | null
+  driver_name: string | null
+  driver_phone: string | null
 }
 
 function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
@@ -106,9 +108,11 @@ export default function BookingDetailPage() {
   const [cancelDone,       setCancelDone]       = useState(false)
 
   // Activity detail
-  const [activity,     setActivity]     = useState<ActivityDetail | null>(null)
-  const [descExpanded, setDescExpanded] = useState(false)
-  const [mapImgError,  setMapImgError]  = useState(false)
+  const [activity,      setActivity]      = useState<ActivityDetail | null>(null)
+  const [descExpanded,  setDescExpanded]  = useState(false)
+  const [mapImgError,   setMapImgError]   = useState(false)
+  // Transfer route map
+  const [routeMapError, setRouteMapError] = useState(false)
 
   useEffect(() => {
     const session = getSession()
@@ -244,46 +248,214 @@ export default function BookingDetailPage() {
 
       <div className="px-5 mt-5 space-y-4">
 
-        {/* Transfer detail card */}
-        {isTransfer && (
-          <div className="bg-white border border-border-light rounded-2xl overflow-hidden">
-            {/* Route header */}
-            <div className="bg-navy px-4 py-3 flex items-center gap-3">
-              <span className="text-white text-xl">🚗</span>
-              <div>
-                <p className="text-white text-sm font-semibold">
-                  {booking.pickup_location} → {booking.dropoff_location}
+        {/* ══ TRANSFER TRIP REMINDER LAYOUT ══ */}
+        {isTransfer && (() => {
+          const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+          const origin = encodeURIComponent(booking.pickup_location ?? '')
+          const dest   = encodeURIComponent(booking.dropoff_location ?? '')
+          const mapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}`
+          const staticRouteMapUrl = apiKey && !routeMapError && booking.pickup_location && booking.dropoff_location
+            ? `https://maps.googleapis.com/maps/api/staticmap?size=600x300&scale=2&markers=color:0x1A8A7D%7Clabel:A%7C${origin}&markers=color:0x1B2D4F%7Clabel:B%7C${dest}&key=${apiKey}`
+            : null
+          const pickupDt = booking.pickup_at
+            ? new Date(booking.pickup_at)
+            : booking.booking_date
+              ? new Date(`${booking.booking_date}T${booking.booking_time ?? '00:00'}:00`)
+              : null
+          const pickupDay  = pickupDt ? pickupDt.toLocaleDateString('en', { weekday: 'long' }) : ''
+          const pickupDate = pickupDt ? pickupDt.toLocaleDateString('en', { day: 'numeric', month: 'long', year: 'numeric' }) : ''
+          const pickupTime = pickupDt
+            ? pickupDt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+            : (booking.booking_time?.slice(0, 5) ?? '')
+          const vehicleLabel = booking.vehicle_class
+            ? (VEHICLE_LABELS[booking.vehicle_class as VehicleSlug] ?? booking.vehicle_class)
+            : '—'
+          const durationStr = booking.duration_min
+            ? booking.duration_min >= 60
+              ? `~${Math.floor(booking.duration_min / 60)}h ${booking.duration_min % 60}min`
+              : `~${booking.duration_min}min`
+            : null
+          const EXTRAS_LABELS: Record<string, string> = {
+            child_seat: 'Child seat', name_board: 'Name board',
+            welcome_pack: 'Welcome pack', extra_luggage: 'Extra luggage space',
+          }
+
+          return (
+            <>
+              {/* S1 — Trip header card */}
+              <div style={{ background: '#1B2D4F', borderRadius: 16, padding: 20 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 600 }}>
+                    Your transfer
+                  </p>
+                  <span style={{ background: '#1A8A7D', color: 'white', fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '3px 10px' }}>
+                    {st.label}
+                  </span>
+                </div>
+                {/* Route */}
+                <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 3 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#1A8A7D', flexShrink: 0 }} />
+                    <div style={{ width: 1, flex: 1, minHeight: 20, borderLeft: '2px dashed rgba(255,255,255,0.2)', margin: '4px 0' }} />
+                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: 'rgba(255,255,255,0.45)', flexShrink: 0 }} />
+                  </div>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <p style={{ fontSize: 14, color: 'white', fontWeight: 600, lineHeight: 1.3 }}>{booking.pickup_location}</p>
+                    {(durationStr || booking.distance_km) && (
+                      <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', margin: '2px 0' }}>
+                        {[durationStr, booking.distance_km ? `~${booking.distance_km} km` : null].filter(Boolean).join(' · ')}
+                      </p>
+                    )}
+                    <p style={{ fontSize: 14, color: 'white', fontWeight: 600, lineHeight: 1.3 }}>{booking.dropoff_location}</p>
+                  </div>
+                </div>
+                {/* Date + time */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.12)', paddingTop: 12, marginBottom: 8 }}>
+                  <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)' }}>
+                    {pickupDay}{pickupDate ? `, ${pickupDate}` : ''}
+                  </p>
+                  <p style={{ fontSize: 18, color: '#1A8A7D', fontWeight: 700 }}>{pickupTime}</p>
+                </div>
+                {/* Vehicle · pax · luggage */}
+                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)' }}>
+                  {vehicleLabel}{paxCount ? ` · ${paxCount} 👤` : ''}{booking.luggage_count != null ? ` · ${booking.luggage_count} 🧳` : ''}
                 </p>
-                {booking.transfer_type && (
-                  <p className="text-white/60 text-[11px] capitalize">{booking.transfer_type.replace(/_/g, ' ')}</p>
+              </div>
+
+              {/* S2 — Route map */}
+              {booking.pickup_location && booking.dropoff_location && (
+                <div>
+                  {staticRouteMapUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={staticRouteMapUrl}
+                      alt="Route map"
+                      onError={() => setRouteMapError(true)}
+                      style={{ width: '100%', height: 200, objectFit: 'cover', borderRadius: 12, display: 'block', marginBottom: 8 }}
+                    />
+                  )}
+                  <a
+                    href={mapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, height: 44, borderRadius: 10, background: 'white', border: '1px solid #E5E7EB', paddingLeft: 12, paddingRight: 12, textDecoration: 'none' }}
+                  >
+                    <span style={{ color: '#1A8A7D', fontSize: 16, flexShrink: 0 }}>📍</span>
+                    <span style={{ flex: 1, fontSize: 13, color: '#1A8A7D', fontWeight: 600 }}>Open route in Google Maps</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A8A7D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                    </svg>
+                  </a>
+                </div>
+              )}
+
+              {/* S3 — Flight info */}
+              {booking.flight_number && (
+                <div style={{ background: '#F0F4F8', borderRadius: 12, padding: 16 }}>
+                  <p style={{ fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6B7280', fontWeight: 600, marginBottom: 8 }}>
+                    ✈ Flight details
+                  </p>
+                  <p style={{ fontSize: 16, color: '#1B2D4F', fontWeight: 700, marginBottom: 4 }}>{booking.flight_number}</p>
+                  <p style={{ fontSize: 12, color: '#6B7280', fontStyle: 'italic' }}>We monitor delays and adjust if needed.</p>
+                </div>
+              )}
+
+              {/* S4 — Driver info */}
+              <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 12, padding: 16 }}>
+                <p style={{ fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6B7280', fontWeight: 600, marginBottom: 10 }}>
+                  🚗 {booking.driver_name ? 'Your driver' : 'Driver'}
+                </p>
+                {booking.driver_name ? (
+                  <>
+                    <p style={{ fontSize: 15, color: '#1B2D4F', fontWeight: 600, marginBottom: 4 }}>{booking.driver_name}</p>
+                    {booking.driver_phone && (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 }}>
+                        <p style={{ fontSize: 13, color: '#6B7280' }}>{booking.driver_phone}</p>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <a href={`tel:${booking.driver_phone}`}
+                            style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 8, background: 'white', border: '1px solid #1B2D4F', fontSize: 12, color: '#1B2D4F', fontWeight: 600, textDecoration: 'none' }}>
+                            📞 Call
+                          </a>
+                          <a href={`https://wa.me/${booking.driver_phone.replace(/\D/g, '')}`}
+                            target="_blank" rel="noopener noreferrer"
+                            style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 8, background: '#1A8A7D', color: 'white', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
+                            💬 WhatsApp
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <p style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.5 }}>
+                    Your driver will be assigned and you&apos;ll be notified within 2 hours of pickup.
+                  </p>
                 )}
               </div>
-            </div>
-            <div className="px-4">
-              <DetailRow label="Pickup">
-                {booking.pickup_at ? formatPickupFull(booking.pickup_at) : `${formatDateFull(booking.booking_date)}${booking.booking_time ? ` · ${booking.booking_time.slice(0, 5)}` : ''}`}
-              </DetailRow>
-              <DetailRow label="Vehicle">
-                {booking.vehicle_class ? (VEHICLE_LABELS[booking.vehicle_class as VehicleSlug] ?? booking.vehicle_class) : '—'}
-              </DetailRow>
-              <DetailRow label="Passengers">
-                {paxCount} pax{booking.luggage_count != null ? ` · ${booking.luggage_count} bags` : ''}
-              </DetailRow>
-              {booking.flight_number && (
-                <DetailRow label="Flight">{booking.flight_number}</DetailRow>
-              )}
+
+              {/* S5 — Extras */}
               {booking.extras && booking.extras.length > 0 && (
-                <DetailRow label="Extras">{booking.extras.map(e => e.replace(/_/g, ' ')).join(', ')}</DetailRow>
+                <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 12, padding: 16 }}>
+                  <p style={{ fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6B7280', fontWeight: 600, marginBottom: 10 }}>
+                    ✓ Included extras
+                  </p>
+                  <div className="space-y-2">
+                    {booking.extras.map(ex => (
+                      <div key={ex} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ color: '#1A8A7D', fontWeight: 700, fontSize: 13 }}>✓</span>
+                        <span style={{ fontSize: 13, color: '#1B2D4F', lineHeight: 1.8 }}>
+                          {EXTRAS_LABELS[ex] ?? ex.replace(/_/g, ' ')}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
-              {booking.distance_km != null && booking.distance_km > 0 && (
-                <DetailRow label="Distance">~{booking.distance_km} km{booking.duration_min ? ` · ~${Math.floor(booking.duration_min / 60)}h ${booking.duration_min % 60}min` : ''}</DetailRow>
+
+              {/* S6 — Trip reminders */}
+              <div style={{ background: '#FDFCFA', borderLeft: '4px solid #1A8A7D', borderRadius: '0 12px 12px 0', padding: 16 }}>
+                <p style={{ fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6B7280', fontWeight: 600, marginBottom: 10 }}>
+                  💡 Good to know
+                </p>
+                <div className="space-y-2">
+                  {[
+                    'Your driver will meet you at the pickup point with a name board',
+                    'Please be ready 5 minutes before your pickup time',
+                    'Free cancellation up to 24h before pickup',
+                    'Flight delayed? We monitor and adjust — no need to call',
+                  ].map(tip => (
+                    <div key={tip} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                      <span style={{ color: '#1A8A7D', fontWeight: 700, fontSize: 13, flexShrink: 0, marginTop: 1 }}>✓</span>
+                      <span style={{ fontSize: 13, color: '#4B5563', lineHeight: 1.5 }}>{tip}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* S7 — Reference + price */}
+              <div className="bg-white border border-border-light rounded-xl px-4">
+                <DetailRow label="Reference">
+                  <span className="font-mono text-sm">{booking.confirmation_code}</span>
+                </DetailRow>
+                <DetailRow label="Total paid">
+                  {booking.total_price > 0 ? `€${booking.total_price}` : 'Price on enquiry'}
+                </DetailRow>
+                <DetailRow label="Booked on">
+                  {new Date(booking.created_at).toLocaleDateString('en', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </DetailRow>
+                {booking.group_ref && (
+                  <DetailRow label="Group ref">
+                    <span className="font-mono text-xs">{booking.group_ref}</span>
+                  </DetailRow>
+                )}
+              </div>
+              {booking.group_ref && (
+                <p style={{ fontSize: 12, color: '#6B7280', textAlign: 'center', marginTop: -8 }}>
+                  ↔ This is part of a return trip booking.
+                </p>
               )}
-              {(booking.notes || booking.guest_notes) && (
-                <DetailRow label="Notes">{booking.notes ?? booking.guest_notes}</DetailRow>
-              )}
-            </div>
-          </div>
-        )}
+            </>
+          )
+        })()}
 
         {/* Activity detail card */}
         {!isTransfer && (
@@ -304,8 +476,8 @@ export default function BookingDetailPage() {
           </div>
         )}
 
-        {/* Pricing card */}
-        <div className="bg-white border border-border-light rounded-2xl px-4">
+        {/* Pricing card — activities only (transfers have S7 above) */}
+        {!isTransfer && <div className="bg-white border border-border-light rounded-2xl px-4">
           <DetailRow label="Total paid">
             {booking.total_price > 0 ? `€${booking.total_price}` : 'Price on enquiry'}
           </DetailRow>
@@ -322,7 +494,7 @@ export default function BookingDetailPage() {
               <span className="font-mono text-xs">{booking.group_ref}</span>
             </DetailRow>
           )}
-        </div>
+        </div>}
 
         {/* About this experience */}
         {!isTransfer && activity && (
