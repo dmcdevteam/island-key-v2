@@ -69,7 +69,7 @@ function ResultsContent() {
         const images:   Record<string, string | null> = {};
         const examples: Record<string, string | null> = {};
         for (const vt of (json.vehicleTypes ?? [])) {
-          const slug = vt.category
+          const slug = vt.slug ?? vt.category
             ?? vt.name?.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z_]/g, '');
           if (slug) {
             images[slug]   = vt.image_url    ?? null;

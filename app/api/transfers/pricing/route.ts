@@ -6,7 +6,7 @@ export async function GET() {
 
   const [formulaRes, vtRes, routesRes] = await Promise.all([
     supabase.from('transfer_formula').select('vehicle_slug, zone_config, airport_multiplier'),
-    supabase.from('vehicle_types').select('name, category, image_url, example_models').order('sort_order'),
+    supabase.from('vehicle_types').select('slug, name, category, image_url, example_models').order('sort_order'),
     supabase
       .from('transfer_routes')
       .select('id, from_location, to_location, slug, transfer_prices(vehicle_type_id, price, original_price, discount_label, vehicle_types(slug))')
