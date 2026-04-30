@@ -119,23 +119,25 @@ export function FloatingBookingsPill({ bookings }: { bookings: UpcomingBooking[]
         />
       )}
 
-      {/* Bottom drawer — full screen width */}
+      {/* Bottom drawer — full screen width, flex column so cards area can scroll */}
       <div
         className="fixed bottom-0 left-0 right-0 bg-white z-50 transition-transform duration-300"
         style={{
           borderRadius: '20px 20px 0 0',
-          maxHeight: '65vh',
+          maxHeight: '70vh',
           boxShadow: '0 -4px 32px rgba(0,0,0,0.12)',
           transform: open ? 'translateY(0)' : 'translateY(100%)',
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
-        {/* Drag handle */}
-        <div className="flex justify-center pt-3 pb-1">
+        {/* Drag handle — fixed */}
+        <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
           <div className="w-12 h-1 rounded-full" style={{ background: '#D1D5DB' }} />
         </div>
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+        {/* Header — fixed */}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 flex-shrink-0">
           <h2 className="text-base font-semibold" style={{ color: '#1B2D4F' }}>
             Your upcoming bookings
           </h2>
@@ -147,9 +149,15 @@ export function FloatingBookingsPill({ bookings }: { bookings: UpcomingBooking[]
           </button>
         </div>
 
-        {/* Cards */}
-        <div className="overflow-y-auto" style={{ maxHeight: 'calc(65vh - 80px)' }}>
-          <div style={{ padding: '12px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* Cards — scrollable */}
+        <div
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            WebkitOverflowScrolling: 'touch' as const,
+          }}
+        >
+          <div style={{ padding: '12px 20px', display: 'flex', flexDirection: 'column', gap: 12, paddingBottom: 24 }}>
             {sorted.map(b => {
               const isTransfer = b.item_type === 'transfer'
               const icon  = isTransfer ? '🚗' : '🏄'
