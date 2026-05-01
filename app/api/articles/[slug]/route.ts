@@ -9,7 +9,7 @@ export async function GET(_req: Request, { params }: { params: { slug: string } 
     .from('articles')
     .select('*')
     .eq('slug', params.slug)
-    .eq('is_active', true)
+    .eq('is_published', true)
     .lte('published_at', now)
     .single()
 

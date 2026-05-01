@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   let query = supabase
     .from('articles')
     .select('*')
-    .eq('is_active', true)
+    .eq('is_published', true)
     .lte('published_at', now)
     .order('published_at', { ascending: false })
     .limit(limit)
