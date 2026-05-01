@@ -124,7 +124,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
 
   // Login page: render children only — no sidebar, no chrome
-  if (pathname === '/admin/login' || pathname === '/admin') {
+  if (pathname === '/admin/login') {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#1B2D4F' }}>
         {children}
