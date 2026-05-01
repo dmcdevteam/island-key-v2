@@ -191,6 +191,11 @@ export function TransferBookingsSection() {
                         {b.transfer_type.replace('_', ' ')}
                       </span>
                     )}
+                    {b.group_ref && (
+                      <span className="text-[11px] border border-teal/40 text-teal px-2 py-0.5 rounded-full font-medium">
+                        ↔ Return trip
+                      </span>
+                    )}
                   </div>
                   <p className="text-sm font-semibold text-navy">
                     {b.pickup_location ?? '—'} → {b.dropoff_location ?? '—'}
@@ -215,6 +220,11 @@ export function TransferBookingsSection() {
                   {b.driver_name && (
                     <p className="text-xs text-teal font-medium">
                       Driver: {b.driver_name}{b.driver_phone ? ` · ${b.driver_phone}` : ''}
+                    </p>
+                  )}
+                  {b.group_ref && (
+                    <p className="text-xs text-gray-400">
+                      ↔ Part of return trip · Ref: <span className="font-mono">{b.group_ref}</span>
                     </p>
                   )}
                 </div>

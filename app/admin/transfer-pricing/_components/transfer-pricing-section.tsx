@@ -31,7 +31,152 @@ interface PriceEntry {
   discount_label: string | null
 }
 
-type Tab = 'preset' | 'formula'
+type Tab = 'preset' | 'formula' | 'return'
+
+// ─── Return Trip Pricing Tab ──────────────────────────────────────────────────
+
+interface ReturnPricingSettings {
+  mode: 'same' | 'discount'
+  discount_percent: number
+  display_mode: 'total' | 'per_leg_and_total'
+  discount_label: string | null
+}
+
+const RETURN_PRICING_DEFAULT: ReturnPricingSettings = {
+  mode: 'same',
+  discount_percent: 100,
+  display_mode: 'per_leg_and_total',
+  discount_label: null,
+}
+
+function ReturnPricingTab() {
+  const [settings, setSettings] = useState<ReturnPricingSettings>(RETURN_PRICING_DEFAULT)
+  const [loading,  setLoading]  = useState(true)
+  const [saving,   setSaving]   = useState(false)
+  const [saved,    setSaved]    = useState(false)
+
+  useEffect(() => {
+    fetch('/api/admin/transfer-settings')
+      .then(r => r.json())
+      .then(data => { if (data?.mode) setSettings(data); setLoading(false) })
+      .catch(() => setLoading(false))
+  }, [])
+
+  async function save() {
+    setSaving(true)
+    await fetch('/api/admin/transfer-settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(settings),
+    })
+    setSaving(false)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2500)
+  }
+
+  if (loading) return <div className="py-12 text-center text-sm text-gray-400">Loading…</div>
+
+  return (
+    <div className="max-w-lg space-y-5">
+      <p className="text-xs text-gray-500">
+        Configure how return leg pricing is calculated and displayed to guests on the vehicle selection screen.
+      </p>
+
+      {/* Return leg price mode */}
+      <div className="bg-white border border-gray-100 rounded-xl p-5 space-y-4">
+        <p className="text-sm font-semibold text-navy">Return leg price</p>
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="radio"
+            checked={settings.mode === 'same'}
+            onChange={() => setSettings(s => ({ ...s, mode: 'same' }))}
+            className="mt-0.5 accent-teal"
+          />
+          <div>
+            <p className="text-sm font-medium text-gray-700">Same price as outbound (default)</p>
+            <p className="text-xs text-gray-400">Guest pays the same price for both legs</p>
+          </div>
+        </label>
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="radio"
+            checked={settings.mode === 'discount'}
+            onChange={() => setSettings(s => ({ ...s, mode: 'discount' }))}
+            className="mt-0.5 accent-teal"
+          />
+          <div>
+            <p className="text-sm font-medium text-gray-700">Apply discount to return leg</p>
+            <p className="text-xs text-gray-400">Return price = outbound × percentage</p>
+          </div>
+        </label>
+        {settings.mode === 'discount' && (
+          <div className="ml-6 flex items-center gap-3">
+            <span className="text-xs text-gray-500">Return price =</span>
+            <input
+              type="number"
+              min="1"
+              max="100"
+              step="1"
+              value={settings.discount_percent}
+              onChange={e => setSettings(s => ({ ...s, discount_percent: Number(e.target.value) }))}
+              className="w-16 border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-navy outline-none focus:border-teal"
+            />
+            <span className="text-xs text-gray-500">% of outbound</span>
+            <span className="text-xs text-gray-400">
+              (e.g. 90 = 10% off return)
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Display mode */}
+      <div className="bg-white border border-gray-100 rounded-xl p-5 space-y-4">
+        <p className="text-sm font-semibold text-navy">Show to guest as</p>
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input
+            type="radio"
+            checked={settings.display_mode === 'per_leg_and_total'}
+            onChange={() => setSettings(s => ({ ...s, display_mode: 'per_leg_and_total' }))}
+            className="accent-teal"
+          />
+          <span className="text-sm text-gray-700">Show per-leg prices + combined total</span>
+        </label>
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input
+            type="radio"
+            checked={settings.display_mode === 'total'}
+            onChange={() => setSettings(s => ({ ...s, display_mode: 'total' }))}
+            className="accent-teal"
+          />
+          <span className="text-sm text-gray-700">Show combined total only</span>
+        </label>
+      </div>
+
+      {/* Discount label */}
+      <div className="bg-white border border-gray-100 rounded-xl p-5 space-y-3">
+        <p className="text-sm font-semibold text-navy">
+          Return discount label <span className="font-normal text-gray-400">(optional)</span>
+        </p>
+        <input
+          type="text"
+          value={settings.discount_label ?? ''}
+          onChange={e => setSettings(s => ({ ...s, discount_label: e.target.value || null }))}
+          placeholder="e.g. Return trip discount"
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-navy outline-none focus:border-teal"
+        />
+        <p className="text-xs text-gray-400">Shown as a small badge on the return price line.</p>
+      </div>
+
+      <button
+        onClick={save}
+        disabled={saving}
+        className="px-5 py-2.5 bg-teal text-white text-sm font-semibold rounded-lg disabled:opacity-50"
+      >
+        {saved ? 'Saved ✓' : saving ? 'Saving…' : 'Save return pricing'}
+      </button>
+    </div>
+  )
+}
 
 // ─── Preset Routes Tab ───────────────────────────────────────────────────────
 
@@ -477,7 +622,7 @@ export function TransferPricingSection() {
       <h1 className="text-xl font-bold text-navy mb-6">Transfer Pricing</h1>
 
       <div className="flex gap-2 mb-6">
-        {([['preset', 'Preset Routes'], ['formula', 'P2P Formula']] as [Tab, string][]).map(([t, label]) => (
+        {([['preset', 'Preset Routes'], ['formula', 'P2P Formula'], ['return', 'Return Pricing']] as [Tab, string][]).map(([t, label]) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -492,6 +637,7 @@ export function TransferPricingSection() {
 
       {tab === 'preset'  && <PresetTab />}
       {tab === 'formula' && <FormulaTab />}
+      {tab === 'return'  && <ReturnPricingTab />}
     </div>
   )
 }

@@ -49,6 +49,7 @@ function ResultsContent() {
   const [vtExamples,   setVtExamples]   = useState<Record<string, string | null>>({});
   // Preset prices keyed by vehicle slug: { price, original_price, discount_label }
   const [presetPrices, setPresetPrices] = useState<Record<string, { price: number; original_price: number | null; discount_label: string | null }> | null>(null);
+  const [returnPricing, setReturnPricing] = useState<{ mode: string; discount_percent: number; display_mode: string; discount_label: string | null }>({ mode: 'same', discount_percent: 100, display_mode: 'per_leg_and_total', discount_label: null });
   const [mapsReady, setMapsReady] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -63,8 +64,9 @@ function ResultsContent() {
   useEffect(() => {
     fetch('/api/transfers/pricing')
       .then(r => r.json())
-      .then((json: { formulas?: any[]; vehicleTypes?: any[]; presetRoutes?: any[] }) => {
+      .then((json: { formulas?: any[]; vehicleTypes?: any[]; presetRoutes?: any[]; returnPricing?: any }) => {
         setFormulas(parseDbFormulas(json.formulas ?? []));
+        if (json.returnPricing) setReturnPricing(json.returnPricing);
         // Build slug-keyed maps for image/examples from vehicle_types rows
         const images:   Record<string, string | null> = {};
         const examples: Record<string, string | null> = {};
@@ -170,6 +172,14 @@ function ResultsContent() {
       original_price: presetPrices?.[slug]?.original_price ?? null,
       discount_label: presetPrices?.[slug]?.discount_label ?? null,
     };
+  }
+
+  function getReturnPrice(slug: VehicleSlug): number {
+    const outbound = getPrice(slug);
+    if (returnPricing.mode === 'discount') {
+      return Math.round(outbound * returnPricing.discount_percent / 100);
+    }
+    return outbound;
   }
 
   const estArrival = dur > 0 ? addMinutes(time, dur) : '';
@@ -327,7 +337,8 @@ function ResultsContent() {
           const price = getPrice(slug);
           const { original_price, discount_label } = getDiscount(slug);
           const isBest = idx === 0;
-          const totalPrice = hasReturn ? price * 2 : price;
+          const returnPrice = hasReturn ? getReturnPrice(slug) : 0;
+          const totalPrice  = hasReturn ? price + returnPrice : price;
 
           return (
             <Fragment key={slug}>
@@ -367,7 +378,18 @@ function ResultsContent() {
                           )}
                           {hasReturn ? (
                             <>
-                              <p className="text-[10px] text-tx-light">€{price} × 2</p>
+                              {returnPricing.display_mode !== 'total' && (
+                                <p className="text-[10px] text-tx-light">
+                                  {returnPricing.mode === 'discount' && returnPrice !== price
+                                    ? `€${price} + €${returnPrice}`
+                                    : `€${price} × 2`}
+                                </p>
+                              )}
+                              {returnPricing.mode === 'discount' && returnPricing.discount_label && (
+                                <span className="text-[9px] bg-teal/10 text-teal px-1.5 py-0.5 rounded-full font-semibold block mb-0.5">
+                                  {returnPricing.discount_label}
+                                </span>
+                              )}
                               <p className={`text-base font-bold ${original_price ? 'text-red-500' : 'text-navy'}`}>€{totalPrice}</p>
                             </>
                           ) : (
