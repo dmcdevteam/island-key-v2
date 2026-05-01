@@ -119,18 +119,19 @@ function NavContent({ onNavClick }: { onNavClick?: () => void }) {
   )
 }
 
-export function AdminShell({ children }: { children: React.ReactNode }) {
+// Bare navy shell — login page only, no hooks
+function LoginShell({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ minHeight: '100vh', backgroundColor: '#1B2D4F' }}>
+      {children}
+    </div>
+  )
+}
+
+// Full admin shell — all hooks called unconditionally, no early returns
+function FullShell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
-
-  // Login page: render children only — no sidebar, no chrome
-  if (pathname === '/admin/login') {
-    return (
-      <div style={{ minHeight: '100vh', backgroundColor: '#1B2D4F' }}>
-        {children}
-      </div>
-    )
-  }
 
   // Close sidebar whenever route changes (after mobile nav tap)
   useEffect(() => { setOpen(false) }, [pathname])
@@ -192,5 +193,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   )
 }
 
-// Keep old name exported so any direct imports still work
+// Router — only usePathname here, used immediately, no other hooks
+export function AdminShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
+  if (pathname === '/admin/login') {
+    return <LoginShell>{children}</LoginShell>
+  }
+  return <FullShell>{children}</FullShell>
+}
+
 export { AdminShell as Sidebar }
