@@ -53,7 +53,7 @@ type FormState = Omit<ArticleFull, 'id' | 'created_at'>
 function emptyForm(): FormState {
   return {
     title: '', slug: '', subtitle: null, body: null, excerpt: null, category: null,
-    author: 'Island Key', author_bio: null, read_time_minutes: null,
+    author: 'Island Key', author_bio: null, read_time_min: null,
     cover_image: null, image_wide: null, image_square: null, images: null, tags: null,
     meta_title: null, meta_description: null, og_image: null,
     region: 'chania', is_featured: false, is_active: true,
@@ -85,7 +85,7 @@ function ArticleEditor({ article, onSave, onClose }: {
   const [form, setForm] = useState<FormState>(() => article ? {
     title: article.title, slug: article.slug, subtitle: article.subtitle, body: article.body,
     excerpt: article.excerpt, category: article.category, author: article.author,
-    author_bio: article.author_bio, read_time_minutes: article.read_time_minutes,
+    author_bio: article.author_bio, read_time_min: article.read_time_min,
     cover_image: article.cover_image,
     image_wide: article.image_wide ?? null, image_square: article.image_square ?? null,
     images: article.images, tags: article.tags,
@@ -141,7 +141,7 @@ function ArticleEditor({ article, onSave, onClose }: {
     try {
       const payload: Partial<FormState> = {
         ...form,
-        read_time_minutes: form.read_time_minutes ?? readTime,
+        read_time_min: form.read_time_min ?? readTime,
         meta_title: form.meta_title || form.title,
         meta_description: form.meta_description || form.excerpt || null,
         og_image: form.og_image || form.cover_image,
@@ -314,7 +314,7 @@ function ArticleEditor({ article, onSave, onClose }: {
               <span className="text-sm text-tx-light">Auto: ~{readTime} min</span>
               <div className="flex-1">
                 <input type="number" min="1" className={INPUT} placeholder="Override…"
-                  value={form.read_time_minutes ?? ''} onChange={e => set('read_time_minutes', e.target.value ? Number(e.target.value) : null)} />
+                  value={form.read_time_min ?? ''} onChange={e => set('read_time_min', e.target.value ? Number(e.target.value) : null)} />
               </div>
             </div>
           </section>
@@ -488,7 +488,7 @@ export function ArticlesSection() {
                   <td className="py-2.5 pr-4 font-medium text-navy max-w-[200px] truncate">{a.title}</td>
                   <td className="py-2.5 pr-4 text-tx-light capitalize text-xs">{a.category?.replace('_', ' ') ?? '—'}</td>
                   <td className="py-2.5 pr-4 text-tx-light text-xs">{a.author}</td>
-                  <td className="py-2.5 pr-4 text-tx-light text-xs">{a.read_time_minutes ? `${a.read_time_minutes} min` : '—'}</td>
+                  <td className="py-2.5 pr-4 text-tx-light text-xs">{a.read_time_min ? `${a.read_time_min} min` : '—'}</td>
                   <td className="py-2.5 pr-4">{statusBadge(a)}</td>
                   <td className="py-2.5 pr-4">
                     <Toggle checked={a.is_featured} onChange={() => handleToggle(a, 'is_featured')} />

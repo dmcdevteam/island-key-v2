@@ -134,7 +134,7 @@ export default function InsightsPage() {
                   <div className="flex items-center gap-3 mt-2 text-[11px] text-tx-light">
                     <span>{relativeDate(featured.published_at)}</span>
                     <span>·</span>
-                    <span>{featured.read_time_minutes} min read</span>
+                    <span>{featured.read_time_min} min read</span>
                   </div>
                 </div>
               </button>
@@ -173,7 +173,7 @@ export default function InsightsPage() {
                     <div className="p-2.5">
                       <h3 className="font-semibold text-xs text-navy mb-1 leading-snug line-clamp-2">{article.title}</h3>
                       {article.excerpt && <p className="text-[10px] text-tx-light line-clamp-2 mb-1">{article.excerpt}</p>}
-                      <span className="text-[10px] text-tx-light">{article.read_time_minutes} min read</span>
+                      <span className="text-[10px] text-tx-light">{article.read_time_min} min read</span>
                     </div>
                   </button>
                 )

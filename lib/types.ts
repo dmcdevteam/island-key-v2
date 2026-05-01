@@ -398,7 +398,7 @@ export interface ArticleFull {
   category: string | null;
   author: string;
   author_bio: string | null;
-  read_time_minutes: number | null;
+  read_time_min: number | null;
   cover_image: string | null;
   image_wide: string | null;
   image_square: string | null;

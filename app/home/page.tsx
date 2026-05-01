@@ -590,7 +590,7 @@ export default function HomePage() {
                   title={a.title}
                   excerpt={a.excerpt ?? ''}
                   category={(a.category ?? 'other').replace('_', ' ')}
-                  readTime={a.read_time_minutes ?? 0}
+                  readTime={a.read_time_min ?? 0}
                   bgGradient={style.bg}
                   tagColor={style.tagColor}
                   onClick={() => router.push(`/insights/${a.slug}`)}

@@ -124,8 +124,8 @@ export default function ArticleDetailPage() {
               style={{ background: style.tagColor }}>{article.category.replace('_', ' ')}</span>
           )}
           <span className="text-xs text-tx-light">{relativeDate(article.published_at)}</span>
-          {article.read_time_minutes && (
-            <span className="text-xs text-tx-light">· {article.read_time_minutes} min read</span>
+          {article.read_time_min && (
+            <span className="text-xs text-tx-light">· {article.read_time_min} min read</span>
           )}
         </div>
 
@@ -187,7 +187,7 @@ export default function ArticleDetailPage() {
                   )}
                   <div className="flex-1 min-w-0">
                     <h4 className="text-sm font-semibold text-navy line-clamp-2 leading-snug">{rel.title}</h4>
-                    {rel.read_time_minutes && <p className="text-[11px] text-tx-light mt-0.5">{rel.read_time_minutes} min read</p>}
+                    {rel.read_time_min && <p className="text-[11px] text-tx-light mt-0.5">{rel.read_time_min} min read</p>}
                   </div>
                 </button>
               ))}
