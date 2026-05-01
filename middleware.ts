@@ -44,7 +44,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // ── 2. API routes — always pass through (routes handle their own auth) ──────
+  // ── 2. Admin API routes — require valid admin session ───────────────────────
+  if (pathname.startsWith('/api/admin')) {
+    const { user } = await getUser(request)
+    if (!isAdminEmail(user?.email)) {
+      return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+    }
+    return NextResponse.next()
+  }
+
+  // ── 2b. Other API routes — always pass through ────────────────────────────
   if (pathname.startsWith('/api')) {
     return NextResponse.next()
   }

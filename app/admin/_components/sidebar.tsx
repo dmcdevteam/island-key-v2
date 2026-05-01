@@ -123,6 +123,15 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
 
+  // Login page: render children only — no sidebar, no chrome
+  if (pathname === '/admin/login' || pathname === '/admin') {
+    return (
+      <div style={{ minHeight: '100vh', backgroundColor: '#1B2D4F' }}>
+        {children}
+      </div>
+    )
+  }
+
   // Close sidebar whenever route changes (after mobile nav tap)
   useEffect(() => { setOpen(false) }, [pathname])
 
