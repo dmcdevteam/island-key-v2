@@ -413,7 +413,7 @@ export interface ArticleFull {
   og_image: string | null;
   region: string;
   is_featured: boolean;
-  is_active: boolean;
+  is_published: boolean;
   sort_order: number;
   published_at: string | null;
   created_at: string;

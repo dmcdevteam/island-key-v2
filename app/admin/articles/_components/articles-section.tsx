@@ -34,7 +34,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void 
 }
 
 function statusBadge(article: ArticleFull) {
-  if (!article.is_active) return <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-500">Draft</span>
+  if (!article.is_published) return <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-500">Draft</span>
   const pub = article.published_at ? new Date(article.published_at) : null
   if (pub && pub > new Date()) return <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-700">Scheduled</span>
   return <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-green-100 text-green-700">Published</span>
@@ -56,7 +56,7 @@ function emptyForm(): FormState {
     author: 'Island Key', author_bio: null, read_time_min: null,
     cover_image: null, image_wide: null, image_square: null, images: null, tags: null,
     meta_title: null, meta_description: null, og_image: null,
-    region: 'chania', is_featured: false, is_active: true,
+    region: 'chania', is_featured: false, is_published: true,
     sort_order: 0, published_at: new Date().toISOString(),
     focal_x: null, focal_y: null, focal_sq_x: null, focal_sq_y: null,
   }
@@ -69,6 +69,7 @@ function ArticleEditor({ article, onSave, onClose }: {
 }) {
   const coverRef = useRef<HTMLInputElement>(null)
   const bodyImgRef = useRef<HTMLInputElement>(null)
+  const slugManuallyEdited = useRef(!!article)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [uploadingCover, setUploadingCover] = useState(false)
@@ -90,7 +91,7 @@ function ArticleEditor({ article, onSave, onClose }: {
     image_wide: article.image_wide ?? null, image_square: article.image_square ?? null,
     images: article.images, tags: article.tags,
     meta_title: article.meta_title, meta_description: article.meta_description, og_image: article.og_image,
-    region: article.region, is_featured: article.is_featured, is_active: article.is_active,
+    region: article.region, is_featured: article.is_featured, is_published: article.is_published,
     sort_order: article.sort_order, published_at: article.published_at,
     focal_x: article.focal_x ?? null, focal_y: article.focal_y ?? null,
     focal_sq_x: article.focal_sq_x ?? null, focal_sq_y: article.focal_sq_y ?? null,
@@ -103,7 +104,7 @@ function ArticleEditor({ article, onSave, onClose }: {
   function handleTitleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const title = e.target.value
     set('title', title)
-    if (!article) set('slug', slugify(title))
+    if (!slugManuallyEdited.current) set('slug', slugify(title))
     if (!form.meta_title) set('meta_title', title)
   }
 
@@ -201,7 +202,7 @@ function ArticleEditor({ article, onSave, onClose }: {
             </div>
             <div>
               <label className={LABEL}>Slug</label>
-              <input className={INPUT} value={form.slug} onChange={e => set('slug', e.target.value)} />
+              <input className={INPUT} value={form.slug} onChange={e => { slugManuallyEdited.current = true; set('slug', e.target.value) }} />
             </div>
             <div>
               <label className={LABEL}>Body</label>
@@ -246,7 +247,7 @@ function ArticleEditor({ article, onSave, onClose }: {
               )}
               <div className="flex items-center justify-between">
                 <span className="text-sm text-tx">Active</span>
-                <Toggle checked={form.is_active} onChange={() => set('is_active', !form.is_active)} />
+                <Toggle checked={form.is_published} onChange={() => set('is_published', !form.is_published)} />
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-tx">Featured</span>
@@ -413,7 +414,7 @@ export function ArticlesSection() {
     load()
   }
 
-  async function handleToggle(a: ArticleFull, field: 'is_featured' | 'is_active') {
+  async function handleToggle(a: ArticleFull, field: 'is_featured' | 'is_published') {
     await fetch(`/api/admin/articles/${a.id}`, {
       method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [field]: !a[field] }),
     })
@@ -429,7 +430,7 @@ export function ArticlesSection() {
 
   async function handleBulkToggle(active: boolean) {
     await Promise.all(Array.from(selected).map(id =>
-      fetch(`/api/admin/articles/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_active: active }) })
+      fetch(`/api/admin/articles/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_published: active }) })
     ))
     setSelected(new Set())
     showToast(`${selected.size} article(s) ${active ? 'activated' : 'deactivated'}`)
