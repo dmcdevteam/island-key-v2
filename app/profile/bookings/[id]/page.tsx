@@ -174,6 +174,19 @@ export default function BookingDetailPage() {
   const canChange   = booking.status === 'pending' || booking.status === 'confirmed' || booking.status === 'enquiry'
   const canBookAgain = booking.status === 'completed' || booking.status === 'cancelled'
 
+  // 24h cancellation window
+  const now = new Date()
+  const pickupTime = booking.pickup_at
+    ? new Date(booking.pickup_at)
+    : booking.booking_date
+      ? new Date(`${booking.booking_date}T00:00:00`)
+      : null
+  const hoursUntilPickup = pickupTime
+    ? (pickupTime.getTime() - now.getTime()) / (1000 * 60 * 60)
+    : -1
+  // enquiry/pending can always cancel; only 'confirmed' is time-gated
+  const cancellationAllowed = booking.status !== 'confirmed' || hoursUntilPickup > 24
+
   async function submitChangeRequest() {
     if (!crNotes.trim() || crSending || !booking) return
     setCrSending(true)
@@ -627,18 +640,49 @@ export default function BookingDetailPage() {
         {/* CTAs */}
         {canChange && (
           <div className="space-y-2">
+            {/* Request changes — greyed out if past 24h window (confirmed only) */}
             <button
-              onClick={() => setShowChangeSheet(true)}
+              onClick={() => cancellationAllowed ? setShowChangeSheet(true) : undefined}
               className="w-full py-3 rounded-xl border-2 border-navy text-navy text-sm font-semibold"
+              style={{ opacity: cancellationAllowed ? 1 : 0.4, pointerEvents: cancellationAllowed ? 'auto' : 'none' }}
             >
               Request changes
             </button>
-            <button
-              onClick={() => setShowCancelSheet(true)}
-              className="w-full py-3 rounded-xl border border-red-200 text-red-500 text-sm font-medium"
-            >
-              Cancel booking
-            </button>
+            {!cancellationAllowed && (
+              <p style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>
+                Changes must be requested more than 24h in advance. Contact us on WhatsApp for help.
+              </p>
+            )}
+
+            {/* Cancel — button if allowed, warning box if window passed */}
+            {cancellationAllowed ? (
+              <button
+                onClick={() => setShowCancelSheet(true)}
+                className="w-full py-3 rounded-xl text-sm font-medium"
+                style={{ background: 'white', border: '1px solid #DC2626', color: '#DC2626' }}
+              >
+                Cancel booking
+              </button>
+            ) : (
+              <div style={{ background: '#FFFBEB', border: '1px solid #F59E0B', borderRadius: 12, padding: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                  <span style={{ color: '#D97706', fontSize: 16 }}>⏱</span>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: '#92400E', margin: 0 }}>Cancellation window has passed</p>
+                </div>
+                <p style={{ fontSize: 13, color: '#4B5563', lineHeight: 1.5, marginBottom: 12 }}>
+                  Free cancellation was available up to 24h before your booking. To discuss options, please contact Island Key directly.
+                </p>
+                <a
+                  href={`https://wa.me/306974176759?text=${encodeURIComponent(`Hi, I need help with my booking ${booking.confirmation_code}.`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#1A8A7D', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}
+                >
+                  <span>💬 Message us on WhatsApp</span>
+                  <span>→</span>
+                </a>
+              </div>
+            )}
           </div>
         )}
         {canBookAgain && (
