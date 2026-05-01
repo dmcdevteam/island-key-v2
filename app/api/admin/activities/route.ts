@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { createServerClient } from '@/lib/supabase'
 import { isAdminAuthed } from '../_lib/auth'
 
@@ -33,5 +34,7 @@ export async function POST(request: Request) {
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  revalidatePath('/activities')
+  if (data?.slug) revalidatePath(`/activities/${data.slug}`)
   return NextResponse.json(data, { status: 201 })
 }

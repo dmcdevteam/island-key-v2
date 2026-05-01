@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { clsx } from 'clsx';
 import type { Tier, ActivityCategory, Deal } from '@/lib/types';
 import { TIER_LABELS, TIER_COLORS, CATEGORY_LABELS, formatPrice, timeRemaining } from '@/lib/utils';
@@ -162,13 +163,14 @@ interface ActivityCardProps {
   externalRatingCount?: number | null;
   externalRatingSource?: string | null;
   heartItem?: FavouriteToggleItem;
+  priority?: boolean;
   // kept for legacy call sites that still pass these — unused when imageUrl is present
   icon?: string;
   bgGradient?: string;
   onClick?: () => void;
 }
 
-export function ActivityCard({ title, description, category, priceFrom, duration, imageUrl, focalPoint, externalRating, externalRatingCount, externalRatingSource, heartItem, onClick }: ActivityCardProps) {
+export function ActivityCard({ title, description, category, priceFrom, duration, imageUrl, focalPoint, externalRating, externalRatingCount, externalRatingSource, heartItem, priority, onClick }: ActivityCardProps) {
   const icon = CATEGORY_ICONS[category] ?? '🌟';
   return (
     <div
@@ -182,6 +184,7 @@ export function ActivityCard({ title, description, category, priceFrom, duration
             src={imageUrl}
             alt={title}
             focalPoint={focalPoint}
+            priority={priority}
             style={{ width: '100%', height: '100%', display: 'block' }}
           />
         ) : (
@@ -376,14 +379,15 @@ export function InfoCard({ icon, title, onClick }: { icon: string; title: string
 }
 
 // ─── SECTION HEADER ───
-export function SectionHeader({ title, linkText, onLink }: { title: string; linkText?: string; onLink?: () => void }) {
+export function SectionHeader({ title, linkText, href, onLink }: { title: string; linkText?: string; href?: string; onLink?: () => void }) {
   return (
     <div className="flex justify-between items-baseline px-5 mb-2.5">
       <h2 className="font-display text-[16px] font-medium text-navy">{title}</h2>
-      {linkText && (
-        <button onClick={onLink} className="text-[11px] font-semibold text-teal">
-          {linkText}
-        </button>
+      {linkText && href && (
+        <Link href={href} className="text-[11px] font-semibold text-teal">{linkText}</Link>
+      )}
+      {linkText && !href && onLink && (
+        <button onClick={onLink} className="text-[11px] font-semibold text-teal">{linkText}</button>
       )}
     </div>
   );

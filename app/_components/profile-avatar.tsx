@@ -1,11 +1,10 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { getSession } from '@/lib/utils'
 import { useEffect, useState } from 'react'
 
 export function ProfileAvatar() {
-  const router = useRouter()
   const [initial, setInitial] = useState<string | null>(null)
 
   useEffect(() => {
@@ -14,8 +13,8 @@ export function ProfileAvatar() {
   }, [])
 
   return (
-    <button
-      onClick={() => router.push('/profile')}
+    <Link
+      href="/profile"
       aria-label="My profile"
       className="w-9 h-9 rounded-full bg-navy flex items-center justify-center flex-shrink-0 active:opacity-70 transition-opacity"
     >
@@ -24,6 +23,6 @@ export function ProfileAvatar() {
       ) : (
         <span className="text-[16px] leading-none">👤</span>
       )}
-    </button>
+    </Link>
   )
 }

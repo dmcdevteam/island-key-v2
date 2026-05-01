@@ -8,9 +8,11 @@ interface Props {
   imageUrl:   string
   focalPoint: FocalPoint | null
   onChange:   (point: FocalPoint) => void
+  aspect?:    '16/9' | '1/1'
+  label?:     string
 }
 
-export function FocalPointPicker({ imageUrl, focalPoint, onChange }: Props) {
+export function FocalPointPicker({ imageUrl, focalPoint, onChange, aspect = '16/9', label }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [dragging,  setDragging]  = useState(false)
 
@@ -49,14 +51,14 @@ export function FocalPointPicker({ imageUrl, focalPoint, onChange }: Props) {
 
   return (
     <div>
-      <p className="text-[11px] text-tx-mid mb-1.5">Drag to set focal point</p>
+      <p className="text-[11px] text-tx-mid mb-1.5">{label ?? 'Drag to set focal point'}</p>
 
       {/* Image canvas */}
       <div
         ref={containerRef}
         onClick={handleContainerClick}
         className="relative w-full rounded-sm border border-border overflow-hidden select-none"
-        style={{ aspectRatio: '16/9', cursor: 'crosshair' }}
+        style={{ aspectRatio: aspect, cursor: 'crosshair' }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img

@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import type { Activity, Provider } from '@/lib/types'
 import { CATEGORY_LABELS } from '@/lib/utils'
 import { FocalPointPicker, type FocalPoint } from '@/components/admin/FocalPointPicker'
+import { ImageUploadGuide } from '@/components/admin/ImageUploadGuide'
 
 type FormData = Omit<Activity, 'id' | 'created_at' | 'updated_at'>
 
@@ -54,12 +55,23 @@ function initImages(activity: Activity | null): ImageItem[] {
 
 export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
   const fileInputRef         = useRef<HTMLInputElement>(null)
+  const coverInputRef        = useRef<HTMLInputElement>(null)
   const folderInputRef       = useRef<HTMLInputElement>(null)
   const [saving, setSaving]               = useState(false)
   const [uploadingCount, setUploadingCount] = useState(0)
+  const [uploadingCover, setUploadingCover] = useState(false)
+  const [coverUploadError, setCoverUploadError] = useState('')
   const [error, setError]                 = useState('')
   const [uploadError, setUploadError]     = useState('')
   const [dragIndex, setDragIndex]         = useState<number | null>(null)
+
+  const [imageWide,   setImageWide]   = useState<string | null>(activity?.image_wide   ?? null)
+  const [imageSquare, setImageSquare] = useState<string | null>(activity?.image_square ?? null)
+  const [focalSq, setFocalSq] = useState<FocalPoint | null>(
+    activity?.focal_sq_x != null && activity?.focal_sq_y != null
+      ? { x: activity.focal_sq_x, y: activity.focal_sq_y }
+      : null
+  )
 
   // Folder upload state
   const [folderName, setFolderName]           = useState<string | null>(null)
@@ -135,6 +147,40 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
         ? form.secondary_categories.filter(c => c !== cat)
         : [...form.secondary_categories, cat]
     )
+  }
+
+  // ── Cover image upload (Sharp variants) ──────────────────────────────────
+  async function handleCoverUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (coverInputRef.current) coverInputRef.current.value = ''
+
+    const mime = getEffectiveMime(file)
+    if (!SUPPORTED_MIME.has(mime)) {
+      setCoverUploadError(`Unsupported format — use JPG, WebP, or AVIF`)
+      return
+    }
+    setCoverUploadError('')
+    setUploadingCover(true)
+
+    const slug = form.slug || slugify(form.title) || undefined
+    const fd = new globalThis.FormData()
+    fd.append('file', file)
+    if (slug) fd.append('slug', slug)
+
+    try {
+      const res = await fetch('/api/upload', { method: 'POST', body: fd })
+      const json = await res.json()
+      if (json.wide && json.square) {
+        setImageWide(json.wide)
+        setImageSquare(json.square)
+      } else {
+        setCoverUploadError(json.error ?? 'Upload failed')
+      }
+    } catch (err) {
+      setCoverUploadError(err instanceof Error ? err.message : 'Upload failed')
+    }
+    setUploadingCover(false)
   }
 
   // ── Multi-image upload ────────────────────────────────────────────────────
@@ -403,8 +449,12 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
         secondary_categories: form.secondary_categories.length > 0 ? form.secondary_categories : null,
         images:              imageItems.map(i => i.url),
         image_alts:          imageItems.map(i => i.alt),
+        image_wide:          imageWide,
+        image_square:        imageSquare,
         focal_x:             focalPoint?.x ?? null,
         focal_y:             focalPoint?.y ?? null,
+        focal_sq_x:          focalSq?.x ?? null,
+        focal_sq_y:          focalSq?.y ?? null,
         item_type:           form.item_type as 'activity' | 'service',
         sort_order:          parseInt(form.sort_order) || 0,
         is_featured:         form.is_featured,
@@ -665,10 +715,71 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
             </div>
           </section>
 
+          {/* Cover Image (Sharp variants) */}
+          <section>
+            <h3 className="text-[11px] font-bold text-tx-mid uppercase tracking-widest mb-3 border-b border-border pb-1.5">Cover Image</h3>
+            <ImageUploadGuide />
+
+            {/* Wide + Square previews */}
+            {(imageWide || imageSquare) && (
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                {imageWide && (
+                  <div>
+                    <p className="text-[10px] font-bold text-tx-light uppercase tracking-wide mb-1">Wide (1200×675)</p>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={imageWide} alt="" className="w-full rounded-sm border border-border" style={{ aspectRatio: '16/9', objectFit: 'cover' }} />
+                    <button type="button" onClick={() => setImageWide(null)}
+                      className="mt-1 text-[10px] text-red-400 hover:text-red-600">Remove</button>
+                  </div>
+                )}
+                {imageSquare && (
+                  <div>
+                    <p className="text-[10px] font-bold text-tx-light uppercase tracking-wide mb-1">Square (600×600)</p>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={imageSquare} alt="" className="w-full rounded-sm border border-border" style={{ aspectRatio: '1/1', objectFit: 'cover' }} />
+                    <button type="button" onClick={() => setImageSquare(null)}
+                      className="mt-1 text-[10px] text-red-400 hover:text-red-600">Remove</button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Focal point pickers */}
+            {imageWide && (
+              <div className="mb-3">
+                <FocalPointPicker
+                  imageUrl={imageWide}
+                  focalPoint={focalPoint}
+                  onChange={setFocalPoint}
+                  aspect="16/9"
+                  label="Wide focal point — drag to set hero crop anchor"
+                />
+              </div>
+            )}
+            {imageSquare && (
+              <div className="mb-3">
+                <FocalPointPicker
+                  imageUrl={imageSquare}
+                  focalPoint={focalSq}
+                  onChange={setFocalSq}
+                  aspect="1/1"
+                  label="Square focal point — drag to set thumbnail crop anchor"
+                />
+              </div>
+            )}
+
+            <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} />
+            <button type="button" onClick={() => coverInputRef.current?.click()} disabled={uploadingCover}
+              className="px-4 py-2 border border-dashed border-border rounded-sm text-sm text-tx-mid hover:border-navy hover:text-navy transition-colors disabled:opacity-50">
+              {uploadingCover ? 'Processing…' : imageWide ? '↺ Replace Cover' : '+ Upload Cover Image'}
+            </button>
+            {coverUploadError && <p className="mt-2 text-xs text-red-500 bg-red-50 px-3 py-1.5 rounded-sm">{coverUploadError}</p>}
+          </section>
+
           {/* Images */}
           <section>
             <h3 className="text-[11px] font-bold text-tx-mid uppercase tracking-widest mb-3 border-b border-border pb-1.5">
-              Images
+              Gallery Images
               {imageItems.length > 0 && (
                 <span className="ml-2 font-normal normal-case tracking-normal text-tx-light">
                   — drag to reorder · first image is cover
@@ -743,17 +854,6 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
                     </div>
                   </div>
                 ))}
-              </div>
-            )}
-
-            {/* Focal point picker — cover image only */}
-            {imageItems.length > 0 && (
-              <div className="mb-3">
-                <FocalPointPicker
-                  imageUrl={imageItems[0].url}
-                  focalPoint={focalPoint}
-                  onChange={setFocalPoint}
-                />
               </div>
             )}
 

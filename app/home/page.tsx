@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getSession, TIER_LABELS, formatPrice } from '@/lib/utils';
 import { BottomNav } from '@/components/ui/bottom-nav';
@@ -385,7 +386,7 @@ export default function HomePage() {
         {/* What's happening today — hidden only when fetch completes with no results */}
         {eventsStatus !== 'empty' && (
           <>
-            <SectionHeader title="What&apos;s happening today" linkText="See all →" onLink={() => router.push('/events')} />
+            <SectionHeader title="What&apos;s happening today" linkText="See all →" href="/events" />
             {eventsStatus === 'loading' ? (
               <div className="mx-5 mb-5 space-y-2">
                 {Array.from({ length: 2 }).map((_, i) => (
@@ -418,14 +419,15 @@ export default function HomePage() {
         )}
 
         {/* Events hero card — always visible */}
-        <button
-          onClick={() => router.push('/events')}
+        <Link
+          href="/events"
           className="mx-4 mb-5 block w-[calc(100%-32px)] text-left active:opacity-90 transition-opacity"
           style={{ borderRadius: 16, overflow: 'hidden', position: 'relative', height: 160 }}
         >
           <img
             src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=800"
             alt="Events in Chania"
+            loading="eager"
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
           />
           {/* Dark gradient overlay */}
@@ -448,12 +450,12 @@ export default function HomePage() {
           <div style={{ position: 'absolute', bottom: 14, right: 16, fontSize: 20, color: 'white' }}>
             →
           </div>
-        </button>
+        </Link>
 
         {/* Deals section — hidden only when fetch completes with no results */}
         {dealsStatus !== 'empty' && (
           <>
-            <SectionHeader title="Today&apos;s Deal" linkText="View all →" onLink={() => router.push('/deals')} />
+            <SectionHeader title="Today&apos;s Deal" linkText="View all →" href="/deals" />
             {dealsStatus === 'loading' ? (
               <div className="mx-5 mb-5 h-[90px] rounded bg-navy/5 animate-pulse" />
             ) : featuredDeal ? (
@@ -483,7 +485,7 @@ export default function HomePage() {
         )}
 
         {/* Recommended for you */}
-        <SectionHeader title="Recommended for you" linkText="See all →" onLink={() => router.push('/activities')} />
+        <SectionHeader title="Recommended for you" linkText="See all →" href="/activities" />
         {loading ? (
           <div className="flex gap-2.5 px-5 mb-5">
             {Array.from({ length: 3 }).map((_, i) => (
@@ -511,8 +513,8 @@ export default function HomePage() {
         )}
 
         {/* Explore all Experiences hero card */}
-        <button
-          onClick={() => router.push('/activities')}
+        <Link
+          href="/activities"
           className="mx-4 text-left active:scale-[0.98] transition-transform"
           style={{
             marginTop: 24,
@@ -532,6 +534,7 @@ export default function HomePage() {
           <img
             src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800"
             alt="Explore all Experiences"
+            loading="eager"
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
           />
           {/* Gradient overlay */}
@@ -567,10 +570,10 @@ export default function HomePage() {
           }}>
             <ArrowRight size={18} color="white" />
           </div>
-        </button>
+        </Link>
 
         {/* Local Insights */}
-        <SectionHeader title="Local Insights" linkText="Read more →" onLink={() => router.push('/insights')} />
+        <SectionHeader title="Local Insights" linkText="Read more →" href="/insights" />
         {loading ? (
           <div className="flex gap-2.5 px-5 mb-5">
             {Array.from({ length: 3 }).map((_, i) => (
@@ -603,6 +606,9 @@ export default function HomePage() {
 
       {/* Floating bookings pill */}
       <FloatingBookingsPill bookings={confirmedBookings} />
+
+      {/* Prefetch hint — loads /activities in background while user reads Home */}
+      <Link href="/activities" prefetch={true} className="hidden" aria-hidden="true" tabIndex={-1} />
 
       <BottomNav />
     </div>

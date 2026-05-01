@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { BottomNav } from '@/components/ui/bottom-nav'
 import { getSession } from '@/lib/utils'
@@ -252,12 +253,12 @@ export default function ProfilePage() {
                         <p className="text-[10px] text-tx-light font-mono mt-1">{b.confirmation_code}</p>
                       )}
                     </div>
-                    <button
-                      onClick={() => router.push(`/profile/bookings/${b.id}`)}
+                    <Link
+                      href={`/profile/bookings/${b.id}`}
                       className="text-[11px] font-semibold text-teal self-center flex-shrink-0 border border-teal/30 rounded-lg px-2.5 py-1"
                     >
                       View
-                    </button>
+                    </Link>
                   </div>
                 )
               })}

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { createServerClient } from '@/lib/supabase'
 import { isAdminAuthed } from '../_lib/auth'
 
@@ -16,5 +17,7 @@ export async function POST(request: Request) {
   const supabase = createServerClient()
   const { data, error } = await supabase.from('transfer_routes').insert(body).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  revalidatePath('/transfers')
+  revalidatePath('/transfers/results')
   return NextResponse.json(data, { status: 201 })
 }

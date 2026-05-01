@@ -6,13 +6,11 @@ interface FocalImageProps extends ImgHTMLAttributes<HTMLImageElement> {
   src:        string
   alt:        string
   focalPoint?: FocalPoint | null
+  /** Pass true for above-fold images to load eagerly; all others default to lazy */
+  priority?:  boolean
 }
 
-/**
- * Drop-in replacement for <img> that respects a focal point for object-fit cover.
- * If focalPoint is null/undefined, defaults to 50% 50% (center).
- */
-export function FocalImage({ src, alt, focalPoint, style, ...rest }: FocalImageProps) {
+export function FocalImage({ src, alt, focalPoint, priority, loading, style, ...rest }: FocalImageProps) {
   const x = focalPoint?.x ?? 50
   const y = focalPoint?.y ?? 50
   return (
@@ -20,6 +18,7 @@ export function FocalImage({ src, alt, focalPoint, style, ...rest }: FocalImageP
     <img
       src={src}
       alt={alt}
+      loading={loading ?? (priority ? 'eager' : 'lazy')}
       style={{
         objectFit:     'cover',
         objectPosition: `${x}% ${y}%`,

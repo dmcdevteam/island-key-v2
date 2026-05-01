@@ -54,11 +54,11 @@ function emptyForm(): FormState {
   return {
     title: '', slug: '', subtitle: null, body: null, excerpt: null, category: null,
     author: 'Island Key', author_bio: null, read_time_minutes: null,
-    cover_image: null, images: null, tags: null,
+    cover_image: null, image_wide: null, image_square: null, images: null, tags: null,
     meta_title: null, meta_description: null, og_image: null,
     region: 'chania', is_featured: false, is_active: true,
     sort_order: 0, published_at: new Date().toISOString(),
-    focal_x: null, focal_y: null,
+    focal_x: null, focal_y: null, focal_sq_x: null, focal_sq_y: null,
   }
 }
 
@@ -86,11 +86,14 @@ function ArticleEditor({ article, onSave, onClose }: {
     title: article.title, slug: article.slug, subtitle: article.subtitle, body: article.body,
     excerpt: article.excerpt, category: article.category, author: article.author,
     author_bio: article.author_bio, read_time_minutes: article.read_time_minutes,
-    cover_image: article.cover_image, images: article.images, tags: article.tags,
+    cover_image: article.cover_image,
+    image_wide: article.image_wide ?? null, image_square: article.image_square ?? null,
+    images: article.images, tags: article.tags,
     meta_title: article.meta_title, meta_description: article.meta_description, og_image: article.og_image,
     region: article.region, is_featured: article.is_featured, is_active: article.is_active,
     sort_order: article.sort_order, published_at: article.published_at,
     focal_x: article.focal_x ?? null, focal_y: article.focal_y ?? null,
+    focal_sq_x: article.focal_sq_x ?? null, focal_sq_y: article.focal_sq_y ?? null,
   } : emptyForm())
 
   function set<K extends keyof FormState>(field: K, value: FormState[K]) {

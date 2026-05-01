@@ -1,6 +1,7 @@
 'use client';
 
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { clsx } from 'clsx';
 
 const NAV_ITEMS = [
@@ -13,16 +14,15 @@ const NAV_ITEMS = [
 
 export function BottomNav() {
   const pathname = usePathname();
-  const router = useRouter();
 
   return (
     <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] h-[78px] bg-white border-t border-border-light flex pt-1.5 pb-6 z-50">
       {NAV_ITEMS.map((item) => {
         const isActive = pathname.startsWith(item.href);
         return (
-          <button
+          <Link
             key={item.href}
-            onClick={() => router.push(item.href)}
+            href={item.href}
             className={clsx(
               'flex-1 flex flex-col items-center justify-center gap-0.5 transition-all',
               'active:scale-95'
@@ -44,7 +44,7 @@ export function BottomNav() {
             >
               {item.label}
             </span>
-          </button>
+          </Link>
         );
       })}
     </nav>

@@ -41,7 +41,9 @@ function emptyForm(): FormState {
     location_name: null, location_address: null, location_lat: null, location_lng: null,
     price_from: null, price_label: null, is_free: true, booking_url: null,
     organiser: null, region: 'chania', tier_visibility: ['B', 'M', 'P'],
-    images: null, focal_x: null, focal_y: null, is_featured: false, is_active: true, sort_order: 0,
+    images: null, image_wide: null, image_square: null,
+    focal_x: null, focal_y: null, focal_sq_x: null, focal_sq_y: null,
+    is_featured: false, is_active: true, sort_order: 0,
   }
 }
 
@@ -68,7 +70,9 @@ function EventForm({ event, onSave, onClose }: { event: EventFull | null; onSave
     price_from: event.price_from, price_label: event.price_label, is_free: event.is_free,
     booking_url: event.booking_url, organiser: event.organiser, region: event.region,
     tier_visibility: event.tier_visibility, images: event.images,
+    image_wide: event.image_wide ?? null, image_square: event.image_square ?? null,
     focal_x: event.focal_x ?? null, focal_y: event.focal_y ?? null,
+    focal_sq_x: event.focal_sq_x ?? null, focal_sq_y: event.focal_sq_y ?? null,
     is_featured: event.is_featured, is_active: event.is_active, sort_order: event.sort_order,
   } : emptyForm())
 
