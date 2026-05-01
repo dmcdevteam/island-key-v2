@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   VEHICLE_LABELS, VEHICLE_ORDER, HARDCODED_FORMULAS,
   calculateP2PPrice, parseDbFormulas, type VehicleSlug, type VehicleFormula,
@@ -180,17 +180,26 @@ function ReturnPricingTab() {
 
 // ─── Preset Routes Tab ───────────────────────────────────────────────────────
 
+interface PopoverState {
+  routeId: string
+  slug: string
+  routeLabel: string
+  x: number
+  y: number
+}
+
 function PresetTab() {
   const [routes,  setRoutes]  = useState<PresetRoute[]>([])
-  const [prices,  setPrices]  = useState<Record<string, Record<string, PriceEntry>>>({}) // routeId → slug → PriceEntry
+  const [prices,  setPrices]  = useState<Record<string, Record<string, PriceEntry>>>({})
   const [vtypes,  setVtypes]  = useState<{ id: string; slug: string | null; name: string }[]>([])
   const [loading, setLoading] = useState(true)
-  const [editing, setEditing] = useState<{ routeId: string; slug: string } | null>(null)
+  const [popover, setPopover] = useState<PopoverState | null>(null)
   const [editVal,      setEditVal]      = useState('')
   const [editOriginal, setEditOriginal] = useState('')
   const [editLabel,    setEditLabel]    = useState('')
   const [saving,  setSaving]  = useState(false)
 
+  const popoverRef = useRef<HTMLDivElement>(null)
   const transferSlugs: VehicleSlug[] = VEHICLE_ORDER
 
   const load = useCallback(async () => {
@@ -204,7 +213,6 @@ function PresetTab() {
     setRoutes(routes)
     setVtypes(vtypes.filter(v => v.slug && transferSlugs.includes(v.slug as VehicleSlug)))
 
-    // Load prices for every route
     const priceMap: Record<string, Record<string, PriceEntry>> = {}
     await Promise.all(routes.map(async r => {
       const pRes = await fetch(`/api/admin/transfers/${r.id}/prices`)
@@ -227,12 +235,31 @@ function PresetTab() {
 
   useEffect(() => { load() }, [load])
 
+  // Close popover on outside click
+  useEffect(() => {
+    if (!popover) return
+    function onMouseDown(e: MouseEvent) {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setPopover(null)
+      }
+    }
+    document.addEventListener('mousedown', onMouseDown)
+    return () => document.removeEventListener('mousedown', onMouseDown)
+  }, [popover])
+
+  function openPopover(e: React.MouseEvent, routeId: string, slug: string, routeLabel: string, current?: PriceEntry) {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    setPopover({ routeId, slug, routeLabel, x: rect.left, y: rect.bottom + 6 })
+    setEditVal(String(current?.price ?? ''))
+    setEditOriginal(String(current?.original_price ?? ''))
+    setEditLabel(current?.discount_label ?? '')
+  }
+
   async function savePrice(routeId: string, slug: string, entry: PriceEntry) {
     setSaving(true)
     const vtype = vtypes.find(v => v.slug === slug)
     if (!vtype) { setSaving(false); return }
 
-    // Rebuild all prices for this route
     const existing = prices[routeId] ?? {}
     const updated  = { ...existing, [slug]: entry }
 
@@ -251,8 +278,15 @@ function PresetTab() {
       body: JSON.stringify(rows),
     })
 
-    setPrices(prev => ({ ...prev, [routeId]: updated }))
-    setEditing(null)
+    // Remove the entry from local state if price was cleared
+    const next = { ...existing }
+    if (entry.price > 0) {
+      next[slug] = entry
+    } else {
+      delete next[slug]
+    }
+    setPrices(prev => ({ ...prev, [routeId]: next }))
+    setPopover(null)
     setSaving(false)
   }
 
@@ -260,10 +294,22 @@ function PresetTab() {
 
   return (
     <div>
-      <p className="text-xs text-gray-500 mb-4">
-        Click any price cell to edit. Prices apply to known pickup/dropoff pairs.
-        P2P transfers use the formula tab instead.
+      {/* Instructions — Fix 3 */}
+      <p className="text-xs text-gray-500 mb-1">
+        Click any cell to set or edit a price. Hover to see edit options.
+        Leave cells empty to use P2P formula pricing instead.
       </p>
+      <div className="flex items-center gap-4 text-xs text-gray-400 mb-4">
+        <span className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-teal/60 inline-block" />
+          Price set
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full border border-gray-300 inline-block" />
+          Uses P2P formula
+        </span>
+      </div>
+
       <div className="overflow-x-auto rounded-xl border border-gray-100">
         <table className="w-full text-sm">
           <thead>
@@ -278,91 +324,53 @@ function PresetTab() {
           </thead>
           <tbody className="divide-y divide-gray-50">
             {routes.map(r => (
-              <tr key={r.id} className="hover:bg-gray-50/50">
+              <tr key={r.id} className="hover:bg-gray-50/30">
                 <td className="px-4 py-3">
                   <p className="font-medium text-navy">{r.from_location} → {r.to_location}</p>
                   {!r.is_active && <span className="text-[10px] text-red-400 font-medium">Inactive</span>}
                 </td>
                 {transferSlugs.map(slug => {
-                  const isEditing = editing?.routeId === r.id && editing.slug === slug
-                  const current   = prices[r.id]?.[slug]
+                  const current = prices[r.id]?.[slug]
+                  const hasPrice = !!current?.price
 
                   return (
-                    <td key={slug} className="px-3 py-3 text-right align-top">
-                      {isEditing ? (
-                        <div className="flex flex-col items-end gap-1.5 min-w-[120px]">
-                          <div className="flex items-center gap-1">
-                            <span className="text-[10px] text-gray-400">Price €</span>
-                            <input
-                              autoFocus
-                              type="number"
-                              value={editVal}
-                              onChange={e => setEditVal(e.target.value)}
-                              onKeyDown={e => {
-                                if (e.key === 'Enter') savePrice(r.id, slug, { price: Number(editVal), original_price: editOriginal ? Number(editOriginal) : null, discount_label: editLabel || null })
-                                if (e.key === 'Escape') setEditing(null)
-                              }}
-                              className="w-16 border border-teal rounded px-1.5 py-1 text-sm text-right text-navy outline-none"
-                            />
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <span className="text-[10px] text-gray-400">Was €</span>
-                            <input
-                              type="number"
-                              value={editOriginal}
-                              placeholder="—"
-                              onChange={e => setEditOriginal(e.target.value)}
-                              className="w-16 border border-gray-200 rounded px-1.5 py-1 text-xs text-right text-navy outline-none focus:border-teal"
-                            />
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <span className="text-[10px] text-gray-400">Label</span>
-                            <input
-                              type="text"
-                              value={editLabel}
-                              placeholder="e.g. -20%"
-                              onChange={e => setEditLabel(e.target.value)}
-                              className="w-20 border border-gray-200 rounded px-1.5 py-1 text-xs text-navy outline-none focus:border-teal"
-                            />
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => savePrice(r.id, slug, { price: Number(editVal), original_price: editOriginal ? Number(editOriginal) : null, discount_label: editLabel || null })}
-                              disabled={saving}
-                              className="text-[10px] text-teal font-semibold"
-                            >
-                              Save
-                            </button>
-                            <button onClick={() => setEditing(null)} className="text-[10px] text-gray-400">✕</button>
-                          </div>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => {
-                            setEditing({ routeId: r.id, slug })
-                            setEditVal(String(current?.price ?? ''))
-                            setEditOriginal(String(current?.original_price ?? ''))
-                            setEditLabel(current?.discount_label ?? '')
-                          }}
-                          className="text-right"
-                        >
-                          {current?.price ? (
-                            <div>
+                    <td key={slug} className="px-2 py-2 text-right">
+                      {/* Fix 1 — clickable cell with affordance */}
+                      <button
+                        onClick={e => openPopover(e, r.id, slug, `${r.from_location} → ${r.to_location}`, current)}
+                        className={`group w-full rounded-lg px-2 py-2 text-right transition-colors cursor-pointer ${
+                          hasPrice
+                            ? 'hover:bg-teal/8'
+                            : 'border border-dashed border-gray-200 hover:border-teal/40 hover:bg-teal/5'
+                        }`}
+                      >
+                        {hasPrice ? (
+                          <div className="flex items-center justify-end gap-1">
+                            <div className="text-right">
                               {current.original_price && (
                                 <p className="text-[10px] text-gray-400 line-through">€{current.original_price}</p>
                               )}
-                              <p className={`text-sm font-medium ${current.discount_label ? 'text-red-500' : 'text-navy hover:text-teal'}`}>
+                              <p className={`text-sm font-semibold ${current.discount_label ? 'text-red-500' : 'text-navy'}`}>
                                 €{current.price}
                               </p>
                               {current.discount_label && (
                                 <span className="text-[9px] bg-red-50 text-red-500 px-1 py-0.5 rounded font-medium">{current.discount_label}</span>
                               )}
                             </div>
-                          ) : (
-                            <span className="text-gray-300 hover:text-gray-400 text-sm font-medium">—</span>
-                          )}
-                        </button>
-                      )}
+                            {/* Pencil on hover */}
+                            <svg
+                              className="w-3 h-3 text-teal opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                              viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                              strokeLinecap="round" strokeLinejoin="round"
+                            >
+                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                          </div>
+                        ) : (
+                          <span className="text-[11px] text-teal/70 group-hover:text-teal font-medium">+ Add</span>
+                        )}
+                      </button>
                     </td>
                   )
                 })}
@@ -371,11 +379,98 @@ function PresetTab() {
           </tbody>
         </table>
       </div>
+
       {routes.length === 0 && (
         <p className="text-center text-sm text-gray-400 py-8">
           No routes configured.{' '}
           <a href="/admin/transfers" className="text-teal underline">Add routes in Transfers admin →</a>
         </p>
+      )}
+
+      {/* Fix 2 — floating popover editor */}
+      {popover && (
+        <div
+          ref={popoverRef}
+          style={{
+            position: 'fixed',
+            left: Math.min(popover.x, window.innerWidth - 296),
+            top: popover.y,
+            zIndex: 50,
+            width: 280,
+            background: 'white',
+            borderRadius: 12,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+            border: '1px solid #E5E7EB',
+          }}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-navy truncate">{popover.routeLabel}</p>
+              <p className="text-[11px] text-gray-400">{VEHICLE_LABELS[popover.slug as VehicleSlug]}</p>
+            </div>
+            <button onClick={() => setPopover(null)} className="text-gray-400 hover:text-gray-600 ml-2 flex-shrink-0">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+
+          {/* Fields */}
+          <div className="px-4 py-3 space-y-2.5">
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-500 w-16 flex-shrink-0">Price €</label>
+              <input
+                autoFocus
+                type="number"
+                value={editVal}
+                onChange={e => setEditVal(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') savePrice(popover.routeId, popover.slug, { price: Number(editVal), original_price: editOriginal ? Number(editOriginal) : null, discount_label: editLabel || null })
+                  if (e.key === 'Escape') setPopover(null)
+                }}
+                placeholder="0"
+                className="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm text-navy outline-none focus:border-teal"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-500 w-16 flex-shrink-0">Was €</label>
+              <input
+                type="number"
+                value={editOriginal}
+                onChange={e => setEditOriginal(e.target.value)}
+                placeholder="optional"
+                className="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm text-navy outline-none focus:border-teal"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-500 w-16 flex-shrink-0">Label</label>
+              <input
+                type="text"
+                value={editLabel}
+                onChange={e => setEditLabel(e.target.value)}
+                placeholder='e.g. "Early bird"'
+                className="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm text-navy outline-none focus:border-teal"
+              />
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-2 px-4 pb-3">
+            <button
+              onClick={() => savePrice(popover.routeId, popover.slug, { price: 0, original_price: null, discount_label: null })}
+              disabled={saving}
+              className="text-xs text-red-400 hover:text-red-600 flex-1 py-1.5 rounded-lg border border-gray-100 hover:border-red-200 transition-colors"
+            >
+              Clear price
+            </button>
+            <button
+              onClick={() => savePrice(popover.routeId, popover.slug, { price: Number(editVal), original_price: editOriginal ? Number(editOriginal) : null, discount_label: editLabel || null })}
+              disabled={saving || !editVal}
+              className="text-xs text-white bg-teal hover:bg-teal/90 flex-1 py-1.5 rounded-lg font-semibold disabled:opacity-40 transition-colors"
+            >
+              {saving ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+        </div>
       )}
     </div>
   )
