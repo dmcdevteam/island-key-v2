@@ -166,7 +166,7 @@ function ArticleEditor({ article, onSave, onClose }: {
           <h2 className="font-display text-base text-navy">{article ? 'Edit Article' : 'New Article'}</h2>
         </div>
         <div className="flex items-center gap-3">
-          {form.slug && (
+          {article && form.slug && (
             <a href={`/insights/${form.slug}`} target="_blank" rel="noopener noreferrer"
               className="text-xs text-tx-mid hover:text-navy border border-border px-3 py-1.5 rounded-sm">Preview ↗</a>
           )}
