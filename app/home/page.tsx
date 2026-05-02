@@ -593,6 +593,7 @@ export default function HomePage() {
                   readTime={a.read_time_min ?? 0}
                   bgGradient={style.bg}
                   tagColor={style.tagColor}
+                  image={a.cover_image}
                   onClick={() => router.push(`/insights/${a.slug}`)}
                 />
               );

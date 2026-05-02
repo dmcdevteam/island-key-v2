@@ -325,17 +325,21 @@ export function EventCard({ title, time, isAllDay, location, description, catego
 }
 
 // ─── BLOG/ARTICLE CARD ───
-export function ArticleCard({ title, excerpt, category, readTime, bgGradient, tagColor, onClick }: {
+export function ArticleCard({ title, excerpt, category, readTime, bgGradient, tagColor, image, onClick }: {
   title: string; excerpt: string; category: string; readTime: number;
-  bgGradient: string; tagColor: string; onClick?: () => void;
+  bgGradient: string; tagColor: string; image?: string | null; onClick?: () => void;
 }) {
   return (
     <div
       onClick={onClick}
       className="min-w-[240px] bg-white rounded overflow-hidden border border-border-light cursor-pointer flex-shrink-0 transition-transform active:scale-[0.97]"
     >
-      <div className="h-[120px] relative flex items-end p-2.5" style={{ background: bgGradient }}>
-        <span className="absolute top-2 left-2 text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded text-white" style={{ background: tagColor }}>
+      <div className="h-[120px] relative flex items-end p-2.5" style={image ? undefined : { background: bgGradient }}>
+        {image && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={image} alt={title} className="absolute inset-0 w-full h-full object-cover" />
+        )}
+        <span className="absolute top-2 left-2 text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded text-white z-10" style={{ background: tagColor }}>
           {category}
         </span>
       </div>
