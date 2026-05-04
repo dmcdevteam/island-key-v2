@@ -117,6 +117,9 @@ function Drawer({ title, onClose, onSave, saving, children }: {
 type RentalFormData = {
   name: string; description: string
   price_per_day: string; price_per_week: string
+  type: string; seats: string; doors: string
+  transmission: string; fuel_type: string
+  ac: boolean; zero_deposit: boolean; deposit_amount: string
   insurance_included: boolean; region: string
   features: string[]
   is_featured: boolean; is_active: boolean; sort_order: string
@@ -126,6 +129,9 @@ type RentalFormData = {
 const RENTAL_DEFAULTS: RentalFormData = {
   name: '', description: '',
   price_per_day: '', price_per_week: '',
+  type: 'car', seats: '', doors: '',
+  transmission: '', fuel_type: '',
+  ac: true, zero_deposit: false, deposit_amount: '',
   insurance_included: true, region: 'chania',
   features: [],
   is_featured: false, is_active: true, sort_order: '0',
@@ -146,6 +152,14 @@ function VehicleForm({
       description: initial.description ?? '',
       price_per_day: initial.price_per_day != null ? String(initial.price_per_day) : '',
       price_per_week: initial.price_per_week != null ? String(initial.price_per_week) : '',
+      type: (initial as any).type ?? 'car',
+      seats: (initial as any).seats != null ? String((initial as any).seats) : '',
+      doors: (initial as any).doors != null ? String((initial as any).doors) : '',
+      transmission: (initial as any).transmission ?? '',
+      fuel_type: (initial as any).fuel_type ?? '',
+      ac: (initial as any).ac ?? true,
+      zero_deposit: (initial as any).zero_deposit ?? false,
+      deposit_amount: (initial as any).deposit_amount != null ? String((initial as any).deposit_amount) : '',
       insurance_included: initial.insurance_included,
       region: initial.region,
       features: initial.features ?? [],
@@ -318,6 +332,14 @@ function VehicleForm({
       description: form.description || null,
       price_per_day: form.price_per_day ? Number(form.price_per_day) : null,
       price_per_week: form.price_per_week ? Number(form.price_per_week) : null,
+      type: form.type,
+      seats: form.seats ? Number(form.seats) : null,
+      doors: form.doors ? Number(form.doors) : null,
+      transmission: form.transmission || null,
+      fuel_type: form.fuel_type || null,
+      ac: form.ac,
+      zero_deposit: form.zero_deposit,
+      deposit_amount: !form.zero_deposit && form.deposit_amount ? Number(form.deposit_amount) : null,
       insurance_included: form.insurance_included,
       region: form.region,
       features: form.features.length ? form.features : null,
@@ -362,6 +384,59 @@ function VehicleForm({
           <input className={INPUT} type="number" min="0" value={form.price_per_week} onChange={e => set('price_per_week', e.target.value)} />
         </div>
       </div>
+      <div>
+        <label className={LABEL}>Type *</label>
+        <select className={SELECT} value={form.type} onChange={e => set('type', e.target.value)}>
+          <option value="car">Car</option>
+          <option value="atv_motorbike">ATV &amp; Motorbike</option>
+          <option value="bike_ebike">Bike &amp; E-Bike</option>
+          <option value="boat">Boat</option>
+        </select>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className={LABEL}>Seats</label>
+          <input className={INPUT} type="number" min="1" max="9" value={form.seats} onChange={e => set('seats', e.target.value)} placeholder="e.g. 5" />
+        </div>
+        <div>
+          <label className={LABEL}>Doors</label>
+          <input className={INPUT} type="number" min="2" max="5" value={form.doors} onChange={e => set('doors', e.target.value)} placeholder="e.g. 4" />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className={LABEL}>Transmission</label>
+          <select className={SELECT} value={form.transmission} onChange={e => set('transmission', e.target.value)}>
+            <option value="">— Optional —</option>
+            <option value="manual">Manual</option>
+            <option value="automatic">Automatic</option>
+          </select>
+        </div>
+        <div>
+          <label className={LABEL}>Fuel Type</label>
+          <select className={SELECT} value={form.fuel_type} onChange={e => set('fuel_type', e.target.value)}>
+            <option value="">— Optional —</option>
+            <option value="petrol">Petrol</option>
+            <option value="diesel">Diesel</option>
+            <option value="electric">Electric</option>
+            <option value="hybrid">Hybrid</option>
+          </select>
+        </div>
+      </div>
+      <div className="flex items-center justify-between">
+        <span className={LABEL}>A/C Included</span>
+        <Toggle checked={form.ac} onChange={() => set('ac', !form.ac)} />
+      </div>
+      <div className="flex items-center justify-between">
+        <span className={LABEL}>Zero Deposit</span>
+        <Toggle checked={form.zero_deposit} onChange={() => set('zero_deposit', !form.zero_deposit)} />
+      </div>
+      {!form.zero_deposit && (
+        <div>
+          <label className={LABEL}>Deposit Amount (€)</label>
+          <input className={INPUT} type="number" min="0" value={form.deposit_amount} onChange={e => set('deposit_amount', e.target.value)} />
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <span className={LABEL}>Insurance Included</span>
         <Toggle checked={form.insurance_included} onChange={() => set('insurance_included', !form.insurance_included)} />
