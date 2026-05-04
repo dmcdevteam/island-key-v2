@@ -821,7 +821,6 @@ type CarListingFormData = {
   feat_kids_seat: boolean; feat_no_hidden_charges: boolean; feat_unlimited_km: boolean
   image_wide: string; image_square: string; images: string[]
   is_active: boolean; is_featured: boolean; sort_order: string; region: string
-  pickup_locations: string
 }
 
 const CAR_LISTING_DEFAULTS: CarListingFormData = {
@@ -833,7 +832,6 @@ const CAR_LISTING_DEFAULTS: CarListingFormData = {
   feat_kids_seat: false, feat_no_hidden_charges: true, feat_unlimited_km: false,
   image_wide: '', image_square: '', images: [],
   is_active: true, is_featured: false, sort_order: '0', region: 'chania',
-  pickup_locations: '',
 }
 
 function CarListingForm({ initial, onClose, onSaved }: {
@@ -869,7 +867,6 @@ function CarListingForm({ initial, onClose, onSaved }: {
       is_featured: !!initial.is_featured,
       sort_order: String(initial.sort_order ?? 0),
       region: initial.region ?? 'chania',
-      pickup_locations: (initial.pickup_locations ?? []).join('\n'),
     }
   })
   const [saving, setSaving] = useState(false)
@@ -941,9 +938,6 @@ function CarListingForm({ initial, onClose, onSaved }: {
       is_featured: form.is_featured,
       sort_order: Number(form.sort_order) || 0,
       region: form.region,
-      pickup_locations: form.pickup_locations
-        ? form.pickup_locations.split('\n').map(s => s.trim()).filter(Boolean)
-        : null,
     }
     const url = initial ? `/api/admin/car-listings/${initial.id}` : '/api/admin/car-listings'
     const method = initial ? 'PUT' : 'POST'
@@ -1080,13 +1074,6 @@ function CarListingForm({ initial, onClose, onSaved }: {
           className="px-3 py-1.5 border border-dashed border-border rounded-sm text-sm text-tx-mid hover:border-navy hover:text-navy transition-colors disabled:opacity-50">
           {uploading ? 'Uploading…' : form.image_square ? 'Replace' : '+ Upload Square Image'}
         </button>
-      </div>
-
-      <div>
-        <label className={LABEL}>Pickup Locations <span className="font-normal normal-case text-tx-light">(one per line)</span></label>
-        <textarea className={INPUT} rows={4} value={form.pickup_locations}
-          onChange={e => set('pickup_locations', e.target.value)}
-          placeholder={'Chania Airport\nChania Town\nRethymno'} />
       </div>
 
       <div className="flex items-center justify-between">
