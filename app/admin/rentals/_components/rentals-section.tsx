@@ -43,7 +43,7 @@ const INPUT = 'w-full px-3 py-2 border border-border rounded-sm text-sm text-tx 
 const LABEL = 'block text-[11px] font-bold text-tx-mid uppercase tracking-wide mb-1'
 const SELECT = `${INPUT} cursor-pointer`
 
-const TABS = ['Vehicles', 'Vehicle Types', 'Extras & Essentials', 'Images', 'Car Listings', 'Car Extras', 'Car Enquiries']
+const TABS = ['Vehicles', 'Vehicle Types', 'Extras & Essentials', 'Images', 'Car Listings', 'Car Extras', 'Car Enquiries', 'Category Images']
 
 const VEHICLE_CATEGORIES = ['car', 'motorcycle', 'bike', 'buggy', 'boat', 'scooter', 'atv', 'other']
 const REGIONS = ['chania', 'rethymno', 'heraklion', 'lasithi']
@@ -1361,11 +1361,15 @@ export function RentalsSection() {
   const [carEnquiryExpand, setCarEnquiryExpand] = useState<string | null>(null)
   const [carToast, setCarToast] = useState('')
 
+  // Category images
+  const [categoryImages, setCategoryImages] = useState<any[]>([])
+  const [catUploading, setCatUploading] = useState<string | null>(null)
+
   function showCarToast(msg: string) { setCarToast(msg); setTimeout(() => setCarToast(''), 3000) }
 
   const fetchAll = useCallback(async () => {
     setLoading(true)
-    const [r, vt, ex, pr, cl, ce, enq] = await Promise.all([
+    const [r, vt, ex, pr, cl, ce, enq, ci] = await Promise.all([
       fetch('/api/admin/rentals').then(r => r.json()),
       fetch('/api/admin/vehicle-types?exclude=transfer').then(r => r.json()),
       fetch('/api/admin/extras').then(r => r.json()),
@@ -1373,6 +1377,7 @@ export function RentalsSection() {
       fetch('/api/admin/car-listings').then(r => r.json()),
       fetch('/api/admin/car-extras').then(r => r.json()),
       fetch('/api/admin/bookings?item_type=rental').then(r => r.json()),
+      fetch('/api/admin/rental-category-images').then(r => r.json()),
     ])
     setRentals(Array.isArray(r) ? r : [])
     setVehicleTypes(Array.isArray(vt) ? vt : [])
@@ -1381,6 +1386,7 @@ export function RentalsSection() {
     setCarListings(Array.isArray(cl) ? cl : [])
     setCarExtras(Array.isArray(ce) ? ce : [])
     setCarEnquiries(Array.isArray(enq) ? enq : [])
+    setCategoryImages(Array.isArray(ci) ? ci : [])
     setLoading(false)
   }, [])
 
@@ -1827,6 +1833,105 @@ export function RentalsSection() {
           )}
         </div>
       )}
+
+      {/* ── Tab 7: Category Images ── */}
+      {!loading && tab === 7 && (() => {
+        const CAT_LABELS: Record<string, string> = {
+          car: 'Cars',
+          atv_motorbike: 'ATV & Motorbike',
+          bike_ebike: 'Bike & E-Bike',
+          boat: 'Boat',
+        }
+        const CAT_GRADIENTS: Record<string, string> = {
+          car: 'linear-gradient(135deg, #1B2D4F 0%, #2D4A7A 100%)',
+          atv_motorbike: 'linear-gradient(135deg, #D4854A 0%, #B8612A 100%)',
+          bike_ebike: 'linear-gradient(135deg, #1A8A7D 0%, #0D6B60 100%)',
+          boat: 'linear-gradient(135deg, #2D4A7A 0%, #1A8A7D 100%)',
+        }
+        async function uploadCategoryImage(category: string, file: File) {
+          setCatUploading(category)
+          const fd = new globalThis.FormData()
+          fd.append('file', file)
+          fd.append('bucket', 'rental-images')
+          fd.append('slug', `categories/${category}`)
+          const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
+          const json = await res.json()
+          if (json.url) {
+            await fetch(`/api/admin/rental-category-images/${category}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ image_wide: json.url, image_url: json.url }),
+            })
+            fetchAll()
+          }
+          setCatUploading(null)
+        }
+        return (
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-display text-xl text-navy">Category Images</h2>
+              <p className="text-xs text-tx-light">Hero images for the rentals landing page</p>
+            </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {['car', 'atv_motorbike', 'bike_ebike', 'boat'].map(cat => {
+                const row = categoryImages.find((r: any) => r.category === cat)
+                const imageUrl = row?.image_wide ?? row?.image_url ?? null
+                const isUploading = catUploading === cat
+                return (
+                  <div key={cat} className="bg-white border border-border rounded-sm overflow-hidden">
+                    <div
+                      className="relative h-36 flex items-end"
+                      style={{ background: imageUrl ? undefined : CAT_GRADIENTS[cat] }}
+                    >
+                      {imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={imageUrl} alt={CAT_LABELS[cat]} className="absolute inset-0 w-full h-full object-cover" />
+                      ) : (
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                      )}
+                      {!imageUrl && (
+                        <p className="relative z-10 px-3 pb-3 text-white text-sm font-semibold font-display">{CAT_LABELS[cat]}</p>
+                      )}
+                    </div>
+                    <div className="p-3">
+                      <p className="text-xs font-bold text-tx mb-2">{CAT_LABELS[cat]}</p>
+                      <label className={`block w-full text-center px-3 py-2 border border-dashed border-border rounded-sm text-xs text-tx-mid cursor-pointer hover:border-navy hover:text-navy transition-colors ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                        {isUploading ? 'Uploading…' : imageUrl ? 'Replace Image' : '+ Upload Image'}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={isUploading}
+                          onChange={e => {
+                            const file = e.target.files?.[0]
+                            if (file) uploadCategoryImage(cat, file)
+                            e.target.value = ''
+                          }}
+                        />
+                      </label>
+                      {imageUrl && (
+                        <button
+                          onClick={async () => {
+                            await fetch(`/api/admin/rental-category-images/${cat}`, {
+                              method: 'PUT',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ image_wide: null, image_url: null }),
+                            })
+                            fetchAll()
+                          }}
+                          className="mt-1.5 w-full text-center text-xs text-red-500 hover:text-red-700"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* ── Drawers ── */}
       {rentalForm !== null && (

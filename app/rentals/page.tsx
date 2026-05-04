@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { BottomNav } from '@/components/ui/bottom-nav'
 import { ProfileAvatar } from '@/app/_components/profile-avatar'
@@ -33,6 +34,14 @@ const CATEGORIES = [
 
 export default function RentalsLandingPage() {
   const router = useRouter()
+  const [catImages, setCatImages] = useState<Record<string, string | null>>({})
+
+  useEffect(() => {
+    fetch('/api/rentals/category-images')
+      .then(r => r.json())
+      .then(data => { if (data && typeof data === 'object') setCatImages(data) })
+      .catch(() => {/* use gradients */})
+  }, [])
 
   return (
     <div className="min-h-screen bg-cream flex flex-col pb-[90px]">
@@ -52,20 +61,27 @@ export default function RentalsLandingPage() {
       <div className="flex-1 px-5 space-y-3">
         {/* 2×2 category grid */}
         <div className="grid grid-cols-2 gap-3">
-          {CATEGORIES.map(cat => (
-            <button
-              key={cat.slug}
-              onClick={() => router.push(`/rentals/search?category=${cat.slug}`)}
-              className="relative rounded-2xl overflow-hidden h-[160px] text-left active:scale-[0.97] transition-transform shadow-sm"
-              style={{ background: cat.gradient }}
-            >
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-3.5">
-                <p className="font-display text-base font-semibold text-white leading-tight">{cat.label}</p>
-                <p className="text-[11px] text-white/70 mt-0.5 leading-snug">{cat.tagline}</p>
-              </div>
-            </button>
-          ))}
+          {CATEGORIES.map(cat => {
+            const heroImage = catImages[cat.slug] ?? null
+            return (
+              <button
+                key={cat.slug}
+                onClick={() => router.push(`/rentals/search?category=${cat.slug}`)}
+                className="relative rounded-2xl overflow-hidden h-[160px] text-left active:scale-[0.97] transition-transform shadow-sm"
+                style={heroImage ? undefined : { background: cat.gradient }}
+              >
+                {heroImage && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={heroImage} alt={cat.label} className="absolute inset-0 w-full h-full object-cover" />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-3.5">
+                  <p className="font-display text-base font-semibold text-white leading-tight">{cat.label}</p>
+                  <p className="text-[11px] text-white/70 mt-0.5 leading-snug">{cat.tagline}</p>
+                </div>
+              </button>
+            )
+          })}
         </div>
 
         {/* Vacation Essentials — coming soon */}

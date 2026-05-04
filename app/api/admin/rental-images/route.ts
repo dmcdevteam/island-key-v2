@@ -10,7 +10,12 @@ export async function GET() {
 
   const { data: topLevel, error: listErr } = await supabase.storage
     .from(BUCKET).list('', { limit: 1000, sortBy: { column: 'name', order: 'asc' } })
-  if (listErr) return NextResponse.json({ error: listErr.message }, { status: 500 })
+  // Bucket may not exist yet or be empty — return gracefully instead of 500
+  if (listErr) {
+    const { data: rentals } = await supabase
+      .from('rentals').select('id, slug, name, images').order('sort_order', { ascending: true })
+    return NextResponse.json({ folders: [], rentals: rentals ?? [] })
+  }
 
   const folderNames = (topLevel ?? []).filter(item => item.id === null).map(item => item.name)
 

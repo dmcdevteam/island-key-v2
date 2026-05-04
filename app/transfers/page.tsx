@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ProfileAvatar } from '@/app/_components/profile-avatar';
 import { generateTimeSlots } from '@/lib/transfers';
+import { BottomNav } from '@/components/ui/bottom-nav';
 
 type PlaceResult = {
   name:      string;
@@ -180,7 +181,7 @@ export default function TransfersSearchPage() {
   }
 
   return (
-    <div className="min-h-screen bg-navy flex flex-col">
+    <div className="min-h-screen bg-navy flex flex-col pb-[90px]">
       {/* Header */}
       <div className="px-5 pt-[52px] pb-6 flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -364,6 +365,7 @@ export default function TransfersSearchPage() {
           Private transfers across Crete · Confirmed within 2 hours
         </p>
       </div>
+      <BottomNav />
     </div>
   );
 }
