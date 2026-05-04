@@ -419,6 +419,85 @@ export interface ArticleFull {
   created_at: string;
 }
 
+// ─── Car Rentals ───────────────────────────────────────────────
+export interface CarRental {
+  id: string
+  type: 'car'
+  car_class: 'small' | 'medium' | 'compact' | 'suv' | 'convertible' | 'van' | 'luxury' | 'offroad' | null
+  name: string
+  description: string | null
+  price_per_day: number
+  price_per_week: number | null
+  seats: number | null
+  doors: number | null
+  transmission: 'manual' | 'automatic' | null
+  fuel_type: 'petrol' | 'diesel' | 'electric' | 'hybrid' | null
+  ac: boolean
+  zero_deposit: boolean
+  deposit_amount: number | null
+  insurance_included: boolean
+  features: {
+    free_driver: boolean
+    free_cancellation: boolean
+    roadside_assistance: boolean
+    kids_seat: boolean
+    no_hidden_charges: boolean
+    unlimited_km: boolean
+  } | null
+  images: string[] | null
+  image_wide: string | null
+  image_square: string | null
+  focal_x: number | null
+  focal_y: number | null
+  focal_sq_x: number | null
+  focal_sq_y: number | null
+  is_active: boolean
+  is_featured: boolean
+  sort_order: number
+  region: string
+  pickup_locations: string[] | null
+}
+
+export interface CarRentalExtra {
+  id: string
+  name: string
+  description: string | null
+  price: number
+  price_type: 'per_day' | 'per_rental'
+  is_insurance: boolean
+  insurance_description: string | null
+  is_active: boolean
+  sort_order: number
+  created_at: string
+}
+
+export interface CarEnquiryPayload {
+  vehicle_id: string
+  vehicle_name: string
+  car_class: string
+  pickup_location: string
+  pickup_place_id: string
+  diff_dropoff: boolean
+  dropoff_location?: string
+  dropoff_place_id?: string
+  pickup_date: string
+  dropoff_date: string
+  pickup_time: string
+  dropoff_time: string
+  duration_days: number
+  driver_first_name: string
+  driver_last_name: string
+  driver_email: string
+  driver_phone: string
+  driver_country: string
+  driver_age: number
+  flight_number?: string
+  selected_extras: { name: string; price: number; price_type: string }[]
+  extras_total: number
+  grand_total: number
+  notes?: string
+}
+
 export interface InfoPageFull {
   id: string;
   title: string;
@@ -479,6 +558,7 @@ export interface Database {
       bookings:   TableDef<Booking>;
       info_pages:  TableDef<InfoPage>;
       access_keys: TableDef<AccessKey>;
+      car_rental_extras: TableDef<CarRentalExtra>;
     };
     Views:          Record<string, never>;
     Functions:      Record<string, never>;

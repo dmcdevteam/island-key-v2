@@ -24,7 +24,9 @@ export async function GET(request: Request) {
     .order('created_at', { ascending: false })
     .limit(300)
 
+  const itemType = searchParams.get('item_type')
   if (status && status !== 'all') query = query.eq('status', status)
+  if (itemType) query = query.eq('item_type', itemType)
   if (dateFrom) query = query.gte('booking_date', dateFrom)
   if (dateTo)   query = query.lte('booking_date', dateTo)
 

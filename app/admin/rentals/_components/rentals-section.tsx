@@ -43,7 +43,7 @@ const INPUT = 'w-full px-3 py-2 border border-border rounded-sm text-sm text-tx 
 const LABEL = 'block text-[11px] font-bold text-tx-mid uppercase tracking-wide mb-1'
 const SELECT = `${INPUT} cursor-pointer`
 
-const TABS = ['Vehicles', 'Vehicle Types', 'Extras & Essentials', 'Images']
+const TABS = ['Vehicles', 'Vehicle Types', 'Extras & Essentials', 'Images', 'Car Listings', 'Car Extras', 'Car Enquiries']
 
 const VEHICLE_CATEGORIES = ['car', 'motorcycle', 'bike', 'buggy', 'boat', 'scooter', 'atv', 'other']
 const REGIONS = ['chania', 'rethymno', 'heraklion', 'lasithi']
@@ -806,6 +806,410 @@ function ExtraForm({ initial, onClose, onSaved }: {
   )
 }
 
+// ── Car Listing Form ───────────────────────────────────────────────────────────
+
+const CAR_CLASSES = ['small', 'medium', 'compact', 'suv', 'convertible', 'van', 'luxury', 'offroad']
+const TRANSMISSIONS = ['manual', 'automatic']
+const FUEL_TYPES = ['petrol', 'diesel', 'electric', 'hybrid']
+
+type CarListingFormData = {
+  name: string; car_class: string; description: string
+  price_per_day: string; price_per_week: string
+  seats: string; doors: string; transmission: string; fuel_type: string
+  ac: boolean; zero_deposit: boolean; deposit_amount: string; insurance_included: boolean
+  feat_free_driver: boolean; feat_free_cancellation: boolean; feat_roadside_assistance: boolean
+  feat_kids_seat: boolean; feat_no_hidden_charges: boolean; feat_unlimited_km: boolean
+  image_wide: string; image_square: string; images: string[]
+  is_active: boolean; is_featured: boolean; sort_order: string; region: string
+  pickup_locations: string
+}
+
+const CAR_LISTING_DEFAULTS: CarListingFormData = {
+  name: '', car_class: 'small', description: '',
+  price_per_day: '', price_per_week: '',
+  seats: '', doors: '', transmission: 'manual', fuel_type: 'petrol',
+  ac: true, zero_deposit: false, deposit_amount: '', insurance_included: true,
+  feat_free_driver: false, feat_free_cancellation: false, feat_roadside_assistance: false,
+  feat_kids_seat: false, feat_no_hidden_charges: true, feat_unlimited_km: false,
+  image_wide: '', image_square: '', images: [],
+  is_active: true, is_featured: false, sort_order: '0', region: 'chania',
+  pickup_locations: '',
+}
+
+function CarListingForm({ initial, onClose, onSaved }: {
+  initial: any | null; onClose: () => void; onSaved: () => void
+}) {
+  const [form, setForm] = useState<CarListingFormData>(() => {
+    if (!initial) return CAR_LISTING_DEFAULTS
+    const f = initial.features ?? {}
+    return {
+      name: initial.name ?? '',
+      car_class: initial.car_class ?? 'small',
+      description: initial.description ?? '',
+      price_per_day: initial.price_per_day != null ? String(initial.price_per_day) : '',
+      price_per_week: initial.price_per_week != null ? String(initial.price_per_week) : '',
+      seats: initial.seats != null ? String(initial.seats) : '',
+      doors: initial.doors != null ? String(initial.doors) : '',
+      transmission: initial.transmission ?? 'manual',
+      fuel_type: initial.fuel_type ?? 'petrol',
+      ac: !!initial.ac,
+      zero_deposit: !!initial.zero_deposit,
+      deposit_amount: initial.deposit_amount != null ? String(initial.deposit_amount) : '',
+      insurance_included: !!initial.insurance_included,
+      feat_free_driver: !!f.free_driver,
+      feat_free_cancellation: !!f.free_cancellation,
+      feat_roadside_assistance: !!f.roadside_assistance,
+      feat_kids_seat: !!f.kids_seat,
+      feat_no_hidden_charges: !!f.no_hidden_charges,
+      feat_unlimited_km: !!f.unlimited_km,
+      image_wide: initial.image_wide ?? '',
+      image_square: initial.image_square ?? '',
+      images: initial.images ?? [],
+      is_active: !!initial.is_active,
+      is_featured: !!initial.is_featured,
+      sort_order: String(initial.sort_order ?? 0),
+      region: initial.region ?? 'chania',
+      pickup_locations: (initial.pickup_locations ?? []).join('\n'),
+    }
+  })
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [uploading, setUploading] = useState(false)
+  const wideRef  = useRef<HTMLInputElement>(null)
+  const squareRef = useRef<HTMLInputElement>(null)
+
+  function set<K extends keyof CarListingFormData>(k: K, v: CarListingFormData[K]) {
+    setForm(f => ({ ...f, [k]: v }))
+  }
+
+  async function uploadImage(file: File, folder: string): Promise<string | null> {
+    const fd = new globalThis.FormData()
+    fd.append('file', file)
+    fd.append('bucket', 'rental-images')
+    fd.append('slug', `cars/${folder}`)
+    const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
+    const json = await res.json()
+    return json.url ?? null
+  }
+
+  async function handleWideSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]; if (!file) return
+    setUploading(true)
+    const url = await uploadImage(file, slugify(form.name || 'car'))
+    if (url) set('image_wide', url)
+    setUploading(false)
+    if (wideRef.current) wideRef.current.value = ''
+  }
+
+  async function handleSquareSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]; if (!file) return
+    setUploading(true)
+    const url = await uploadImage(file, slugify(form.name || 'car'))
+    if (url) set('image_square', url)
+    setUploading(false)
+    if (squareRef.current) squareRef.current.value = ''
+  }
+
+  async function handleSave() {
+    setSaving(true); setError('')
+    const body = {
+      name: form.name,
+      car_class: form.car_class || null,
+      description: form.description || null,
+      price_per_day: form.price_per_day ? Number(form.price_per_day) : null,
+      price_per_week: form.price_per_week ? Number(form.price_per_week) : null,
+      seats: form.seats ? Number(form.seats) : null,
+      doors: form.doors ? Number(form.doors) : null,
+      transmission: form.transmission || null,
+      fuel_type: form.fuel_type || null,
+      ac: form.ac,
+      zero_deposit: form.zero_deposit,
+      deposit_amount: !form.zero_deposit && form.deposit_amount ? Number(form.deposit_amount) : null,
+      insurance_included: form.insurance_included,
+      features: {
+        free_driver: form.feat_free_driver,
+        free_cancellation: form.feat_free_cancellation,
+        roadside_assistance: form.feat_roadside_assistance,
+        kids_seat: form.feat_kids_seat,
+        no_hidden_charges: form.feat_no_hidden_charges,
+        unlimited_km: form.feat_unlimited_km,
+      },
+      image_wide: form.image_wide || null,
+      image_square: form.image_square || null,
+      images: form.images.length ? form.images : null,
+      is_active: form.is_active,
+      is_featured: form.is_featured,
+      sort_order: Number(form.sort_order) || 0,
+      region: form.region,
+      pickup_locations: form.pickup_locations
+        ? form.pickup_locations.split('\n').map(s => s.trim()).filter(Boolean)
+        : null,
+    }
+    const url = initial ? `/api/admin/car-listings/${initial.id}` : '/api/admin/car-listings'
+    const method = initial ? 'PUT' : 'POST'
+    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    if (!res.ok) { const d = await res.json(); setError(d.error ?? 'Error saving'); setSaving(false); return }
+    onSaved()
+  }
+
+  return (
+    <Drawer title={initial ? 'Edit Car Listing' : 'Add Car Listing'} onClose={onClose} onSave={handleSave} saving={saving}>
+      {error && <p className="text-red-600 text-sm">{error}</p>}
+
+      <div>
+        <label className={LABEL}>Name</label>
+        <input className={INPUT} value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. Toyota Yaris" />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className={LABEL}>Car Class</label>
+          <select className={SELECT} value={form.car_class} onChange={e => set('car_class', e.target.value)}>
+            {CAR_CLASSES.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className={LABEL}>Region</label>
+          <select className={SELECT} value={form.region} onChange={e => set('region', e.target.value)}>
+            {REGIONS.map(r => <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>)}
+          </select>
+        </div>
+      </div>
+      <div>
+        <label className={LABEL}>Description</label>
+        <textarea className={INPUT} rows={3} value={form.description} onChange={e => set('description', e.target.value)} />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className={LABEL}>Price / Day (€)</label>
+          <input className={INPUT} type="number" min="0" value={form.price_per_day} onChange={e => set('price_per_day', e.target.value)} />
+        </div>
+        <div>
+          <label className={LABEL}>Price / Week (€)</label>
+          <input className={INPUT} type="number" min="0" value={form.price_per_week} onChange={e => set('price_per_week', e.target.value)} />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className={LABEL}>Seats</label>
+          <input className={INPUT} type="number" min="1" value={form.seats} onChange={e => set('seats', e.target.value)} />
+        </div>
+        <div>
+          <label className={LABEL}>Doors</label>
+          <input className={INPUT} type="number" min="2" value={form.doors} onChange={e => set('doors', e.target.value)} />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className={LABEL}>Transmission</label>
+          <select className={SELECT} value={form.transmission} onChange={e => set('transmission', e.target.value)}>
+            {TRANSMISSIONS.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className={LABEL}>Fuel Type</label>
+          <select className={SELECT} value={form.fuel_type} onChange={e => set('fuel_type', e.target.value)}>
+            {FUEL_TYPES.map(f => <option key={f} value={f}>{f.charAt(0).toUpperCase() + f.slice(1)}</option>)}
+          </select>
+        </div>
+      </div>
+      <div className="flex items-center justify-between">
+        <span className={LABEL}>Air Conditioning</span>
+        <Toggle checked={form.ac} onChange={() => set('ac', !form.ac)} />
+      </div>
+      <div className="flex items-center justify-between">
+        <span className={LABEL}>Zero Deposit</span>
+        <Toggle checked={form.zero_deposit} onChange={() => set('zero_deposit', !form.zero_deposit)} />
+      </div>
+      {!form.zero_deposit && (
+        <div>
+          <label className={LABEL}>Deposit Amount (€)</label>
+          <input className={INPUT} type="number" min="0" value={form.deposit_amount} onChange={e => set('deposit_amount', e.target.value)} />
+        </div>
+      )}
+      <div className="flex items-center justify-between">
+        <span className={LABEL}>Insurance Included</span>
+        <Toggle checked={form.insurance_included} onChange={() => set('insurance_included', !form.insurance_included)} />
+      </div>
+
+      <div>
+        <p className={LABEL}>Features</p>
+        <div className="space-y-2 mt-1">
+          {([
+            ['feat_free_driver', 'Free Extra Driver'],
+            ['feat_free_cancellation', 'Free Cancellation'],
+            ['feat_roadside_assistance', 'Roadside Assistance'],
+            ['feat_kids_seat', 'Kids Seat Available'],
+            ['feat_no_hidden_charges', 'No Hidden Charges'],
+            ['feat_unlimited_km', 'Unlimited Kilometres'],
+          ] as [keyof CarListingFormData, string][]).map(([key, label]) => (
+            <div key={key} className="flex items-center justify-between">
+              <span className="text-sm text-tx">{label}</span>
+              <Toggle checked={!!form[key]} onChange={() => set(key, !form[key] as any)} />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className={LABEL}>Wide Image (hero/landscape)</label>
+        {form.image_wide && (
+          <div className="mb-2 relative inline-block">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={form.image_wide} alt="" className="w-full h-28 object-cover rounded-sm border border-border" />
+            <button type="button" onClick={() => set('image_wide', '')} className="absolute top-0.5 right-0.5 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center">×</button>
+          </div>
+        )}
+        <input ref={wideRef} type="file" accept="image/*" className="hidden" onChange={handleWideSelect} />
+        <button type="button" onClick={() => wideRef.current?.click()} disabled={uploading}
+          className="px-3 py-1.5 border border-dashed border-border rounded-sm text-sm text-tx-mid hover:border-navy hover:text-navy transition-colors disabled:opacity-50">
+          {uploading ? 'Uploading…' : form.image_wide ? 'Replace' : '+ Upload Wide Image'}
+        </button>
+      </div>
+
+      <div>
+        <label className={LABEL}>Square Image (thumbnail)</label>
+        {form.image_square && (
+          <div className="mb-2 relative inline-block">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={form.image_square} alt="" className="w-28 h-28 object-cover rounded-sm border border-border" />
+            <button type="button" onClick={() => set('image_square', '')} className="absolute top-0.5 right-0.5 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center">×</button>
+          </div>
+        )}
+        <input ref={squareRef} type="file" accept="image/*" className="hidden" onChange={handleSquareSelect} />
+        <button type="button" onClick={() => squareRef.current?.click()} disabled={uploading}
+          className="px-3 py-1.5 border border-dashed border-border rounded-sm text-sm text-tx-mid hover:border-navy hover:text-navy transition-colors disabled:opacity-50">
+          {uploading ? 'Uploading…' : form.image_square ? 'Replace' : '+ Upload Square Image'}
+        </button>
+      </div>
+
+      <div>
+        <label className={LABEL}>Pickup Locations <span className="font-normal normal-case text-tx-light">(one per line)</span></label>
+        <textarea className={INPUT} rows={4} value={form.pickup_locations}
+          onChange={e => set('pickup_locations', e.target.value)}
+          placeholder={'Chania Airport\nChania Town\nRethymno'} />
+      </div>
+
+      <div className="flex items-center justify-between">
+        <span className={LABEL}>Featured</span>
+        <Toggle checked={form.is_featured} onChange={() => set('is_featured', !form.is_featured)} />
+      </div>
+      <div className="flex items-center justify-between">
+        <span className={LABEL}>Active</span>
+        <Toggle checked={form.is_active} onChange={() => set('is_active', !form.is_active)} />
+      </div>
+      <div>
+        <label className={LABEL}>Sort Order</label>
+        <input className={INPUT} type="number" value={form.sort_order} onChange={e => set('sort_order', e.target.value)} />
+      </div>
+    </Drawer>
+  )
+}
+
+// ── Car Extra Form ─────────────────────────────────────────────────────────────
+
+type CarExtraFormData = {
+  name: string; description: string; price: string
+  price_type: 'per_day' | 'per_rental'
+  is_insurance: boolean; insurance_description: string
+  is_active: boolean; sort_order: string
+}
+
+const CAR_EXTRA_DEFAULTS: CarExtraFormData = {
+  name: '', description: '', price: '', price_type: 'per_rental',
+  is_insurance: false, insurance_description: '',
+  is_active: true, sort_order: '0',
+}
+
+function CarExtraForm({ initial, onClose, onSaved }: {
+  initial: any | null; onClose: () => void; onSaved: () => void
+}) {
+  const [form, setForm] = useState<CarExtraFormData>(() => {
+    if (!initial) return CAR_EXTRA_DEFAULTS
+    return {
+      name: initial.name ?? '',
+      description: initial.description ?? '',
+      price: initial.price != null ? String(initial.price) : '',
+      price_type: initial.price_type ?? 'per_rental',
+      is_insurance: !!initial.is_insurance,
+      insurance_description: initial.insurance_description ?? '',
+      is_active: !!initial.is_active,
+      sort_order: String(initial.sort_order ?? 0),
+    }
+  })
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  function set<K extends keyof CarExtraFormData>(k: K, v: CarExtraFormData[K]) {
+    setForm(f => ({ ...f, [k]: v }))
+  }
+
+  async function handleSave() {
+    setSaving(true); setError('')
+    const body = {
+      name: form.name,
+      description: form.description || null,
+      price: form.price ? Number(form.price) : 0,
+      price_type: form.price_type,
+      is_insurance: form.is_insurance,
+      insurance_description: form.is_insurance ? (form.insurance_description || null) : null,
+      is_active: form.is_active,
+      sort_order: Number(form.sort_order) || 0,
+    }
+    const url = initial ? `/api/admin/car-extras/${initial.id}` : '/api/admin/car-extras'
+    const method = initial ? 'PUT' : 'POST'
+    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    if (!res.ok) { const d = await res.json(); setError(d.error ?? 'Error saving'); setSaving(false); return }
+    onSaved()
+  }
+
+  return (
+    <Drawer title={initial ? 'Edit Car Extra' : 'Add Car Extra'} onClose={onClose} onSave={handleSave} saving={saving}>
+      {error && <p className="text-red-600 text-sm">{error}</p>}
+      <div>
+        <label className={LABEL}>Name</label>
+        <input className={INPUT} value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. GPS Navigator" />
+      </div>
+      <div>
+        <label className={LABEL}>Description</label>
+        <textarea className={INPUT} rows={3} value={form.description} onChange={e => set('description', e.target.value)} />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className={LABEL}>Price (€)</label>
+          <input className={INPUT} type="number" min="0" step="0.01" value={form.price} onChange={e => set('price', e.target.value)} />
+        </div>
+        <div>
+          <label className={LABEL}>Price Type</label>
+          <select className={SELECT} value={form.price_type} onChange={e => set('price_type', e.target.value as 'per_day' | 'per_rental')}>
+            <option value="per_day">Per Day</option>
+            <option value="per_rental">Per Rental</option>
+          </select>
+        </div>
+      </div>
+      <div className="flex items-center justify-between">
+        <span className={LABEL}>Insurance Upgrade</span>
+        <Toggle checked={form.is_insurance} onChange={() => set('is_insurance', !form.is_insurance)} />
+      </div>
+      {form.is_insurance && (
+        <div>
+          <label className={LABEL}>Insurance Description</label>
+          <textarea className={INPUT} rows={3} value={form.insurance_description}
+            onChange={e => set('insurance_description', e.target.value)}
+            placeholder="Full coverage with zero excess…" />
+        </div>
+      )}
+      <div className="flex items-center justify-between">
+        <span className={LABEL}>Active</span>
+        <Toggle checked={form.is_active} onChange={() => set('is_active', !form.is_active)} />
+      </div>
+      <div>
+        <label className={LABEL}>Sort Order</label>
+        <input className={INPUT} type="number" value={form.sort_order} onChange={e => set('sort_order', e.target.value)} />
+      </div>
+    </Drawer>
+  )
+}
+
 // ── Rental Image Manager ───────────────────────────────────────────────────────
 
 function RentalImageManager() {
@@ -948,18 +1352,35 @@ export function RentalsSection() {
   // Extras filter
   const [extraFilter, setExtraFilter] = useState('All')
 
+  // Car listings / extras / enquiries
+  const [carListings,  setCarListings]  = useState<any[]>([])
+  const [carExtras,    setCarExtras]    = useState<any[]>([])
+  const [carEnquiries, setCarEnquiries] = useState<any[]>([])
+  const [carListingForm,  setCarListingForm]  = useState<any | null | 'new'>(null)
+  const [carExtraForm,    setCarExtraForm]    = useState<any | null | 'new'>(null)
+  const [carEnquiryExpand, setCarEnquiryExpand] = useState<string | null>(null)
+  const [carToast, setCarToast] = useState('')
+
+  function showCarToast(msg: string) { setCarToast(msg); setTimeout(() => setCarToast(''), 3000) }
+
   const fetchAll = useCallback(async () => {
     setLoading(true)
-    const [r, vt, ex, pr] = await Promise.all([
+    const [r, vt, ex, pr, cl, ce, enq] = await Promise.all([
       fetch('/api/admin/rentals').then(r => r.json()),
       fetch('/api/admin/vehicle-types?exclude=transfer').then(r => r.json()),
       fetch('/api/admin/extras').then(r => r.json()),
       fetch('/api/admin/providers').then(r => r.json()),
+      fetch('/api/admin/car-listings').then(r => r.json()),
+      fetch('/api/admin/car-extras').then(r => r.json()),
+      fetch('/api/admin/bookings?item_type=rental').then(r => r.json()),
     ])
     setRentals(Array.isArray(r) ? r : [])
     setVehicleTypes(Array.isArray(vt) ? vt : [])
     setExtras(Array.isArray(ex) ? ex : [])
     setProviders(Array.isArray(pr) ? pr : [])
+    setCarListings(Array.isArray(cl) ? cl : [])
+    setCarExtras(Array.isArray(ce) ? ce : [])
+    setCarEnquiries(Array.isArray(enq) ? enq : [])
     setLoading(false)
   }, [])
 
@@ -1190,6 +1611,223 @@ export function RentalsSection() {
       {/* ── Tab 3: Images ── */}
       {!loading && tab === 3 && <RentalImageManager />}
 
+      {/* ── Tab 4: Car Listings ── */}
+      {!loading && tab === 4 && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-display text-xl text-navy">Car Listings</h2>
+            <button onClick={() => setCarListingForm('new')} className="px-4 py-2 bg-navy text-white text-sm font-semibold rounded-sm hover:bg-navy-light">+ Add Car</button>
+          </div>
+          <div className="bg-white border border-border rounded-sm overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-gray-50">
+                  <th className="text-left px-4 py-2.5 font-medium text-tx-mid">Name</th>
+                  <th className="text-left px-4 py-2.5 font-medium text-tx-mid">Class</th>
+                  <th className="text-left px-4 py-2.5 font-medium text-tx-mid">Price/day</th>
+                  <th className="text-left px-4 py-2.5 font-medium text-tx-mid">Region</th>
+                  <th className="text-center px-4 py-2.5 font-medium text-tx-mid">Featured</th>
+                  <th className="text-center px-4 py-2.5 font-medium text-tx-mid">Active</th>
+                  <th className="px-4 py-2.5" />
+                </tr>
+              </thead>
+              <tbody>
+                {carListings.length === 0 && (
+                  <tr><td colSpan={7} className="px-4 py-8 text-center text-tx-mid">No car listings yet</td></tr>
+                )}
+                {carListings.map((car: any) => (
+                  <tr key={car.id} className="border-b border-border last:border-0 hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium text-tx">{car.name}</td>
+                    <td className="px-4 py-3 text-tx-mid capitalize">{car.car_class ?? '—'}</td>
+                    <td className="px-4 py-3 text-tx-mid">{car.price_per_day != null ? `€${car.price_per_day}` : '—'}</td>
+                    <td className="px-4 py-3 text-tx-mid capitalize">{car.region}</td>
+                    <td className="px-4 py-3 text-center">
+                      <Toggle checked={!!car.is_featured} onChange={async () => {
+                        await fetch(`/api/admin/car-listings/${car.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_featured: !car.is_featured }) })
+                        fetchAll()
+                      }} />
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <Toggle checked={!!car.is_active} onChange={async () => {
+                        await fetch(`/api/admin/car-listings/${car.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_active: !car.is_active }) })
+                        fetchAll()
+                      }} />
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button onClick={() => setCarListingForm(car)} className="text-xs text-tx-mid hover:text-navy underline">Edit</button>
+                        <button onClick={async () => {
+                          if (!confirm('Delete this car listing?')) return
+                          await fetch(`/api/admin/car-listings/${car.id}`, { method: 'DELETE' })
+                          fetchAll()
+                        }} className="text-xs text-red-500 hover:text-red-700 underline">Delete</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ── Tab 5: Car Extras ── */}
+      {!loading && tab === 5 && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-display text-xl text-navy">Car Extras</h2>
+            <button onClick={() => setCarExtraForm('new')} className="px-4 py-2 bg-navy text-white text-sm font-semibold rounded-sm hover:bg-navy-light">+ Add Extra</button>
+          </div>
+          {carExtras.length === 0 && <p className="text-tx-mid text-sm py-8 text-center">No car extras yet</p>}
+          <div className="bg-white border border-border rounded-sm overflow-hidden">
+            {carExtras.length > 0 && (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-gray-50">
+                    <th className="text-left px-4 py-2.5 font-medium text-tx-mid">Name</th>
+                    <th className="text-left px-4 py-2.5 font-medium text-tx-mid">Price</th>
+                    <th className="text-left px-4 py-2.5 font-medium text-tx-mid">Type</th>
+                    <th className="text-center px-4 py-2.5 font-medium text-tx-mid">Insurance</th>
+                    <th className="text-center px-4 py-2.5 font-medium text-tx-mid">Active</th>
+                    <th className="px-4 py-2.5" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {carExtras.map((ex: any) => (
+                    <tr key={ex.id} className="border-b border-border last:border-0 hover:bg-gray-50">
+                      <td className="px-4 py-3 font-medium text-tx">{ex.name}</td>
+                      <td className="px-4 py-3 text-tx-mid">€{ex.price}</td>
+                      <td className="px-4 py-3 text-tx-mid">{ex.price_type === 'per_day' ? 'Per day' : 'Per rental'}</td>
+                      <td className="px-4 py-3 text-center">
+                        {ex.is_insurance
+                          ? <span className="px-1.5 py-0.5 bg-teal/10 text-teal text-[10px] font-bold uppercase rounded">Yes</span>
+                          : <span className="text-tx-light text-xs">—</span>}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <Toggle checked={!!ex.is_active} onChange={async () => {
+                          await fetch(`/api/admin/car-extras/${ex.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_active: !ex.is_active }) })
+                          fetchAll()
+                        }} />
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button onClick={() => setCarExtraForm(ex)} className="text-xs text-tx-mid hover:text-navy underline">Edit</button>
+                          <button onClick={async () => {
+                            if (!confirm('Delete this car extra?')) return
+                            await fetch(`/api/admin/car-extras/${ex.id}`, { method: 'DELETE' })
+                            fetchAll()
+                          }} className="text-xs text-red-500 hover:text-red-700 underline">Delete</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Tab 6: Car Enquiries ── */}
+      {!loading && tab === 6 && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-display text-xl text-navy">Car Enquiries</h2>
+            <button onClick={() => fetchAll()} className="px-3 py-1.5 border border-border rounded-sm text-xs text-tx-mid hover:bg-sand">Refresh</button>
+          </div>
+          {carEnquiries.length === 0 && <p className="text-tx-mid text-sm py-8 text-center">No car enquiries yet</p>}
+          <div className="space-y-2">
+            {carEnquiries.map((enq: any) => {
+              const notes = (() => { try { return typeof enq.guest_notes === 'string' ? JSON.parse(enq.guest_notes) : enq.guest_notes } catch { return {} } })()
+              const isExpanded = carEnquiryExpand === enq.id
+              const statusColors: Record<string, string> = {
+                enquiry: 'bg-yellow-100 text-yellow-700',
+                confirmed: 'bg-teal/10 text-teal',
+                cancelled: 'bg-red-100 text-red-600',
+                completed: 'bg-gray-100 text-gray-600',
+              }
+              return (
+                <div key={enq.id} className="bg-white border border-border rounded-sm overflow-hidden">
+                  <button
+                    onClick={() => setCarEnquiryExpand(isExpanded ? null : enq.id)}
+                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded ${statusColors[enq.status] ?? 'bg-gray-100 text-gray-600'}`}>
+                        {enq.status}
+                      </span>
+                      <div>
+                        <p className="text-sm font-medium text-tx">{enq.guest_name ?? '—'}</p>
+                        <p className="text-[11px] text-tx-light">{enq.item_title} · {enq.confirmation_code}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-[11px] text-tx-light">{new Date(enq.created_at).toLocaleDateString('en-GB')}</span>
+                      <span className="text-tx-light text-xs">{isExpanded ? '▲' : '▼'}</span>
+                    </div>
+                  </button>
+                  {isExpanded && (
+                    <div className="border-t border-border px-4 py-4 space-y-3">
+                      <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm">
+                        <div><span className="text-tx-light text-xs">Email</span><p className="text-tx">{enq.guest_email ?? '—'}</p></div>
+                        <div><span className="text-tx-light text-xs">Reference</span><p className="text-tx font-mono font-bold">{enq.confirmation_code}</p></div>
+                        {notes.pickup_location && <div><span className="text-tx-light text-xs">Pickup</span><p className="text-tx">{notes.pickup_location}</p></div>}
+                        {notes.pickup_date && <div><span className="text-tx-light text-xs">Dates</span><p className="text-tx">{notes.pickup_date} → {notes.dropoff_date}</p></div>}
+                        {notes.duration_days && <div><span className="text-tx-light text-xs">Duration</span><p className="text-tx">{notes.duration_days} days</p></div>}
+                        {notes.driver_age && <div><span className="text-tx-light text-xs">Driver Age</span><p className="text-tx">{notes.driver_age}</p></div>}
+                        {notes.driver_country && <div><span className="text-tx-light text-xs">Country</span><p className="text-tx">{notes.driver_country}</p></div>}
+                        {notes.flight_number && <div><span className="text-tx-light text-xs">Flight</span><p className="text-tx">{notes.flight_number}</p></div>}
+                        {notes.grand_total != null && <div><span className="text-tx-light text-xs">Total</span><p className="text-tx font-semibold">€{Number(notes.grand_total).toFixed(2)}</p></div>}
+                      </div>
+                      {Array.isArray(notes.selected_extras) && notes.selected_extras.length > 0 && (
+                        <div>
+                          <p className="text-xs text-tx-light mb-1">Extras</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {notes.selected_extras.map((e: any, i: number) => (
+                              <span key={i} className="px-2 py-0.5 bg-sand text-tx text-xs rounded">{e.name} — €{e.price}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {enq.status === 'enquiry' && (
+                        <div className="flex gap-2 pt-1">
+                          <button
+                            onClick={async () => {
+                              await fetch(`/api/admin/bookings/${enq.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'confirmed' }) })
+                              showCarToast('Booking confirmed')
+                              fetchAll()
+                            }}
+                            className="px-3 py-1.5 bg-teal text-white text-xs font-semibold rounded-sm hover:opacity-90"
+                          >
+                            Confirm
+                          </button>
+                          <button
+                            onClick={async () => {
+                              if (!confirm('Cancel this enquiry?')) return
+                              await fetch(`/api/admin/bookings/${enq.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'cancelled' }) })
+                              showCarToast('Booking cancelled')
+                              fetchAll()
+                            }}
+                            className="px-3 py-1.5 border border-red-200 text-red-600 text-xs font-semibold rounded-sm hover:bg-red-50"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+          {carToast && (
+            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-navy text-white text-sm font-medium px-4 py-2 rounded-sm shadow-lg">
+              {carToast}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── Drawers ── */}
       {rentalForm !== null && (
         <VehicleForm
@@ -1212,6 +1850,20 @@ export function RentalsSection() {
           initial={extraForm === 'new' ? null : extraForm}
           onClose={() => setExtraForm(null)}
           onSaved={() => { setExtraForm(null); fetchAll() }}
+        />
+      )}
+      {carListingForm !== null && (
+        <CarListingForm
+          initial={carListingForm === 'new' ? null : carListingForm}
+          onClose={() => setCarListingForm(null)}
+          onSaved={() => { setCarListingForm(null); fetchAll() }}
+        />
+      )}
+      {carExtraForm !== null && (
+        <CarExtraForm
+          initial={carExtraForm === 'new' ? null : carExtraForm}
+          onClose={() => setCarExtraForm(null)}
+          onSaved={() => { setCarExtraForm(null); fetchAll() }}
         />
       )}
     </div>
