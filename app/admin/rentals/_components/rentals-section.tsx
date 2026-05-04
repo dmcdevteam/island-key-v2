@@ -115,31 +115,27 @@ function Drawer({ title, onClose, onSave, saving, children }: {
 // ── Vehicle Form ───────────────────────────────────────────────────────────────
 
 type RentalFormData = {
-  name: string; slug: string; vehicle_type_id: string; description: string
-  price_per_day: string; price_per_week: string; min_rental_days: string
-  deposit_required: string; insurance_included: boolean; delivery_available: boolean
-  delivery_fee: string; region: string; tier_visibility: string[]
-  features: string[]; requirements: string; provider_id: string
+  name: string; description: string
+  price_per_day: string; price_per_week: string
+  insurance_included: boolean; region: string
+  features: string[]
   is_featured: boolean; is_active: boolean; sort_order: string
   images: string[]
 }
 
 const RENTAL_DEFAULTS: RentalFormData = {
-  name: '', slug: '', vehicle_type_id: '', description: '',
-  price_per_day: '', price_per_week: '', min_rental_days: '1',
-  deposit_required: '', insurance_included: true, delivery_available: false,
-  delivery_fee: '', region: 'chania', tier_visibility: ['B', 'M', 'P'],
-  features: [], requirements: '', provider_id: '',
+  name: '', description: '',
+  price_per_day: '', price_per_week: '',
+  insurance_included: true, region: 'chania',
+  features: [],
   is_featured: false, is_active: true, sort_order: '0',
   images: [],
 }
 
 function VehicleForm({
-  initial, vehicleTypes, providers, onClose, onSaved,
+  initial, onClose, onSaved,
 }: {
   initial: Rental | null
-  vehicleTypes: VehicleType[]
-  providers: Provider[]
   onClose: () => void
   onSaved: () => void
 }) {
@@ -147,21 +143,12 @@ function VehicleForm({
     if (!initial) return RENTAL_DEFAULTS
     return {
       name: initial.name,
-      slug: initial.slug ?? '',
-      vehicle_type_id: initial.vehicle_type_id ?? '',
       description: initial.description ?? '',
       price_per_day: initial.price_per_day != null ? String(initial.price_per_day) : '',
       price_per_week: initial.price_per_week != null ? String(initial.price_per_week) : '',
-      min_rental_days: String(initial.min_rental_days),
-      deposit_required: initial.deposit_required != null ? String(initial.deposit_required) : '',
       insurance_included: initial.insurance_included,
-      delivery_available: initial.delivery_available,
-      delivery_fee: initial.delivery_fee != null ? String(initial.delivery_fee) : '',
       region: initial.region,
-      tier_visibility: initial.tier_visibility ?? ['B', 'M', 'P'],
       features: initial.features ?? [],
-      requirements: initial.requirements ?? '',
-      provider_id: initial.provider_id ?? '',
       is_featured: initial.is_featured,
       is_active: initial.is_active,
       sort_order: String(initial.sort_order),
@@ -200,17 +187,6 @@ function VehicleForm({
     setForm(f => ({ ...f, [k]: v }))
   }
 
-  function handleNameChange(name: string) {
-    set('name', name)
-    if (!initial) set('slug', slugify(name))
-  }
-
-  function toggleTier(tier: string) {
-    set('tier_visibility', form.tier_visibility.includes(tier)
-      ? form.tier_visibility.filter(t => t !== tier)
-      : [...form.tier_visibility, tier])
-  }
-
   function addFeature() {
     const f = featureInput.trim()
     if (f && !form.features.includes(f)) {
@@ -228,7 +204,7 @@ function VehicleForm({
     if (!files.length) return
     setUploadError('')
     setUploadingCount(c => c + files.length)
-    const slug = form.slug || slugify(form.name) || 'rental'
+    const slug = slugify(form.name) || 'rental'
     const results = await Promise.all(files.map(async file => {
       const fd = new globalThis.FormData()
       fd.append('file', file)
@@ -339,21 +315,12 @@ function VehicleForm({
     setSaving(true); setError('')
     const body = {
       name: form.name,
-      slug: form.slug || slugify(form.name),
-      vehicle_type_id: form.vehicle_type_id || null,
       description: form.description || null,
       price_per_day: form.price_per_day ? Number(form.price_per_day) : null,
       price_per_week: form.price_per_week ? Number(form.price_per_week) : null,
-      min_rental_days: Number(form.min_rental_days) || 1,
-      deposit_required: form.deposit_required ? Number(form.deposit_required) : null,
       insurance_included: form.insurance_included,
-      delivery_available: form.delivery_available,
-      delivery_fee: form.delivery_available && form.delivery_fee ? Number(form.delivery_fee) : null,
       region: form.region,
-      tier_visibility: form.tier_visibility,
       features: form.features.length ? form.features : null,
-      requirements: form.requirements || null,
-      provider_id: form.provider_id || null,
       is_featured: form.is_featured,
       is_active: form.is_active,
       sort_order: Number(form.sort_order) || 0,
@@ -379,18 +346,7 @@ function VehicleForm({
 
       <div>
         <label className={LABEL}>Name</label>
-        <input className={INPUT} value={form.name} onChange={e => handleNameChange(e.target.value)} />
-      </div>
-      <div>
-        <label className={LABEL}>Slug</label>
-        <input className={INPUT} value={form.slug} onChange={e => set('slug', e.target.value)} />
-      </div>
-      <div>
-        <label className={LABEL}>Vehicle Type</label>
-        <select className={SELECT} value={form.vehicle_type_id} onChange={e => set('vehicle_type_id', e.target.value)}>
-          <option value="">— Select type —</option>
-          {vehicleTypes.map(vt => <option key={vt.id} value={vt.id}>{vt.name}</option>)}
-        </select>
+        <input className={INPUT} value={form.name} onChange={e => set('name', e.target.value)} />
       </div>
       <div>
         <label className={LABEL}>Description</label>
@@ -406,46 +362,15 @@ function VehicleForm({
           <input className={INPUT} type="number" min="0" value={form.price_per_week} onChange={e => set('price_per_week', e.target.value)} />
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className={LABEL}>Min Rental Days</label>
-          <input className={INPUT} type="number" min="1" value={form.min_rental_days} onChange={e => set('min_rental_days', e.target.value)} />
-        </div>
-        <div>
-          <label className={LABEL}>Deposit Required (€)</label>
-          <input className={INPUT} type="number" min="0" value={form.deposit_required} onChange={e => set('deposit_required', e.target.value)} />
-        </div>
-      </div>
       <div className="flex items-center justify-between">
         <span className={LABEL}>Insurance Included</span>
         <Toggle checked={form.insurance_included} onChange={() => set('insurance_included', !form.insurance_included)} />
       </div>
-      <div className="flex items-center justify-between">
-        <span className={LABEL}>Delivery Available</span>
-        <Toggle checked={form.delivery_available} onChange={() => set('delivery_available', !form.delivery_available)} />
-      </div>
-      {form.delivery_available && (
-        <div>
-          <label className={LABEL}>Delivery Fee (€)</label>
-          <input className={INPUT} type="number" min="0" value={form.delivery_fee} onChange={e => set('delivery_fee', e.target.value)} />
-        </div>
-      )}
       <div>
         <label className={LABEL}>Region</label>
         <select className={SELECT} value={form.region} onChange={e => set('region', e.target.value)}>
           {REGIONS.map(r => <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>)}
         </select>
-      </div>
-      <div>
-        <label className={LABEL}>Tier Visibility</label>
-        <div className="flex gap-3 mt-1">
-          {['B', 'M', 'P'].map(t => (
-            <label key={t} className="flex items-center gap-1.5 text-sm cursor-pointer">
-              <input type="checkbox" checked={form.tier_visibility.includes(t)} onChange={() => toggleTier(t)} />
-              {t}
-            </label>
-          ))}
-        </div>
       </div>
       <div>
         <label className={LABEL}>Features</label>
@@ -469,17 +394,6 @@ function VehicleForm({
             ))}
           </div>
         )}
-      </div>
-      <div>
-        <label className={LABEL}>Requirements</label>
-        <textarea className={INPUT} rows={2} value={form.requirements} onChange={e => set('requirements', e.target.value)} />
-      </div>
-      <div>
-        <label className={LABEL}>Provider</label>
-        <select className={SELECT} value={form.provider_id} onChange={e => set('provider_id', e.target.value)}>
-          <option value="">— Select provider —</option>
-          {providers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </select>
       </div>
       <div className="flex items-center justify-between">
         <span className={LABEL}>Featured</span>
@@ -1924,8 +1838,6 @@ export function RentalsSection() {
       {rentalForm !== null && (
         <VehicleForm
           initial={rentalForm === 'new' ? null : rentalForm}
-          vehicleTypes={vehicleTypes}
-          providers={providers}
           onClose={() => setRentalForm(null)}
           onSaved={() => { setRentalForm(null); fetchAll() }}
         />
