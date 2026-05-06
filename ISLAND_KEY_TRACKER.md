@@ -56,6 +56,7 @@ Deliberately deferred from Phase 0. Confirmed for Phase 1 (post-pilot, when real
 | P1-014 | **Subcategory admin management** | Car classes, activity categories, and other subcategories are currently hardcoded in the UI. To add a new subcategory requires CC code change — admin cannot do it alone. Architectural upgrade needed to make these DB-driven and fully admin-manageable. 1–2 day CC job. Review after pilot. | CC |
 | P1-015 | **Rentals — ATV & Motorbike, Bike & E-Bike, Boat flows** | Only the Cars flow is fully built. The other three vehicle categories (ATV & Motorbike, Bike & E-Bike, Boat) have landing cards but no search → results → booking flow yet. Build after Cars flow is validated in pilot. | CC |
 | P1-016 | **Vacation Essentials — item enquiry flow** | Current /rentals/essentials shows items with a global WhatsApp CTA. No per-item selection or quantity picker yet. Build a proper enquiry flow (select items + quantities → send itemised WhatsApp + email) after pilot feedback. | CC |
+| P1-017 | **Weather-aware activity indicators (pre-pilot)** | Simple suitability indicator on each activity card and detail page — a small coloured dot/icon. Green = good conditions, Amber = check conditions, Red = may be affected. Rules engine based on activity category: sea/water activities flag when wind >25km/h or waves >1m; outdoor/adventure flags when temp >38°C or rain probability >60%; other categories use a general threshold. Uses Open-Meteo API already wired to home screen — no new API key. Data refreshed on page load, cached for 30 min. Zero guest interaction needed — purely informational. Agreed as pre-pilot feature. | CC |
 
 ---
 
@@ -76,6 +77,7 @@ Longer horizon. Not yet scoped in detail. Listed to avoid forgetting.
 | P2-009 | **OdysseyX integration** | 2+ | OdysseyX as a supplier within Island Key. Currently parked. |
 | P2-010 | **Marketing landing page (www.islandkey.gr)** | 1/2 | In active development separately from the guest app. |
 | P2-011 | **Transfer provider assignment automation** | 3 | Transfer Providers admin page is built and ready (Phase 3 badge). Wire to booking assignment when provider network is confirmed. |
+| P2-012 | **Weather-aware WhatsApp briefings (post-pilot)** | 2 | Automated morning weather briefing via WhatsApp to opted-in guests — personalised based on stay dates and activities enquired about. Two message types: (1) Opportunity nudge — "It's going to be 38°C and no wind on Thursday — perfect for the catamaran. Book now." (2) Alert — "Tomorrow's forecast shows strong winds (30km/h+) in western Crete. Your Balos speedboat trip may be affected — Spyros will be in touch." Requires WhatsApp Business API (already on roadmap as P1-010/P2-002). Spyros follows up personally as additional human layer. This is the genuinely differentiated feature — no generic platform does personalised weather-activity nudges via WhatsApp. |
 
 ---
 
@@ -104,6 +106,8 @@ Decisions not yet made that will affect build or operations.
 | 1 May 2026 | TD-007 resolved — read_time_minutes dropped. TD-006 updated — image_url cannot be dropped (published_articles view dependency). Future work: update view to use cover_image then drop. | AI Strategy Partner |
 | 1 May 2026 | TD-001 resolved — admin login React #300 fixed, login shell extracted as separate component. Articles bugs resolved (is_active→is_published, slug auto-gen, preview routing). No open bugs at handoff. | AI Strategy Partner |
 | 6 May 2026 | Added TD-008 (stale schema.sql). Added P1-013 (sessionStorage review), P1-014 (subcategory admin management), P1-015 (ATV/Bike/Boat flows), P1-016 (Vacation Essentials enquiry flow). Added OQ-007 (driver age per vehicle category). Marked P1-008 as resolved. | AI Strategy Partner |
+| 6 May 2026 | Added P1-017 (weather-aware activities Layer 1 — passive forecast on activity pages) and P2-012 (weather alerting Layer 2 — active post-booking monitoring + Spyros WA notification). | AI Strategy Partner |
+| 6 May 2026 | Revised P1-017 and P2-012 to match exact agreed spec from prior session: P1-017 = simple coloured suitability dot on activity cards pre-pilot; P2-012 = personalised WhatsApp weather briefings post-pilot using Business API. | AI Strategy Partner |
 
 ---
 
