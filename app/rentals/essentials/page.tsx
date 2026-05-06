@@ -2,66 +2,45 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-
-type RentalExtra = {
-  id: string
-  name: string
-  description: string | null
-  category: string
-  price_per_day: number | null
-  price_per_unit: number | null
-  unit_label: string
-  image: string | null
-  is_active: boolean
-  sort_order: number
-}
-
-const CATEGORY_LABELS: Record<string, string> = {
-  beach:   'Beach',
-  baby:    'Baby',
-  camping: 'Camping',
-  sport:   'Sport',
-  comfort: 'Comfort',
-  other:   'Other',
-}
-
-const CATEGORY_EMOJIS: Record<string, string> = {
-  beach:   '🏖',
-  baby:    '🍼',
-  camping: '⛺',
-  sport:   '🏄',
-  comfort: '🛋',
-  other:   '📦',
-}
+import type { RentalEssentialsCategory } from '@/lib/types'
 
 const CATEGORY_ORDER = ['beach', 'baby', 'camping', 'sport', 'comfort', 'other']
 
-export default function EssentialsPage() {
+const FALLBACK_IMAGES: Record<string, string> = {
+  beach:   'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600',
+  baby:    'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=600',
+  camping: 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=600',
+  sport:   'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600',
+  comfort: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600',
+  other:   'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600',
+}
+
+export default function EssentialsLandingPage() {
   const router = useRouter()
-  const [essentials, setEssentials] = useState<RentalExtra[]>([])
+  const [categories, setCategories] = useState<RentalEssentialsCategory[]>([])
+  const [activeCats, setActiveCats] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/rentals/essentials')
-      .then(r => r.json())
-      .then(data => {
-        setEssentials(Array.isArray(data.essentials) ? data.essentials : [])
-        setLoading(false)
-      })
-      .catch(() => setLoading(false))
+    Promise.all([
+      fetch('/api/rentals/essentials-categories').then(r => r.json()),
+      fetch('/api/rentals/essentials').then(r => r.json()),
+    ]).then(([catData, itemData]) => {
+      setCategories(Array.isArray(catData.categories) ? catData.categories : [])
+      const cats = new Set<string>(
+        (Array.isArray(itemData.essentials) ? itemData.essentials : []).map((e: { category: string }) => e.category)
+      )
+      setActiveCats(cats)
+      setLoading(false)
+    }).catch(() => setLoading(false))
   }, [])
 
-  const grouped = CATEGORY_ORDER.reduce<Record<string, RentalExtra[]>>((acc, cat) => {
-    const items = essentials.filter(e => e.category === cat)
-    if (items.length > 0) acc[cat] = items
-    return acc
-  }, {})
-
-  const waMessage = encodeURIComponent("Hi, I'd like to enquire about Vacation Essentials for my stay.")
-  const waLink = `https://wa.me/306974176759?text=${waMessage}`
+  const visibleCategories = CATEGORY_ORDER
+    .map(slug => categories.find(c => c.category === slug))
+    .filter((c): c is RentalEssentialsCategory => !!c && activeCats.has(c.category))
 
   return (
-    <div className="min-h-screen bg-cream flex flex-col pb-[100px]">
+    <div className="min-h-screen bg-cream flex flex-col pb-[90px]">
       {/* Header */}
       <div className="sticky top-0 z-20 bg-cream border-b border-border-light px-4 py-3">
         <div className="flex items-center gap-3">
@@ -73,78 +52,49 @@ export default function EssentialsPage() {
         </div>
       </div>
 
-      <div className="px-4 pt-4 pb-2">
-        <p className="text-sm text-tx-mid leading-relaxed">
-          Everything you need for the perfect Cretan holiday — delivered to your door.
-        </p>
-      </div>
-
       {loading && (
         <div className="flex-1 flex items-center justify-center">
           <p className="text-tx-light text-sm">Loading…</p>
         </div>
       )}
 
-      {!loading && essentials.length === 0 && (
+      {!loading && visibleCategories.length === 0 && (
         <div className="flex-1 flex items-center justify-center px-4">
           <p className="text-tx-light text-sm text-center">No essentials listed yet — check back soon.</p>
         </div>
       )}
 
-      {!loading && essentials.length > 0 && (
-        <div className="px-4 pt-4 space-y-6">
-          {Object.entries(grouped).map(([cat, items]) => (
-            <div key={cat}>
-              <h2 className="font-display text-base font-semibold text-navy mb-3">
-                {CATEGORY_LABELS[cat] ?? cat}
-              </h2>
-              <div className="space-y-3">
-                {items.map(item => (
-                  <div key={item.id} className="bg-white rounded-2xl border border-border-light p-4 flex items-start gap-3 shadow-sm">
-                    {item.image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="w-14 h-14 rounded-xl object-cover flex-shrink-0"
-                      />
-                    ) : (
-                      <div className="w-14 h-14 rounded-xl bg-cream flex items-center justify-center text-2xl flex-shrink-0">
-                        {CATEGORY_EMOJIS[item.category] ?? '📦'}
-                      </div>
+      {!loading && visibleCategories.length > 0 && (
+        <div className="px-4 pt-4">
+          <div className="grid grid-cols-2 gap-3">
+            {visibleCategories.map(cat => {
+              const heroImage = cat.image_wide ?? cat.image_url ?? FALLBACK_IMAGES[cat.category] ?? null
+              return (
+                <button
+                  key={cat.category}
+                  onClick={() => router.push(`/rentals/essentials/${cat.category}`)}
+                  className="relative rounded-2xl overflow-hidden text-left active:scale-[0.97] transition-transform shadow-sm"
+                  style={{ aspectRatio: '3/2' }}
+                >
+                  {heroImage ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={heroImage} alt={cat.label} className="absolute inset-0 w-full h-full object-cover" />
+                  ) : (
+                    <div className="absolute inset-0 bg-navy" />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-3">
+                    <p className="font-display text-sm font-semibold text-white leading-tight">{cat.label}</p>
+                    {cat.tagline && (
+                      <p className="text-[10px] text-white/70 mt-0.5 leading-snug">{cat.tagline}</p>
                     )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-navy leading-tight">{item.name}</p>
-                      {item.description && (
-                        <p className="text-[11px] text-tx-light mt-0.5 leading-snug">{item.description}</p>
-                      )}
-                      <p className="text-[11px] text-teal font-semibold mt-1">
-                        {item.price_per_day != null
-                          ? `€${item.price_per_day} / day`
-                          : item.price_per_unit != null
-                          ? `€${item.price_per_unit} per ${item.unit_label}`
-                          : 'Price on request'}
-                      </p>
-                    </div>
                   </div>
-                ))}
-              </div>
-            </div>
-          ))}
+                </button>
+              )
+            })}
+          </div>
         </div>
       )}
-
-      {/* WhatsApp CTA */}
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] px-4 pb-6 pt-3 bg-cream border-t border-border-light">
-        <a
-          href={waLink}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 w-full py-3.5 bg-teal text-white font-semibold rounded-xl text-sm active:scale-[0.98] transition-transform shadow-md"
-        >
-          Enquire via WhatsApp →
-        </a>
-      </div>
     </div>
   )
 }

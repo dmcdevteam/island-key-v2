@@ -85,13 +85,23 @@ export default function RentalsLandingPage() {
         </div>
 
         {/* Vacation Essentials */}
-        <button
-          onClick={() => router.push('/rentals/essentials')}
-          className="w-full text-left rounded-2xl border border-teal/30 bg-cream overflow-hidden p-5 shadow-sm active:scale-[0.98] transition-transform"
-        >
-          <p className="font-display text-lg text-navy font-medium leading-tight">Vacation Essentials</p>
-          <p className="text-sm text-tx-mid mt-1">Beach gear, baby equipment, camping &amp; more</p>
-        </button>
+        {(() => {
+          const heroImage = catImages['essentials'] ?? 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800'
+          return (
+            <button
+              onClick={() => router.push('/rentals/essentials')}
+              className="relative w-full rounded-2xl overflow-hidden h-[160px] text-left active:scale-[0.97] transition-transform shadow-sm"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={heroImage} alt="Vacation Essentials" className="absolute inset-0 w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-3.5">
+                <p className="font-display text-base font-semibold text-white leading-tight">Vacation Essentials</p>
+                <p className="text-[11px] text-white/70 mt-0.5 leading-snug">Beach gear, baby equipment, camping &amp; more</p>
+              </div>
+            </button>
+          )
+        })()}
       </div>
 
       <BottomNav />

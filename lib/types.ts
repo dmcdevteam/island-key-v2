@@ -458,6 +458,16 @@ export interface CarRental {
   pickup_locations: string[] | null
 }
 
+export interface RentalEssentialsCategory {
+  id: string
+  category: string
+  label: string
+  tagline: string | null
+  image_url: string | null
+  image_wide: string | null
+  sort_order: number
+}
+
 export interface CarRentalExtra {
   id: string
   name: string
