@@ -68,7 +68,8 @@ export default function EssentialsLandingPage() {
                 <button
                   key={cat.category}
                   onClick={() => router.push(`/rentals/essentials/${cat.category}`)}
-                  className="relative rounded-2xl overflow-hidden h-[240px] text-left active:scale-[0.97] transition-transform shadow-sm"
+                  className="relative rounded-2xl overflow-hidden text-left active:scale-[0.97] transition-transform shadow-sm"
+                  style={{ aspectRatio: '3/2' }}
                 >
                   {heroImage ? (
                     // eslint-disable-next-line @next/next/no-img-element

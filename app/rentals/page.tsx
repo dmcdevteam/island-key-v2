@@ -90,7 +90,7 @@ export default function RentalsLandingPage() {
           return (
             <button
               onClick={() => router.push('/rentals/essentials')}
-              className="relative w-full rounded-2xl overflow-hidden h-[160px] text-left active:scale-[0.97] transition-transform shadow-sm"
+              className="relative w-full rounded-2xl overflow-hidden h-[240px] text-left active:scale-[0.97] transition-transform shadow-sm"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={heroImage} alt="Vacation Essentials" className="absolute inset-0 w-full h-full object-cover" />
