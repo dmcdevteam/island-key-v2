@@ -18,26 +18,21 @@ const FALLBACK_IMAGES: Record<string, string> = {
 export default function EssentialsLandingPage() {
   const router = useRouter()
   const [categories, setCategories] = useState<RentalEssentialsCategory[]>([])
-  const [activeCats, setActiveCats] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    Promise.all([
-      fetch('/api/rentals/essentials-categories').then(r => r.json()),
-      fetch('/api/rentals/essentials').then(r => r.json()),
-    ]).then(([catData, itemData]) => {
-      setCategories(Array.isArray(catData.categories) ? catData.categories : [])
-      const cats = new Set<string>(
-        (Array.isArray(itemData.essentials) ? itemData.essentials : []).map((e: { category: string }) => e.category)
-      )
-      setActiveCats(cats)
-      setLoading(false)
-    }).catch(() => setLoading(false))
+    fetch('/api/rentals/essentials-categories')
+      .then(r => r.json())
+      .then(data => {
+        setCategories(Array.isArray(data.categories) ? data.categories : [])
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
   }, [])
 
   const visibleCategories = CATEGORY_ORDER
     .map(slug => categories.find(c => c.category === slug))
-    .filter((c): c is RentalEssentialsCategory => !!c && activeCats.has(c.category))
+    .filter((c): c is RentalEssentialsCategory => !!c)
 
   return (
     <div className="min-h-screen bg-cream flex flex-col pb-[90px]">
@@ -73,8 +68,7 @@ export default function EssentialsLandingPage() {
                 <button
                   key={cat.category}
                   onClick={() => router.push(`/rentals/essentials/${cat.category}`)}
-                  className="relative rounded-2xl overflow-hidden text-left active:scale-[0.97] transition-transform shadow-sm"
-                  style={{ aspectRatio: '3/2' }}
+                  className="relative rounded-2xl overflow-hidden h-[240px] text-left active:scale-[0.97] transition-transform shadow-sm"
                 >
                   {heroImage ? (
                     // eslint-disable-next-line @next/next/no-img-element
