@@ -100,6 +100,7 @@ function DriverContent() {
   // Price calculation
   const baseTotal = (vehicle?.price_per_day ?? 0) * days
   const extrasTotal = extras.filter(e => selectedExtras.has(e.id)).reduce((sum, e) => {
+    if (e.is_free) return sum
     return sum + (e.price_type === 'per_day' ? e.price * days : e.price)
   }, 0)
   const grandTotal = baseTotal + extrasTotal
@@ -108,7 +109,7 @@ function DriverContent() {
     if (!validate() || !vehicle) return
     const selectedExtrasList = extras
       .filter(e => selectedExtras.has(e.id))
-      .map(e => ({ name: e.name, price: e.price_type === 'per_day' ? e.price * days : e.price, price_type: e.price_type }))
+      .map(e => ({ name: e.name, price: e.is_free ? 0 : (e.price_type === 'per_day' ? e.price * days : e.price), price_type: e.price_type }))
 
     const enquiryState = {
       vehicle_id:       id,
@@ -153,7 +154,12 @@ function DriverContent() {
     </div>
   )
 
-  const standardExtras = extras.filter(e => !e.is_insurance)
+  const features = vehicle?.features ?? null
+  const standardExtras = extras.filter(e => {
+    if (e.is_insurance) return false
+    if (features?.free_driver && e.name === 'Additional Driver') return false
+    return true
+  })
   const insuranceExtra  = extras.find(e => e.is_insurance)
 
   return (
@@ -245,10 +251,10 @@ function DriverContent() {
               <div key={extra.id} className="flex items-center justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-navy">{extra.name}</p>
-                  <p className="text-[11px] text-tx-light">
-                    €{extra.price_type === 'per_day'
-                      ? `${extra.price}/day (€${(extra.price * days).toFixed(2)} total)`
-                      : `${extra.price}/rental`}
+                  <p className={`text-[11px] ${extra.is_free ? 'text-teal font-semibold' : 'text-tx-light'}`}>
+                    {extra.is_free ? 'Free' : (extra.price_type === 'per_day'
+                      ? `€${extra.price}/day (€${(extra.price * days).toFixed(2)} total)`
+                      : `€${extra.price}/rental`)}
                   </p>
                 </div>
                 <Toggle checked={selectedExtras.has(extra.id)} onChange={() => toggleExtra(extra.id)} />

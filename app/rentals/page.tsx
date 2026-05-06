@@ -84,14 +84,14 @@ export default function RentalsLandingPage() {
           })}
         </div>
 
-        {/* Vacation Essentials — coming soon */}
-        <div className="relative rounded-2xl border border-teal/30 bg-cream overflow-hidden p-5 shadow-sm">
-          <span className="absolute top-3 right-3 text-[10px] font-bold uppercase tracking-wide bg-navy/10 text-navy px-2 py-0.5 rounded-full">
-            Coming Soon
-          </span>
+        {/* Vacation Essentials */}
+        <button
+          onClick={() => router.push('/rentals/essentials')}
+          className="w-full text-left rounded-2xl border border-teal/30 bg-cream overflow-hidden p-5 shadow-sm active:scale-[0.98] transition-transform"
+        >
           <p className="font-display text-lg text-navy font-medium leading-tight">Vacation Essentials</p>
           <p className="text-sm text-tx-mid mt-1">Beach gear, baby equipment, camping &amp; more</p>
-        </div>
+        </button>
       </div>
 
       <BottomNav />

@@ -807,7 +807,7 @@ type CarListingFormData = {
   seats: string; doors: string; transmission: string; fuel_type: string
   ac: boolean; zero_deposit: boolean; deposit_amount: string; insurance_included: boolean
   feat_free_driver: boolean; feat_free_cancellation: boolean; feat_roadside_assistance: boolean
-  feat_kids_seat: boolean; feat_no_hidden_charges: boolean; feat_unlimited_km: boolean
+  feat_no_hidden_charges: boolean; feat_unlimited_km: boolean
   image_wide: string; image_square: string; images: string[]
   is_active: boolean; is_featured: boolean; sort_order: string; region: string
 }
@@ -818,7 +818,7 @@ const CAR_LISTING_DEFAULTS: CarListingFormData = {
   seats: '', doors: '', transmission: 'manual', fuel_type: 'petrol',
   ac: true, zero_deposit: false, deposit_amount: '', insurance_included: true,
   feat_free_driver: false, feat_free_cancellation: false, feat_roadside_assistance: false,
-  feat_kids_seat: false, feat_no_hidden_charges: true, feat_unlimited_km: false,
+  feat_no_hidden_charges: true, feat_unlimited_km: false,
   image_wide: '', image_square: '', images: [],
   is_active: true, is_featured: false, sort_order: '0', region: 'chania',
 }
@@ -846,7 +846,6 @@ function CarListingForm({ initial, onClose, onSaved }: {
       feat_free_driver: !!f.free_driver,
       feat_free_cancellation: !!f.free_cancellation,
       feat_roadside_assistance: !!f.roadside_assistance,
-      feat_kids_seat: !!f.kids_seat,
       feat_no_hidden_charges: !!f.no_hidden_charges,
       feat_unlimited_km: !!f.unlimited_km,
       image_wide: initial.image_wide ?? '',
@@ -916,7 +915,6 @@ function CarListingForm({ initial, onClose, onSaved }: {
         free_driver: form.feat_free_driver,
         free_cancellation: form.feat_free_cancellation,
         roadside_assistance: form.feat_roadside_assistance,
-        kids_seat: form.feat_kids_seat,
         no_hidden_charges: form.feat_no_hidden_charges,
         unlimited_km: form.feat_unlimited_km,
       },
@@ -1020,8 +1018,7 @@ function CarListingForm({ initial, onClose, onSaved }: {
           {([
             ['feat_free_driver', 'Free Extra Driver'],
             ['feat_free_cancellation', 'Free Cancellation'],
-            ['feat_roadside_assistance', 'Roadside Assistance'],
-            ['feat_kids_seat', 'Kids Seat Available'],
+            ['feat_roadside_assistance', '24h Roadside Assistance'],
             ['feat_no_hidden_charges', 'No Hidden Charges'],
             ['feat_unlimited_km', 'Unlimited Kilometres'],
           ] as [keyof CarListingFormData, string][]).map(([key, label]) => (
@@ -1087,12 +1084,14 @@ type CarExtraFormData = {
   name: string; description: string; price: string
   price_type: 'per_day' | 'per_rental'
   is_insurance: boolean; insurance_description: string
+  is_free: boolean
   is_active: boolean; sort_order: string
 }
 
 const CAR_EXTRA_DEFAULTS: CarExtraFormData = {
   name: '', description: '', price: '', price_type: 'per_rental',
   is_insurance: false, insurance_description: '',
+  is_free: false,
   is_active: true, sort_order: '0',
 }
 
@@ -1108,6 +1107,7 @@ function CarExtraForm({ initial, onClose, onSaved }: {
       price_type: initial.price_type ?? 'per_rental',
       is_insurance: !!initial.is_insurance,
       insurance_description: initial.insurance_description ?? '',
+      is_free: !!initial.is_free,
       is_active: !!initial.is_active,
       sort_order: String(initial.sort_order ?? 0),
     }
@@ -1128,6 +1128,7 @@ function CarExtraForm({ initial, onClose, onSaved }: {
       price_type: form.price_type,
       is_insurance: form.is_insurance,
       insurance_description: form.is_insurance ? (form.insurance_description || null) : null,
+      is_free: form.is_free,
       is_active: form.is_active,
       sort_order: Number(form.sort_order) || 0,
     }
@@ -1149,10 +1150,14 @@ function CarExtraForm({ initial, onClose, onSaved }: {
         <label className={LABEL}>Description</label>
         <textarea className={INPUT} rows={3} value={form.description} onChange={e => set('description', e.target.value)} />
       </div>
+      <div className="flex items-center justify-between">
+        <span className={LABEL}>Offered Free of Charge</span>
+        <Toggle checked={form.is_free} onChange={() => set('is_free', !form.is_free)} />
+      </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className={LABEL}>Price (€)</label>
-          <input className={INPUT} type="number" min="0" step="0.01" value={form.price} onChange={e => set('price', e.target.value)} />
+          <label className={LABEL}>Price (€){form.is_free && <span className="ml-1 font-normal normal-case text-tx-light">(optional when free)</span>}</label>
+          <input className={`${INPUT} ${form.is_free ? 'opacity-50' : ''}`} type="number" min="0" step="0.01" value={form.price} onChange={e => set('price', e.target.value)} />
         </div>
         <div>
           <label className={LABEL}>Price Type</label>
@@ -1678,7 +1683,11 @@ export function RentalsSection() {
                   {carExtras.map((ex: any) => (
                     <tr key={ex.id} className="border-b border-border last:border-0 hover:bg-gray-50">
                       <td className="px-4 py-3 font-medium text-tx">{ex.name}</td>
-                      <td className="px-4 py-3 text-tx-mid">€{ex.price}</td>
+                      <td className="px-4 py-3 text-tx-mid">
+                        {ex.is_free
+                          ? <span className="px-1.5 py-0.5 bg-teal/10 text-teal text-[10px] font-bold uppercase rounded">Free</span>
+                          : `€${ex.price}`}
+                      </td>
                       <td className="px-4 py-3 text-tx-mid">{ex.price_type === 'per_day' ? 'Per day' : 'Per rental'}</td>
                       <td className="px-4 py-3 text-center">
                         {ex.is_insurance

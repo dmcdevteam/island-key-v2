@@ -466,6 +466,7 @@ export interface CarRentalExtra {
   price_type: 'per_day' | 'per_rental'
   is_insurance: boolean
   insurance_description: string | null
+  is_free: boolean
   is_active: boolean
   sort_order: number
   created_at: string
