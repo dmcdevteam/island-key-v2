@@ -82,27 +82,24 @@ function CategoryContent() {
       )}
 
       {!loading && items.length > 0 && (
-        <div className="px-4 pt-4 space-y-3">
+        <div className="grid grid-cols-2 gap-3 px-4 py-4">
           {items.map(item => (
-            <div key={item.id} className="bg-white rounded-2xl border border-border-light p-4 flex items-start gap-3 shadow-sm">
+            <div key={item.id} className="bg-white rounded-lg border border-border-light overflow-hidden shadow-sm">
               {item.image ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={item.image}
                   alt={item.name}
-                  className="w-14 h-14 rounded-xl object-cover flex-shrink-0"
+                  className="w-full h-[140px] object-cover"
                 />
               ) : (
-                <div className="w-14 h-14 rounded-xl bg-cream flex items-center justify-center text-2xl flex-shrink-0">
+                <div className="w-full h-[140px] flex items-center justify-center text-3xl" style={{ background: '#FDFCFA' }}>
                   {CATEGORY_EMOJIS[item.category] ?? '📦'}
                 </div>
               )}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-navy leading-tight">{item.name}</p>
-                {item.description && (
-                  <p className="text-[11px] text-tx-light mt-0.5 leading-snug">{item.description}</p>
-                )}
-                <p className="text-[11px] text-teal font-semibold mt-1">
+              <div className="p-3">
+                <p className="text-[13px] font-semibold text-navy leading-snug">{item.name}</p>
+                <p className="text-[12px] text-teal mt-1">
                   {item.price_per_day != null
                     ? `€${item.price_per_day} / day`
                     : item.price_per_unit != null
