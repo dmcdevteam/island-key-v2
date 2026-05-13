@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
-import { isAdminAuthed } from '../../../_lib/auth'
+import { isAdminAuthed } from '../../_lib/auth'
 
 export async function PUT(request: Request, { params }: { params: { subcategory: string } }) {
   if (!await isAdminAuthed()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
