@@ -551,6 +551,9 @@ export interface Service {
   is_featured: boolean
   sort_order: number
   region: string
+  offer_label: string | null
+  offer_price: number | null
+  is_on_offer: boolean
 }
 
 export interface ServiceSubcategory {

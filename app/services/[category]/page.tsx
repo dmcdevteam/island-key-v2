@@ -286,14 +286,27 @@ export default function ServiceDetailPage() {
 
           <h1 className="font-display text-2xl text-navy leading-tight mb-2">{service.title}</h1>
 
-          <div className="flex items-center gap-3 mb-3">
-            <span className="text-base font-bold text-terra">
-              {service.price_label ?? (service.price_from ? `from €${service.price_from}` : 'Price on request')}
-            </span>
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            {service.is_on_offer && (
+              <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-terra text-white">Special Offer</span>
+            )}
+            {service.is_on_offer && service.offer_price ? (
+              <div className="flex items-baseline gap-2">
+                <span className="text-base font-bold text-terra">from €{service.offer_price}</span>
+                <span className="text-sm text-tx-light line-through">{service.price_label ?? (service.price_from ? `€${service.price_from}` : '')}</span>
+              </div>
+            ) : (
+              <span className="text-base font-bold text-terra">
+                {service.price_label ?? (service.price_from ? `from €${service.price_from}` : 'Price on request')}
+              </span>
+            )}
             {service.duration && (
               <span className="text-xs text-tx-mid bg-sand border border-border-light rounded-full px-2.5 py-0.5">⏱ {service.duration}</span>
             )}
           </div>
+          {service.is_on_offer && service.offer_label && (
+            <p className="text-sm text-terra/80 -mt-2 mb-3">{service.offer_label}</p>
+          )}
 
           {service.description && (
             <p className="text-sm text-tx-mid leading-relaxed mb-5">{service.description}</p>

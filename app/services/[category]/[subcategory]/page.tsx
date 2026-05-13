@@ -128,11 +128,18 @@ export default function ServiceListingsPage() {
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-2 mb-1.5">
                     <h3 className="font-display text-base text-navy leading-tight">{s.title}</h3>
-                    {s.duration && (
-                      <span className="flex-shrink-0 text-[11px] text-tx-mid bg-sand border border-border-light rounded-full px-2 py-0.5 whitespace-nowrap">
-                        ⏱ {s.duration}
-                      </span>
-                    )}
+                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                      {s.is_on_offer && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-terra text-white whitespace-nowrap">
+                          Special Offer
+                        </span>
+                      )}
+                      {s.duration && (
+                        <span className="text-[11px] text-tx-mid bg-sand border border-border-light rounded-full px-2 py-0.5 whitespace-nowrap">
+                          ⏱ {s.duration}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   {s.service_type && (
                     <span className="inline-block text-[10px] font-semibold text-teal border border-teal/30 rounded-full px-2 py-0.5 mb-1.5">
@@ -142,9 +149,21 @@ export default function ServiceListingsPage() {
                   {s.short_description && (
                     <p className="text-xs text-tx-light mb-2 line-clamp-2">{s.short_description}</p>
                   )}
-                  <p className="text-sm font-semibold text-terra mb-3">
-                    {s.price_label ?? (s.price_from ? `from €${s.price_from}` : 'Price on request')}
-                  </p>
+                  <div className="mb-3">
+                    {s.is_on_offer && s.offer_price ? (
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-sm font-bold text-terra">from €{s.offer_price}</span>
+                        <span className="text-xs text-tx-light line-through">{s.price_label ?? (s.price_from ? `€${s.price_from}` : '')}</span>
+                      </div>
+                    ) : (
+                      <span className="text-sm font-semibold text-terra">
+                        {s.price_label ?? (s.price_from ? `from €${s.price_from}` : 'Price on request')}
+                      </span>
+                    )}
+                    {s.is_on_offer && s.offer_label && (
+                      <p className="text-[11px] text-terra/80 mt-0.5">{s.offer_label}</p>
+                    )}
+                  </div>
                   <button
                     onClick={() => router.push(`/services/${s.slug}`)}
                     className="w-full py-2.5 bg-navy text-white text-sm font-semibold rounded-sm active:scale-[0.98] transition-transform"
