@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { getSession, TIER_LABELS, formatPrice } from '@/lib/utils';
+import { getSession } from '@/lib/utils';
 import { BottomNav } from '@/components/ui/bottom-nav';
 import { SectionHeader, ActivityMiniCard, ArticleCard } from '@/components/ui/components';
 import { ProfileAvatar } from '@/app/_components/profile-avatar';
@@ -227,7 +227,7 @@ export default function HomePage() {
     const supabase = createClient();
 
     const dealParams = new URLSearchParams({
-      tier: s.tier, region: s.region, featured: 'true', limit: '3',
+      tier: s.tier, region: s.region,
       ...(s.property_id ? { property_id: s.property_id } : {}),
     });
 
@@ -290,8 +290,6 @@ export default function HomePage() {
       : 7;
     return { type: 'during' as const, dayNum, length };
   })();
-
-  const featuredDeal: DealFull | null = data.deals[0] ?? null;
 
   return (
     <div className="min-h-screen bg-cream flex flex-col pb-[90px]">
@@ -452,38 +450,6 @@ export default function HomePage() {
           </div>
         </Link>
 
-        {/* Deals section — hidden only when fetch completes with no results */}
-        {dealsStatus !== 'empty' && (
-          <>
-            <SectionHeader title="Today&apos;s Deal" linkText="View all →" href="/deals" />
-            {dealsStatus === 'loading' ? (
-              <div className="mx-5 mb-5 h-[90px] rounded bg-navy/5 animate-pulse" />
-            ) : featuredDeal ? (
-              <div
-                onClick={() => router.push('/deals')}
-                className="mx-5 mb-5 p-3.5 rounded cursor-pointer relative overflow-hidden border border-[#F0D9C4] transition-all active:scale-[0.98]"
-                style={{ background: 'linear-gradient(135deg, #FDF3EB, #FFF8F2)' }}
-              >
-                {featuredDeal.discount_label && (
-                  <span className="absolute top-2.5 right-2.5 bg-teal text-white text-[10px] font-bold px-2 py-0.5 rounded">
-                    {featuredDeal.discount_label}
-                  </span>
-                )}
-                <h3 className="font-semibold text-sm text-navy mb-0.5 pr-20">{featuredDeal.title}</h3>
-                {featuredDeal.short_description && (
-                  <p className="text-[11px] text-tx-light mb-1.5">{featuredDeal.short_description}</p>
-                )}
-                {(featuredDeal.original_price || featuredDeal.deal_price) && (
-                  <div className="flex items-baseline gap-2">
-                    {featuredDeal.original_price && <span className="text-xs text-tx-light line-through">{formatPrice(featuredDeal.original_price)}</span>}
-                    {featuredDeal.deal_price && <span className="text-base font-bold text-terra">{formatPrice(featuredDeal.deal_price)}</span>}
-                  </div>
-                )}
-              </div>
-            ) : null}
-          </>
-        )}
-
         {/* Recommended for you */}
         <SectionHeader title="Recommended for you" linkText="See all →" href="/activities" />
         {loading ? (
@@ -572,6 +538,73 @@ export default function HomePage() {
           </div>
         </Link>
 
+        {/* Explore Services hero card */}
+        <Link
+          href="/services"
+          className="mx-4 text-left active:scale-[0.98] transition-transform"
+          style={{
+            marginTop: 16,
+            marginBottom: 32,
+            width: 'calc(100% - 32px)',
+            display: 'block',
+            borderRadius: 16,
+            overflow: 'hidden',
+            position: 'relative',
+            height: 200,
+            boxShadow: '0 8px 32px rgba(27,45,79,0.25)',
+            transitionDuration: '150ms',
+          }}
+        >
+          {/* Background photo */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800"
+            alt="Explore Services"
+            loading="lazy"
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
+          {/* Gradient overlay */}
+          <div
+            style={{
+              position: 'absolute', inset: 0,
+              background: 'linear-gradient(135deg, rgba(212,133,74,0.85) 0%, rgba(27,45,79,0.65) 100%)',
+            }}
+          />
+          {/* Top-left label */}
+          <p style={{
+            position: 'absolute', top: 20, left: 20,
+            fontSize: 10, color: 'white', letterSpacing: '0.15em',
+            fontWeight: 600, textTransform: 'uppercase', opacity: 0.85, margin: 0,
+          }}>
+            In-House &amp; Reservations
+          </p>
+          {/* Bottom-left title */}
+          <p className="font-display" style={{
+            position: 'absolute', bottom: 20, left: 20,
+            fontSize: 28, color: 'white', fontStyle: 'italic',
+            lineHeight: 1.15, margin: 0,
+          }}>
+            Explore<br />Services
+          </p>
+          {/* Subtitle */}
+          <p style={{
+            position: 'absolute', bottom: 54, left: 20,
+            fontSize: 13, color: 'rgba(255,255,255,0.80)', margin: 0,
+          }}>
+            Wellness, dining, entertainment &amp; more
+          </p>
+          {/* Bottom-right arrow circle */}
+          <div style={{
+            position: 'absolute', bottom: 20, right: 20,
+            width: 44, height: 44, borderRadius: '50%',
+            border: '1.5px solid rgba(255,255,255,0.6)',
+            background: 'rgba(255,255,255,0.15)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <ArrowRight size={18} color="white" />
+          </div>
+        </Link>
+
         {/* Local Insights */}
         <SectionHeader title="Local Insights" linkText="Read more →" href="/insights" />
         {loading ? (
@@ -604,6 +637,54 @@ export default function HomePage() {
         )}
 
       </div>
+
+      {/* Deals floating button — visible only when active deals exist */}
+      {dealsStatus === 'data' && data.deals.length > 0 && (
+        <div style={{
+          position: 'fixed',
+          bottom: confirmedBookings.length > 0 ? 140 : 90,
+          right: 16,
+          zIndex: 45,
+        }}>
+          <button
+            onClick={() => router.push('/deals')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              background: '#D4854A',
+              borderRadius: 24,
+              padding: '10px 16px',
+              border: 'none',
+              boxShadow: '0 4px 16px rgba(212,133,74,0.40)',
+              cursor: 'pointer',
+              position: 'relative',
+            }}
+          >
+            <span style={{ fontSize: 16 }}>⚡</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>Deals</span>
+            {data.deals.length > 1 && (
+              <span style={{
+                position: 'absolute',
+                top: -6,
+                right: -6,
+                width: 20,
+                height: 20,
+                borderRadius: '50%',
+                background: '#1B2D4F',
+                color: 'white',
+                fontSize: 11,
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                {data.deals.length}
+              </span>
+            )}
+          </button>
+        </div>
+      )}
 
       {/* Floating bookings pill */}
       <FloatingBookingsPill bookings={confirmedBookings} />

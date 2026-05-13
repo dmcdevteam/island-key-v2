@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     .select(`
       id, confirmation_code, item_type, item_id, item_title,
       booking_date, pax, unit_price, total_price, payment_method,
-      status, guest_id, guest_name, guest_email, guest_notes,
+      status, guest_id, guest_name, guest_email, guest_notes, notes,
       action_token, confirmed_at, cancelled_at, created_at,
       properties!property_id(name)
     `)

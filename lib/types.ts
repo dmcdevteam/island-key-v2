@@ -523,6 +523,47 @@ export interface InfoPageFull {
   created_at: string;
 }
 
+// ─── Services ─────────────────────────────────────────────────────────────────
+
+export interface Service {
+  id: string
+  title: string
+  slug: string
+  short_description: string | null
+  description: string | null
+  category: 'in_house' | 'reservations'
+  subcategory: string
+  service_type: string | null
+  price_from: number | null
+  price_label: string | null
+  duration: string | null
+  includes: string[] | null
+  good_to_know: string | null
+  mood_tags: string[]
+  images: string[] | null
+  image_wide: string | null
+  image_square: string | null
+  focal_x: number | null
+  focal_y: number | null
+  focal_sq_x: number | null
+  focal_sq_y: number | null
+  is_active: boolean
+  is_featured: boolean
+  sort_order: number
+  region: string
+}
+
+export interface ServiceSubcategory {
+  id: string
+  subcategory: string
+  label: string
+  tagline: string | null
+  category: 'in_house' | 'reservations'
+  image_url: string | null
+  image_wide: string | null
+  sort_order: number
+}
+
 // ─── Session state (stored in localStorage) ───
 export interface GuestSession {
   guest_id: string | null;
