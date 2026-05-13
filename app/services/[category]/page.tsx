@@ -29,7 +29,6 @@ function todayStr() {
   return new Date().toISOString().slice(0, 10)
 }
 
-// ─── Image Carousel ───────────────────────────────────────────────────────────
 function ImageCarousel({ images, title, onBack }: { images: string[]; title: string; onBack: () => void }) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [activeIndex, setActiveIndex] = useState(0)
@@ -76,30 +75,22 @@ function ImageCarousel({ images, title, onBack }: { images: string[]; title: str
   )
 }
 
-// ─── Enquiry Modal ────────────────────────────────────────────────────────────
-function EnquiryModal({
-  service,
-  onClose,
-}: {
-  service: Service
-  onClose: () => void
-}) {
+function EnquiryModal({ service, onClose }: { service: Service; onClose: () => void }) {
   const session = getSession()
 
-  const [preferredDate,  setPreferredDate]  = useState(session?.check_in ?? todayStr())
-  const [preferredTime,  setPreferredTime]  = useState('flexible')
-  const [numGuests,      setNumGuests]      = useState(2)
-  const [notes,          setNotes]          = useState('')
-  const [guestName,      setGuestName]      = useState(session?.first_name ?? '')
-  const [guestEmail,     setGuestEmail]     = useState('')
-  const [guestPhone,     setGuestPhone]     = useState(session?.whatsapp_number ?? '')
-  const [submitting,     setSubmitting]     = useState(false)
-  const [emailSent,      setEmailSent]      = useState(false)
-  const [error,          setError]          = useState<string | null>(null)
+  const [preferredDate, setPreferredDate] = useState(session?.check_in ?? todayStr())
+  const [preferredTime, setPreferredTime] = useState('flexible')
+  const [numGuests,     setNumGuests]     = useState(2)
+  const [notes,         setNotes]         = useState('')
+  const [guestName,     setGuestName]     = useState(session?.first_name ?? '')
+  const [guestEmail,    setGuestEmail]    = useState('')
+  const [guestPhone,    setGuestPhone]    = useState(session?.whatsapp_number ?? '')
+  const [submitting,    setSubmitting]    = useState(false)
+  const [emailSent,     setEmailSent]     = useState(false)
+  const [error,         setError]         = useState<string | null>(null)
 
   async function submit(via: 'whatsapp' | 'email') {
-    setSubmitting(true)
-    setError(null)
+    setSubmitting(true); setError(null)
     try {
       const res = await fetch('/api/services/enquiry', {
         method: 'POST',
@@ -120,7 +111,6 @@ function EnquiryModal({
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Failed')
-
       if (via === 'whatsapp') {
         window.open(`https://wa.me/${SPYROS_WA}?text=${encodeURIComponent(data.whatsapp_message)}`, '_blank')
         onClose()
@@ -141,7 +131,6 @@ function EnquiryModal({
         style={{ animation: 'slideUp 0.25s ease-out' }}
         onClick={e => e.stopPropagation()}
       >
-        {/* Handle */}
         <div className="flex justify-center pt-3 pb-1">
           <div className="w-10 h-1 bg-gray-200 rounded-full" />
         </div>
@@ -152,136 +141,57 @@ function EnquiryModal({
             <h3 className="font-display text-lg text-navy mb-1">Enquiry Sent</h3>
             <p className="text-sm text-tx-light mb-1">We&apos;ll confirm availability via WhatsApp shortly.</p>
             <p className="text-xs text-tx-light">Check your email for a copy.</p>
-            <button
-              onClick={onClose}
-              className="mt-6 w-full py-3 bg-navy text-white font-semibold rounded-sm text-sm"
-            >
-              Done
-            </button>
+            <button onClick={onClose} className="mt-6 w-full py-3 bg-navy text-white font-semibold rounded-sm text-sm">Done</button>
           </div>
         ) : (
           <div className="px-5 pb-8">
             <h3 className="font-display text-lg text-navy mt-2 mb-4">Enquire — {service.title}</h3>
 
-            {/* Preferred date */}
             <div className="mb-3">
-              <label className="text-[11px] font-semibold text-tx-mid uppercase tracking-wide block mb-1">
-                Preferred Date *
-              </label>
-              <input
-                type="date"
-                min={todayStr()}
-                value={preferredDate}
-                onChange={e => setPreferredDate(e.target.value)}
-                className="w-full border border-border rounded-sm px-3 py-2.5 text-sm text-navy bg-white"
-              />
+              <label className="text-[11px] font-semibold text-tx-mid uppercase tracking-wide block mb-1">Preferred Date *</label>
+              <input type="date" min={todayStr()} value={preferredDate} onChange={e => setPreferredDate(e.target.value)} className="w-full border border-border rounded-sm px-3 py-2.5 text-sm text-navy bg-white" />
             </div>
 
-            {/* Preferred time */}
             <div className="mb-3">
-              <label className="text-[11px] font-semibold text-tx-mid uppercase tracking-wide block mb-1">
-                Preferred Time
-              </label>
-              <select
-                value={preferredTime}
-                onChange={e => setPreferredTime(e.target.value)}
-                className="w-full border border-border rounded-sm px-3 py-2.5 text-sm text-navy bg-white"
-              >
-                {TIME_OPTIONS.map(t => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
-                ))}
+              <label className="text-[11px] font-semibold text-tx-mid uppercase tracking-wide block mb-1">Preferred Time</label>
+              <select value={preferredTime} onChange={e => setPreferredTime(e.target.value)} className="w-full border border-border rounded-sm px-3 py-2.5 text-sm text-navy bg-white">
+                {TIME_OPTIONS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
             </div>
 
-            {/* Number of guests */}
             <div className="mb-3">
-              <label className="text-[11px] font-semibold text-tx-mid uppercase tracking-wide block mb-1">
-                Number of Guests
-              </label>
+              <label className="text-[11px] font-semibold text-tx-mid uppercase tracking-wide block mb-1">Number of Guests</label>
               <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setNumGuests(g => Math.max(1, g - 1))}
-                  className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-navy font-bold text-lg active:bg-sand"
-                >
-                  −
-                </button>
+                <button onClick={() => setNumGuests(g => Math.max(1, g - 1))} className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-navy font-bold text-lg active:bg-sand">−</button>
                 <span className="text-base font-semibold text-navy w-6 text-center">{numGuests}</span>
-                <button
-                  onClick={() => setNumGuests(g => Math.min(20, g + 1))}
-                  className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-navy font-bold text-lg active:bg-sand"
-                >
-                  +
-                </button>
+                <button onClick={() => setNumGuests(g => Math.min(20, g + 1))} className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-navy font-bold text-lg active:bg-sand">+</button>
               </div>
             </div>
 
-            {/* Notes */}
             <div className="mb-3">
-              <label className="text-[11px] font-semibold text-tx-mid uppercase tracking-wide block mb-1">
-                Special Requests (optional)
-              </label>
-              <textarea
-                value={notes}
-                onChange={e => setNotes(e.target.value)}
-                placeholder="Any special requests or details?"
-                rows={3}
-                className="w-full border border-border rounded-sm px-3 py-2 text-sm text-navy bg-white resize-none"
-              />
+              <label className="text-[11px] font-semibold text-tx-mid uppercase tracking-wide block mb-1">Special Requests (optional)</label>
+              <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Any special requests or details?" rows={3} className="w-full border border-border rounded-sm px-3 py-2 text-sm text-navy bg-white resize-none" />
             </div>
 
-            {/* Guest details */}
             <div className="mb-3">
-              <label className="text-[11px] font-semibold text-tx-mid uppercase tracking-wide block mb-1">
-                Your Name *
-              </label>
-              <input
-                type="text"
-                value={guestName}
-                onChange={e => setGuestName(e.target.value)}
-                placeholder="First name"
-                className="w-full border border-border rounded-sm px-3 py-2.5 text-sm text-navy bg-white"
-              />
+              <label className="text-[11px] font-semibold text-tx-mid uppercase tracking-wide block mb-1">Your Name *</label>
+              <input type="text" value={guestName} onChange={e => setGuestName(e.target.value)} placeholder="First name" className="w-full border border-border rounded-sm px-3 py-2.5 text-sm text-navy bg-white" />
             </div>
             <div className="mb-3">
-              <label className="text-[11px] font-semibold text-tx-mid uppercase tracking-wide block mb-1">
-                Email *
-              </label>
-              <input
-                type="email"
-                value={guestEmail}
-                onChange={e => setGuestEmail(e.target.value)}
-                placeholder="your@email.com"
-                className="w-full border border-border rounded-sm px-3 py-2.5 text-sm text-navy bg-white"
-              />
+              <label className="text-[11px] font-semibold text-tx-mid uppercase tracking-wide block mb-1">Email *</label>
+              <input type="email" value={guestEmail} onChange={e => setGuestEmail(e.target.value)} placeholder="your@email.com" className="w-full border border-border rounded-sm px-3 py-2.5 text-sm text-navy bg-white" />
             </div>
             <div className="mb-5">
-              <label className="text-[11px] font-semibold text-tx-mid uppercase tracking-wide block mb-1">
-                Phone / WhatsApp *
-              </label>
-              <input
-                type="tel"
-                value={guestPhone}
-                onChange={e => setGuestPhone(e.target.value)}
-                placeholder="+30 69..."
-                className="w-full border border-border rounded-sm px-3 py-2.5 text-sm text-navy bg-white"
-              />
+              <label className="text-[11px] font-semibold text-tx-mid uppercase tracking-wide block mb-1">Phone / WhatsApp *</label>
+              <input type="tel" value={guestPhone} onChange={e => setGuestPhone(e.target.value)} placeholder="+30 69..." className="w-full border border-border rounded-sm px-3 py-2.5 text-sm text-navy bg-white" />
             </div>
 
             {error && <p className="text-xs text-red-500 mb-3">{error}</p>}
 
-            {/* CTAs */}
-            <button
-              onClick={() => submit('whatsapp')}
-              disabled={submitting}
-              className="w-full py-3.5 bg-teal text-white font-bold rounded-sm flex items-center justify-center gap-2 text-sm active:scale-[0.98] transition-transform mb-2 disabled:opacity-60"
-            >
+            <button onClick={() => submit('whatsapp')} disabled={submitting} className="w-full py-3.5 bg-teal text-white font-bold rounded-sm flex items-center justify-center gap-2 text-sm active:scale-[0.98] transition-transform mb-2 disabled:opacity-60">
               💬 Enquire via WhatsApp →
             </button>
-            <button
-              onClick={() => submit('email')}
-              disabled={submitting || !guestEmail}
-              className="w-full py-3.5 bg-white text-navy font-semibold rounded-sm border border-border text-sm active:scale-[0.98] transition-transform disabled:opacity-40"
-            >
+            <button onClick={() => submit('email')} disabled={submitting || !guestEmail} className="w-full py-3.5 bg-white text-navy font-semibold rounded-sm border border-border text-sm active:scale-[0.98] transition-transform disabled:opacity-40">
               Send Enquiry by Email
             </button>
           </div>
@@ -292,11 +202,12 @@ function EnquiryModal({
   )
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
 export default function ServiceDetailPage() {
   const router = useRouter()
   const params = useParams()
-  const slug   = params?.slug as string
+  // This page handles /services/[slug] — the param is named 'category' due to Next.js
+  // segment name unification, but the value is the service slug.
+  const slug = params?.category as string
 
   const [service,     setService]     = useState<Service | null>(null)
   const [loading,     setLoading]     = useState(true)
@@ -349,28 +260,17 @@ export default function ServiceDetailPage() {
 
   return (
     <div className="min-h-screen bg-cream flex flex-col relative">
-      {/* Hero */}
       {hasImages ? (
         <ImageCarousel images={images} title={service.title} onBack={handleBack} />
       ) : (
-        <div
-          className="h-[240px] relative flex items-end p-4 flex-shrink-0"
-          style={{ background: 'linear-gradient(135deg, rgba(27,45,79,0.12), rgba(26,138,125,0.08))' }}
-        >
-          <button
-            onClick={handleBack}
-            className="absolute top-[52px] left-4 bg-white/90 backdrop-blur-sm rounded-full flex items-center gap-1 px-3 h-[34px] text-[12px] font-semibold text-navy z-10 active:scale-90"
-          >
-            ← Services
-          </button>
+        <div className="h-[240px] relative flex items-end p-4 flex-shrink-0" style={{ background: 'linear-gradient(135deg, rgba(27,45,79,0.12), rgba(26,138,125,0.08))' }}>
+          <button onClick={handleBack} className="absolute top-[52px] left-4 bg-white/90 backdrop-blur-sm rounded-full flex items-center gap-1 px-3 h-[34px] text-[12px] font-semibold text-navy z-10 active:scale-90">← Services</button>
           <span className="text-5xl">🛎️</span>
         </div>
       )}
 
-      {/* Content */}
       <div className="flex-1 overflow-y-auto pb-[100px]">
         <div className="px-5 pt-4">
-          {/* Badges */}
           <div className="flex flex-wrap gap-1.5 mb-2">
             {service.subcategory && (
               <span className="text-[10px] font-bold uppercase text-teal tracking-wide border border-teal/30 rounded-full px-2 py-0.5">
@@ -384,27 +284,21 @@ export default function ServiceDetailPage() {
             )}
           </div>
 
-          {/* Title */}
           <h1 className="font-display text-2xl text-navy leading-tight mb-2">{service.title}</h1>
 
-          {/* Price + duration row */}
           <div className="flex items-center gap-3 mb-3">
             <span className="text-base font-bold text-terra">
               {service.price_label ?? (service.price_from ? `from €${service.price_from}` : 'Price on request')}
             </span>
             {service.duration && (
-              <span className="text-xs text-tx-mid bg-sand border border-border-light rounded-full px-2.5 py-0.5">
-                ⏱ {service.duration}
-              </span>
+              <span className="text-xs text-tx-mid bg-sand border border-border-light rounded-full px-2.5 py-0.5">⏱ {service.duration}</span>
             )}
           </div>
 
-          {/* Description */}
           {service.description && (
             <p className="text-sm text-tx-mid leading-relaxed mb-5">{service.description}</p>
           )}
 
-          {/* Includes */}
           {service.includes && service.includes.length > 0 && (
             <div className="mb-5">
               <h2 className="text-sm font-semibold text-navy mb-2">What&apos;s included</h2>
@@ -419,7 +313,6 @@ export default function ServiceDetailPage() {
             </div>
           )}
 
-          {/* Good to know */}
           {service.good_to_know && (
             <div className="mb-5 p-3.5 rounded-sm bg-sand border border-border-light">
               <h2 className="text-sm font-semibold text-navy mb-1.5">ℹ Good to know</h2>
@@ -429,20 +322,13 @@ export default function ServiceDetailPage() {
         </div>
       </div>
 
-      {/* Fixed bottom CTA */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-cream border-t border-border-light" style={{ zIndex: 30 }}>
-        <button
-          onClick={() => setShowEnquiry(true)}
-          className="w-full py-3.5 bg-navy text-white font-bold rounded-sm text-sm active:scale-[0.98] transition-transform"
-        >
+        <button onClick={() => setShowEnquiry(true)} className="w-full py-3.5 bg-navy text-white font-bold rounded-sm text-sm active:scale-[0.98] transition-transform">
           Enquire About This Service →
         </button>
       </div>
 
-      {/* Enquiry modal */}
-      {showEnquiry && (
-        <EnquiryModal service={service} onClose={() => setShowEnquiry(false)} />
-      )}
+      {showEnquiry && <EnquiryModal service={service} onClose={() => setShowEnquiry(false)} />}
     </div>
   )
 }
