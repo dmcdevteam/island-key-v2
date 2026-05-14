@@ -3,7 +3,7 @@ import { createServerClient } from '@/lib/supabase'
 import { isAdminAuthed } from '@/app/api/admin/_lib/auth'
 
 export async function POST(request: Request) {
-  if (!isAdminAuthed(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!(await isAdminAuthed())) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const { rental_id, location_ids } = await request.json()
   if (!rental_id) return NextResponse.json({ error: 'rental_id required' }, { status: 400 })
 

@@ -3,7 +3,7 @@ import { createServerClient } from '@/lib/supabase'
 import { isAdminAuthed } from '@/app/api/admin/_lib/auth'
 
 export async function GET(request: Request) {
-  if (!isAdminAuthed(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!(await isAdminAuthed())) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const supabase = createServerClient()
   const { data, error } = await supabase
     .from('rental_ports')
@@ -14,7 +14,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (!isAdminAuthed(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!(await isAdminAuthed())) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const body = await request.json()
   const supabase = createServerClient()
   const { data, error } = await supabase

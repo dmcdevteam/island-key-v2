@@ -3,7 +3,7 @@ import { createServerClient } from '@/lib/supabase'
 import { isAdminAuthed } from '@/app/api/admin/_lib/auth'
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
-  if (!isAdminAuthed(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!(await isAdminAuthed())) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const body = await request.json()
   const supabase = createServerClient()
   const { data, error } = await supabase
@@ -17,7 +17,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 }
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
-  if (!isAdminAuthed(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!(await isAdminAuthed())) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const supabase = createServerClient()
   const { error } = await supabase
     .from('rental_ports')
