@@ -8,6 +8,7 @@ import { getSession } from '@/lib/utils'
 import { useFavourites } from '@/app/_components/favourites-provider'
 import { VEHICLE_LABELS, type VehicleSlug } from '@/lib/transfers'
 import type { GuestSession } from '@/lib/types'
+import { useEssentialsCart } from '@/lib/essentials-cart'
 
 const ITEM_TYPE_LABELS: Record<string, string> = {
   activity: 'Activity',
@@ -56,6 +57,7 @@ export default function ProfilePage() {
   const router = useRouter()
   const [session, setSession] = useState<GuestSession | null>(null)
   const { favourites, sessionId } = useFavourites()
+  const { items: cartItems, cartCount, removeItem: removeCartItem } = useEssentialsCart()
   const [bookings, setBookings] = useState<BookingRow[]>([])
   const [bookingsLoading, setBookingsLoading] = useState(false)
   const [detailsOpen, setDetailsOpen] = useState(false)
@@ -204,7 +206,7 @@ export default function ProfilePage() {
                 <div key={i} className="h-[72px] bg-white border border-border-light rounded-sm animate-pulse" />
               ))}
             </div>
-          ) : bookings.length === 0 ? (
+          ) : bookings.filter(b => b.item_type !== 'essential').length === 0 ? (
             <div className="bg-white border border-border-light rounded-sm px-4 py-6 text-center">
               <p className="text-2xl mb-2">📋</p>
               <p className="text-xs font-semibold text-navy mb-1">Your bookings will appear here</p>
@@ -212,7 +214,7 @@ export default function ProfilePage() {
             </div>
           ) : (
             <div className="flex flex-col gap-2.5">
-              {bookings.map(b => {
+              {bookings.filter(b => b.item_type !== 'essential').map(b => {
                 const isTransfer = b.item_type === 'transfer'
                 const st   = STATUS_STYLES[b.status] ?? STATUS_STYLES.pending
                 const icon = isTransfer ? '🚗' : '🌊'
@@ -265,6 +267,75 @@ export default function ProfilePage() {
             </div>
           )}
         </div>
+
+        {/* Section 3b — Essentials Cart */}
+        {cartCount > 0 && (
+          <div className="mx-5 mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-[11px] font-bold text-tx-mid uppercase tracking-wide">Vacation Essentials Cart</h2>
+              <button onClick={() => router.push('/rentals/essentials/cart')}
+                className="text-[11px] font-semibold text-teal">
+                View Cart ({cartCount}) →
+              </button>
+            </div>
+            <div className="flex flex-col gap-2">
+              {cartItems.map(item => (
+                <div key={item.id} className="bg-white border border-border-light rounded-sm p-3 flex items-center gap-3">
+                  {item.image_wide ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={item.image_wide} alt={item.name} className="w-12 h-12 rounded object-cover flex-shrink-0" />
+                  ) : (
+                    <div className="w-12 h-12 rounded bg-sand flex items-center justify-center text-xl flex-shrink-0">📦</div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-navy line-clamp-1">{item.name}</p>
+                    <p className="text-[11px] text-tx-light">Qty: {item.quantity} · €{(item.price_per_day * item.quantity).toFixed(0)}/day</p>
+                  </div>
+                  <button onClick={() => removeCartItem(item.id)}
+                    className="text-[11px] text-red-400 flex-shrink-0">Remove</button>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => router.push('/rentals/essentials/cart')}
+              className="mt-3 w-full bg-navy text-white text-sm font-semibold py-3 rounded-sm"
+            >
+              Proceed to Enquiry
+            </button>
+          </div>
+        )}
+
+        {/* Section 3c — Essentials Enquiries */}
+        {!bookingsLoading && bookings.filter(b => b.item_type === 'essential').length > 0 && (
+          <div className="mx-5 mb-4">
+            <h2 className="text-[11px] font-bold text-tx-mid uppercase tracking-wide mb-3">Essentials Enquiries</h2>
+            <div className="flex flex-col gap-2.5">
+              {bookings.filter(b => b.item_type === 'essential').map(b => {
+                const st = STATUS_STYLES[b.status] ?? STATUS_STYLES.pending
+                return (
+                  <div key={b.id} className="bg-white border border-border-light rounded-sm p-3.5 flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-navy/5 flex items-center justify-center flex-shrink-0 text-base mt-0.5">
+                      📦
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <p className="text-xs font-semibold text-navy leading-snug flex-1">{b.item_title}</p>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded flex-shrink-0"
+                          style={{ background: st.bg, color: st.text }}>
+                          {st.label}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-tx-light">{formatDate(b.booking_date)}</p>
+                      {b.confirmation_code && (
+                        <p className="text-[10px] text-tx-light font-mono mt-1">{b.confirmation_code}</p>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Section 4 — My Details (collapsible) */}
         <div className="mx-5 mb-4">

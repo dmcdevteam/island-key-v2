@@ -18,17 +18,20 @@ const CartContext = createContext<CartContextType | null>(null)
 
 export function EssentialsCartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([])
+  const [initialized, setInitialized] = useState(false)
 
   useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY)
       if (stored) setItems(JSON.parse(stored))
     } catch {}
+    setInitialized(true)
   }, [])
 
   useEffect(() => {
+    if (!initialized) return
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
-  }, [items])
+  }, [items, initialized])
 
   function addItem(item: Omit<CartItem, 'quantity'>) {
     setItems(prev => {

@@ -6,6 +6,8 @@ import { ServiceWorkerRegister } from './_components/sw-register';
 import { FavouritesProvider } from './_components/favourites-provider';
 import { BookingCardProvider } from './_components/booking-card-context';
 import { ShellWrapper } from './_components/shell-wrapper';
+import { EssentialsCartProvider } from '@/lib/essentials-cart';
+import { EssentialsCartFab } from '@/components/ui/essentials-cart-fab';
 
 export const metadata: Metadata = {
   title: 'Island Key — Your island. Unlocked.',
@@ -27,15 +29,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="font-body text-tx min-h-screen">
         <ServiceWorkerRegister />
-        <FavouritesProvider>
-          <BookingCardProvider>
-            <ShellWrapper>
-              <AdminPreviewPill />
-              <WhatsappSideTab />
-              {children}
-            </ShellWrapper>
-          </BookingCardProvider>
-        </FavouritesProvider>
+        <EssentialsCartProvider>
+          <FavouritesProvider>
+            <BookingCardProvider>
+              <ShellWrapper>
+                <AdminPreviewPill />
+                <WhatsappSideTab />
+                <EssentialsCartFab />
+                {children}
+              </ShellWrapper>
+            </BookingCardProvider>
+          </FavouritesProvider>
+        </EssentialsCartProvider>
       </body>
     </html>
   );

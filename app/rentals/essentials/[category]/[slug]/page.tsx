@@ -62,6 +62,7 @@ function ProductContent() {
   const images: string[] = [
     ...(item.image_wide ? [item.image_wide] : []),
     ...(item.images ?? []).filter((u: string) => u !== item.image_wide),
+    ...(item.image && !item.image_wide && !(item.images ?? []).includes(item.image) ? [item.image] : []),
   ]
 
   const externalLinks: { label: string; url: string }[] = item.external_links ?? []
@@ -165,14 +166,14 @@ function ProductContent() {
         )}
 
         {/* Description */}
-        {item.full_description && (
+        {item.full_description != null && (
           <div>
             <p className="text-[11px] font-bold text-tx-mid uppercase tracking-widest mb-2">About This Product</p>
             <p className="text-sm text-tx-mid leading-relaxed whitespace-pre-line">{item.full_description}</p>
           </div>
         )}
 
-        {!item.full_description && item.description && (
+        {item.full_description == null && item.description && (
           <p className="text-sm text-tx-mid leading-relaxed">{item.description}</p>
         )}
 

@@ -980,7 +980,8 @@ function CarListingForm({ initial, onClose, onSaved }: {
   const wideRef  = useRef<HTMLInputElement>(null)
   const squareRef = useRef<HTMLInputElement>(null)
   const [availableLocations, setAvailableLocations] = useState<any[]>([])
-  const [selectedLocationIds, setSelectedLocationIds] = useState<string[]>([])
+  // map of pickup_location_id → instructions string
+  const [locationInstructions, setLocationInstructions] = useState<Record<string, string>>({})
 
   useEffect(() => {
     const fetches: Promise<void>[] = [
@@ -992,7 +993,9 @@ function CarListingForm({ initial, onClose, onSaved }: {
       fetches.push(
         fetch(`/api/admin/rental-pickup-locations?rental_id=${initial.id}`).then(r => r.json()).then(data => {
           if (Array.isArray(data)) {
-            setSelectedLocationIds(data.map((row: any) => row.pickup_location_id))
+            const map: Record<string, string> = {}
+            data.forEach((row: any) => { map[row.pickup_location_id] = row.instructions ?? '' })
+            setLocationInstructions(map)
           }
         })
       )
@@ -1073,7 +1076,10 @@ function CarListingForm({ initial, onClose, onSaved }: {
       await fetch('/api/admin/rental-pickup-locations/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rental_id: rentalId, location_ids: selectedLocationIds }),
+        body: JSON.stringify({
+          rental_id: rentalId,
+          locations: Object.entries(locationInstructions).map(([id, instructions]) => ({ id, instructions })),
+        }),
       })
     }
     onSaved()
@@ -1225,25 +1231,41 @@ function CarListingForm({ initial, onClose, onSaved }: {
         <div>
           <p className={LABEL}>Pickup Locations</p>
           <p className="text-[11px] text-tx-light mb-2">Select which locations this vehicle can be picked up from</p>
-          <div className="space-y-2">
-            {availableLocations.map(loc => (
-              <label key={loc.id} className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={selectedLocationIds.includes(loc.id)}
-                  onChange={() => {
-                    setSelectedLocationIds(prev =>
-                      prev.includes(loc.id)
-                        ? prev.filter(id => id !== loc.id)
-                        : [...prev, loc.id]
-                    )
-                  }}
-                  className="w-4 h-4 accent-navy"
-                />
-                <span className="text-sm text-tx">{loc.name}</span>
-                {loc.address && <span className="text-[11px] text-tx-light truncate">— {loc.address}</span>}
-              </label>
-            ))}
+          <div className="space-y-3">
+            {availableLocations.map(loc => {
+              const checked = loc.id in locationInstructions
+              return (
+                <div key={loc.id}>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => {
+                        setLocationInstructions(prev => {
+                          if (checked) {
+                            const next = { ...prev }
+                            delete next[loc.id]
+                            return next
+                          }
+                          return { ...prev, [loc.id]: '' }
+                        })
+                      }}
+                      className="w-4 h-4 accent-navy"
+                    />
+                    <span className="text-sm text-tx font-medium">{loc.name}</span>
+                    {loc.address && <span className="text-[11px] text-tx-light truncate">— {loc.address}</span>}
+                  </label>
+                  {checked && (
+                    <input
+                      className={INPUT + ' mt-1.5 ml-6'}
+                      placeholder="Pickup instructions (optional)"
+                      value={locationInstructions[loc.id] ?? ''}
+                      onChange={e => setLocationInstructions(prev => ({ ...prev, [loc.id]: e.target.value }))}
+                    />
+                  )}
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
@@ -1494,18 +1516,42 @@ function RentalImageManager() {
 
 function PickupLocationsTab({ locations, onSaved }: { locations: any[]; onSaved: () => void }) {
   const EMPTY = { name: '', address: '', vehicle_categories: ['car', 'atv_motorbike'], sort_order: '0', is_active: true }
-  const [editing, setEditing] = useState<any | null>(null)
-  const [form, setForm] = useState(EMPTY)
-  const [saving, setSaving] = useState(false)
+  const [editing, setEditing]   = useState<any | null>(null)
+  const [form, setForm]         = useState(EMPTY)
+  const [lat, setLat]           = useState<number | null>(null)
+  const [lng, setLng]           = useState<number | null>(null)
+  const [geocoding, setGeocoding] = useState(false)
+  const [saving, setSaving]     = useState(false)
 
-  function openNew() { setForm(EMPTY); setEditing('new') }
+  const MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY ?? ''
+
+  function openNew() { setForm(EMPTY); setLat(null); setLng(null); setEditing('new') }
   function openEdit(loc: any) {
     setForm({
       name: loc.name, address: loc.address ?? '',
       vehicle_categories: loc.vehicle_categories ?? ['car', 'atv_motorbike'],
       sort_order: String(loc.sort_order), is_active: loc.is_active,
     })
+    setLat(loc.lat ?? null)
+    setLng(loc.lng ?? null)
     setEditing(loc)
+  }
+
+  async function handleGeocode() {
+    if (!form.address.trim()) return
+    setGeocoding(true)
+    try {
+      const res = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(form.address)}&key=${MAPS_KEY}`
+      )
+      const data = await res.json()
+      if (data.results?.[0]) {
+        const loc = data.results[0].geometry.location
+        setLat(loc.lat)
+        setLng(loc.lng)
+      }
+    } catch {}
+    setGeocoding(false)
   }
 
   async function handleSave() {
@@ -1513,6 +1559,8 @@ function PickupLocationsTab({ locations, onSaved }: { locations: any[]; onSaved:
     const payload = {
       ...form,
       sort_order: Number(form.sort_order),
+      lat: lat ?? null,
+      lng: lng ?? null,
     }
     if (editing === 'new') {
       await fetch('/api/admin/rental-pickup-locations', {
@@ -1552,6 +1600,7 @@ function PickupLocationsTab({ locations, onSaved }: { locations: any[]; onSaved:
               <th className="px-4 py-2 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Name</th>
               <th className="px-4 py-2 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Address</th>
               <th className="px-4 py-2 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Categories</th>
+              <th className="px-4 py-2 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Coords</th>
               <th className="px-4 py-2 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Order</th>
               <th className="px-4 py-2 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Active</th>
               <th className="px-4 py-2" />
@@ -1568,6 +1617,9 @@ function PickupLocationsTab({ locations, onSaved }: { locations: any[]; onSaved:
                       <span key={c} className="text-[10px] px-1.5 py-0.5 bg-navy/10 text-navy rounded-sm">{c}</span>
                     ))}
                   </div>
+                </td>
+                <td className="px-4 py-3 text-[11px] text-tx-light">
+                  {loc.lat != null ? `${Number(loc.lat).toFixed(4)}, ${Number(loc.lng).toFixed(4)}` : '—'}
                 </td>
                 <td className="px-4 py-3 text-tx-mid">{loc.sort_order}</td>
                 <td className="px-4 py-3">
@@ -1586,7 +1638,7 @@ function PickupLocationsTab({ locations, onSaved }: { locations: any[]; onSaved:
               </tr>
             ))}
             {locations.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-tx-light text-sm">No pickup locations yet</td></tr>
+              <tr><td colSpan={7} className="px-4 py-8 text-center text-tx-light text-sm">No pickup locations yet</td></tr>
             )}
           </tbody>
         </table>
@@ -1605,8 +1657,36 @@ function PickupLocationsTab({ locations, onSaved }: { locations: any[]; onSaved:
           </div>
           <div>
             <label className={LABEL}>Address</label>
-            <input className={INPUT} value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="Chania International Airport, Souda, 73200" />
+            <div className="flex gap-2">
+              <input
+                className={INPUT}
+                value={form.address}
+                onChange={e => { setForm(f => ({ ...f, address: e.target.value })); setLat(null); setLng(null) }}
+                placeholder="Chania International Airport, Souda, 73200"
+              />
+              <button
+                type="button"
+                onClick={handleGeocode}
+                disabled={geocoding || !form.address.trim()}
+                className="px-3 py-2 bg-teal text-white text-xs font-semibold rounded-sm whitespace-nowrap disabled:opacity-50"
+              >
+                {geocoding ? '…' : '📍 Locate'}
+              </button>
+            </div>
           </div>
+
+          {lat != null && lng != null && MAPS_KEY && (
+            <div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=14&size=400x180&markers=color:red%7C${lat},${lng}&key=${MAPS_KEY}`}
+                alt="Map preview"
+                className="w-full rounded-sm border border-border"
+              />
+              <p className="text-[11px] text-tx-light mt-1">📍 {lat.toFixed(6)}, {lng.toFixed(6)}</p>
+            </div>
+          )}
+
           <div>
             <label className={LABEL}>Vehicle Categories</label>
             <div className="flex flex-wrap gap-2">
