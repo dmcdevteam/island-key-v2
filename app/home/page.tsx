@@ -9,7 +9,6 @@ import { BottomNav } from '@/components/ui/bottom-nav';
 import { SectionHeader, ActivityMiniCard, ArticleCard } from '@/components/ui/components';
 import { ProfileAvatar } from '@/app/_components/profile-avatar';
 import { createClient } from '@/lib/supabase';
-import { FloatingBookingsPill, type UpcomingBooking } from '@/components/FloatingBookingsPill';
 import type { GuestSession, Activity, DealFull, ArticleFull, EventFull } from '@/lib/types';
 
 // ─── Weather ──────────────────────────────────────────────────────────────────
@@ -162,40 +161,11 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [, setTick] = useState(0);
   const [weather, setWeather] = useState<WeatherData | null>(null);
-  const [confirmedBookings, setConfirmedBookings] = useState<UpcomingBooking[]>([]);
 
   useEffect(() => {
     const s = getSession();
     if (!s) { router.replace('/splash'); return; }
     setSession(s);
-
-    // Fetch confirmed future bookings for floating pill
-    if (s.guest_id) {
-      const guestId = s.guest_id;
-      const today   = new Date().toISOString().slice(0, 10);
-
-      const fetchConfirmed = () => {
-        fetch(`/api/bookings?guest_id=${encodeURIComponent(guestId)}`)
-          .then(r => r.json())
-          .then((rows: UpcomingBooking[]) => {
-            if (!Array.isArray(rows)) return;
-            const future = rows.filter(b => {
-              if (b.status !== 'confirmed') return false;
-              if (b.item_type === 'transfer') return !!b.pickup_at && b.pickup_at >= new Date().toISOString();
-              return b.booking_date >= today;
-            });
-            setConfirmedBookings(future);
-          })
-          .catch(() => {});
-      };
-
-      fetchConfirmed();
-
-      // Re-query whenever the user returns to this tab/app
-      const handleVisibility = () => { if (document.visibilityState === 'visible') fetchConfirmed(); };
-      document.addEventListener('visibilitychange', handleVisibility);
-      return () => document.removeEventListener('visibilitychange', handleVisibility);
-    }
   }, [router]);
 
   useEffect(() => {
@@ -642,7 +612,7 @@ export default function HomePage() {
       {dealsStatus === 'data' && data.deals.length > 0 && (
         <div style={{
           position: 'fixed',
-          bottom: confirmedBookings.length > 0 ? 140 : 90,
+          bottom: 90,
           right: 16,
           zIndex: 45,
         }}>
@@ -685,9 +655,6 @@ export default function HomePage() {
           </button>
         </div>
       )}
-
-      {/* Floating bookings pill */}
-      <FloatingBookingsPill bookings={confirmedBookings} />
 
       {/* Prefetch hint — loads /activities in background while user reads Home */}
       <Link href="/activities" prefetch={true} className="hidden" aria-hidden="true" tabIndex={-1} />

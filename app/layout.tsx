@@ -7,7 +7,7 @@ import { FavouritesProvider } from './_components/favourites-provider';
 import { BookingCardProvider } from './_components/booking-card-context';
 import { ShellWrapper } from './_components/shell-wrapper';
 import { EssentialsCartProvider } from '@/lib/essentials-cart';
-import { EssentialsCartFab } from '@/components/ui/essentials-cart-fab';
+import { GlobalFloatingElements } from '@/components/ui/global-floating-elements';
 
 export const metadata: Metadata = {
   title: 'Island Key — Your island. Unlocked.',
@@ -35,7 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <ShellWrapper>
                 <AdminPreviewPill />
                 <WhatsappSideTab />
-                <EssentialsCartFab />
+                <GlobalFloatingElements />
                 {children}
               </ShellWrapper>
             </BookingCardProvider>
