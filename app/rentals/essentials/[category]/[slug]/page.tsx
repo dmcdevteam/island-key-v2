@@ -19,6 +19,7 @@ function ProductContent() {
   const [loading, setLoading] = useState(true)
   const [activeImg, setActiveImg] = useState(0)
   const [addedToCart, setAddedToCart] = useState(false)
+  const [selectedTier, setSelectedTier] = useState<'per_day' | '3day' | 'week' | 'custom' | null>(null)
   const { addItem, items } = useEssentialsCart()
 
   useEffect(() => {
@@ -67,7 +68,7 @@ function ProductContent() {
 
   const externalLinks: { label: string; url: string }[] = item.external_links ?? []
 
-  const hasPricingTiers = item.price_3day != null || item.price_week != null
+  const hasPricingTiers = item.price_per_day != null || item.price_3day != null || item.price_week != null
 
   return (
     <div className="min-h-screen bg-cream flex flex-col pb-[100px]">
@@ -138,30 +139,61 @@ function ProductContent() {
         {/* Pricing tiers */}
         {hasPricingTiers && (
           <div className="space-y-2">
-            <p className="text-[11px] font-bold text-tx-mid uppercase tracking-widest">Pricing Tiers</p>
-            <div className="grid grid-cols-3 gap-2">
-              {item.price_per_day != null && (
-                <div className="bg-white rounded-xl border border-border-light p-3 text-center shadow-sm">
-                  <p className="text-[10px] text-tx-light mb-1">Per day</p>
-                  <p className="text-base font-bold text-navy">€{item.price_per_day}</p>
-                </div>
-              )}
-              {item.price_3day != null && (
-                <div className="bg-white rounded-xl border border-border-light p-3 text-center shadow-sm">
-                  <p className="text-[10px] text-tx-light mb-1">3 days</p>
-                  <p className="text-base font-bold text-teal">€{item.price_3day}</p>
-                </div>
-              )}
-              {item.price_week != null && (
-                <div className="bg-white rounded-xl border border-border-light p-3 text-center shadow-sm">
-                  <p className="text-[10px] text-tx-light mb-1">1 week</p>
-                  <p className="text-base font-bold text-teal">€{item.price_week}</p>
-                </div>
-              )}
+            <p className="text-[11px] font-bold text-tx-mid uppercase tracking-widest">Pricing</p>
+            <div className="grid grid-cols-2 gap-2">
+              {item.price_per_day != null && (() => {
+                const sel = selectedTier === 'per_day'
+                return (
+                  <button
+                    onClick={() => setSelectedTier('per_day')}
+                    className={`relative bg-white rounded-xl border-2 p-3 text-left shadow-sm overflow-hidden transition-all active:scale-[0.98] ${sel ? 'border-navy' : 'border-border-light'}`}
+                  >
+                    {sel && <span className="absolute left-0 top-0 bottom-0 w-1 bg-teal rounded-l-xl" />}
+                    <p className="text-[10px] text-tx-light mb-1">1 Day</p>
+                    <p className="text-base font-bold text-navy">€{item.price_per_day}</p>
+                  </button>
+                )
+              })()}
+              {item.price_3day != null && (() => {
+                const sel = selectedTier === '3day'
+                return (
+                  <button
+                    onClick={() => setSelectedTier('3day')}
+                    className={`relative bg-white rounded-xl border-2 p-3 text-left shadow-sm overflow-hidden transition-all active:scale-[0.98] ${sel ? 'border-navy' : 'border-border-light'}`}
+                  >
+                    {sel && <span className="absolute left-0 top-0 bottom-0 w-1 bg-teal rounded-l-xl" />}
+                    <p className="text-[10px] text-tx-light mb-1">3 Days</p>
+                    <p className="text-base font-bold text-teal">€{item.price_3day}</p>
+                  </button>
+                )
+              })()}
+              {item.price_week != null && (() => {
+                const sel = selectedTier === 'week'
+                return (
+                  <button
+                    onClick={() => setSelectedTier('week')}
+                    className={`relative bg-white rounded-xl border-2 p-3 text-left shadow-sm overflow-hidden transition-all active:scale-[0.98] ${sel ? 'border-navy' : 'border-border-light'}`}
+                  >
+                    {sel && <span className="absolute left-0 top-0 bottom-0 w-1 bg-teal rounded-l-xl" />}
+                    <p className="text-[10px] text-tx-light mb-1">1 Week</p>
+                    <p className="text-base font-bold text-teal">€{item.price_week}</p>
+                  </button>
+                )
+              })()}
+              {item.custom_pricing_note != null && (() => {
+                const sel = selectedTier === 'custom'
+                return (
+                  <button
+                    onClick={() => setSelectedTier('custom')}
+                    className={`relative bg-white rounded-xl border-2 p-3 text-left shadow-sm overflow-hidden transition-all active:scale-[0.98] ${sel ? 'border-navy' : 'border-border-light'}`}
+                  >
+                    {sel && <span className="absolute left-0 top-0 bottom-0 w-1 bg-teal rounded-l-xl" />}
+                    <p className="text-[10px] text-tx-light mb-1">Custom</p>
+                    <p className="text-xs font-medium text-tx-mid leading-snug">{item.custom_pricing_note}</p>
+                  </button>
+                )
+              })()}
             </div>
-            {item.custom_pricing_note && (
-              <p className="text-[11px] text-tx-light italic">{item.custom_pricing_note}</p>
-            )}
           </div>
         )}
 

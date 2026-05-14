@@ -256,7 +256,7 @@ function SearchContent() {
 
         <div className="bg-white rounded-2xl shadow-2xl overflow-visible space-y-0">
 
-          {/* ── Car / ATV: pickup location selector ── */}
+          {/* ── Car / ATV: pickup location chips ── */}
           {isCarAtv && (
             <>
               <div className="px-4 pt-4 pb-3">
@@ -264,76 +264,60 @@ function SearchContent() {
 
                 {locLoading && <p className="text-sm text-gray-400 py-2">Loading locations…</p>}
 
-                {!locLoading && locations.length > 0 && (
-                  <div className="space-y-2">
-                    {locations.map(loc => {
-                      const selected = selectedLocationId === loc.id && pickupType === 'location'
-                      return (
-                        <button
-                          key={loc.id}
-                          onClick={() => { handleDeliveryToggle(false); handleLocationSelect(loc) }}
-                          className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl border-2 text-left transition-all ${
-                            selected
-                              ? 'border-navy bg-navy/5'
-                              : 'border-gray-100 bg-gray-50 hover:border-gray-200'
-                          }`}
-                        >
-                          {selected && (
-                            <div className="absolute left-0 top-2 bottom-2 w-0.5 bg-teal rounded-full" style={{ position: 'relative', width: 3, height: 'auto', background: '#1A8A7D', borderRadius: 2, flexShrink: 0 }} />
-                          )}
-                          <span style={{ color: '#D4854A', fontSize: 18, flexShrink: 0 }}>📍</span>
-                          <div className="flex-1 min-w-0">
-                            <p className={`text-sm font-semibold leading-tight ${selected ? 'text-navy' : 'text-gray-700'}`}>{loc.name}</p>
-                            {loc.address && <p className="text-[11px] text-gray-400 mt-0.5 truncate">{loc.address}</p>}
-                          </div>
-                          {loc.google_maps_url && (
-                            <a
-                              href={loc.google_maps_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={e => e.stopPropagation()}
-                              className="flex-shrink-0 w-7 h-7 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:text-navy hover:border-navy transition-colors"
-                              title="View on Google Maps"
-                            >
-                              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                <path d="M5 2H2a1 1 0 00-1 1v7a1 1 0 001 1h7a1 1 0 001-1V7M8 1h3m0 0v3m0-3L5 7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-                              </svg>
-                            </a>
-                          )}
-                        </button>
-                      )
-                    })}
-                  </div>
-                )}
+                {!locLoading && (
+                  <>
+                    {/* Horizontal chip row */}
+                    <div className="flex overflow-x-auto gap-3 pb-2 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                      {locations.map(loc => {
+                        const selected = selectedLocationId === loc.id && pickupType === 'location'
+                        return (
+                          <button
+                            key={loc.id}
+                            onClick={() => { handleDeliveryToggle(false); handleLocationSelect(loc) }}
+                            className={`flex-shrink-0 flex items-center gap-2 px-4 py-3 rounded-full border-2 shadow-sm active:scale-95 transition-all font-semibold text-sm whitespace-nowrap ${
+                              selected
+                                ? 'bg-navy border-navy text-white'
+                                : 'bg-white border-gray-200 text-navy'
+                            }`}
+                          >
+                            <span style={{ color: selected ? 'white' : '#D4854A', fontSize: 14 }}>📍</span>
+                            {loc.name}
+                          </button>
+                        )
+                      })}
 
-                {/* Delivery toggle */}
-                <div className="mt-3 pt-3 border-t border-gray-100">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600 font-medium">Deliver to my accommodation</span>
-                    <button
-                      type="button"
-                      onClick={() => handleDeliveryToggle(pickupType !== 'delivery')}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${pickupType === 'delivery' ? 'bg-teal' : 'bg-gray-200'}`}
-                    >
-                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${pickupType === 'delivery' ? 'translate-x-6' : 'translate-x-1'}`} />
-                    </button>
-                  </div>
-
-                  {pickupType === 'delivery' && (
-                    <div className="mt-2.5">
-                      <PlacesInput
-                        placeholder="Enter your address or accommodation name"
-                        value={deliveryPlace}
-                        onSelect={setDeliveryPlace}
-                        onClear={() => setDeliveryPlace(null)}
-                      />
-                      <p className="text-[11px] text-amber-600 italic mt-2 flex items-start gap-1">
-                        <span>⚠️</span>
-                        <span>Delivery is available on request — extra charges may apply. We will confirm delivery fee with your enquiry.</span>
-                      </p>
+                      {/* Delivery chip — last in the row */}
+                      <button
+                        onClick={() => handleDeliveryToggle(pickupType !== 'delivery')}
+                        className={`flex-shrink-0 flex items-center gap-2 px-4 py-3 rounded-full border-2 shadow-sm active:scale-95 transition-all font-semibold text-sm whitespace-nowrap ${
+                          pickupType === 'delivery'
+                            ? 'bg-terra border-terra text-white'
+                            : 'bg-white border-dashed border-terra text-terra'
+                        }`}
+                        style={{ borderStyle: pickupType === 'delivery' ? 'solid' : 'dashed' }}
+                      >
+                        <span style={{ fontSize: 14 }}>🚚</span>
+                        Deliver to me
+                      </button>
                     </div>
-                  )}
-                </div>
+
+                    {/* Delivery address input — revealed below chip row */}
+                    {pickupType === 'delivery' && (
+                      <div className="mt-3">
+                        <PlacesInput
+                          placeholder="Enter your address or accommodation name"
+                          value={deliveryPlace}
+                          onSelect={setDeliveryPlace}
+                          onClear={() => setDeliveryPlace(null)}
+                        />
+                        <p className="text-[11px] text-amber-600 italic mt-2 flex items-start gap-1">
+                          <span>⚠️</span>
+                          <span>Delivery is available on request — extra charges may apply. We will confirm delivery fee with your enquiry.</span>
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
 
               <div className="mx-4 border-t border-gray-100" />
