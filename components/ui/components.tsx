@@ -284,7 +284,7 @@ export function DealCard({ deal, onClick }: { deal: Deal; onClick?: () => void }
         <span className="text-[11px] text-tx-light line-through">{formatPrice(deal.original_price)}</span>
         <span className="text-[15px] font-bold text-terra">{formatPrice(deal.deal_price)}pp</span>
       </div>
-      <p className="text-[10px] font-semibold text-deal mt-1">⏱ {timeRemaining(deal.expires_at)}</p>
+      {deal.valid_until && <p className="text-[10px] font-semibold text-deal mt-1">⏱ {timeRemaining(deal.valid_until)}</p>}
     </div>
   );
 }

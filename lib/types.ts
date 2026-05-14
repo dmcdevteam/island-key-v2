@@ -120,7 +120,7 @@ export interface Deal {
   deal_price: number;
   savings_pct: number;
   available_seats: number | null;
-  expires_at: string;
+  valid_until: string | null;
   region: Region;
   tier_visibility: Tier[];
   provider_id: string | null;
