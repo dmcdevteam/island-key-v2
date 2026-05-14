@@ -29,7 +29,7 @@ export default function InHouseSubcategoriesPage() {
       {/* Header */}
       <div className="sticky top-0 z-20 bg-cream border-b border-border-light px-4 py-3">
         <div className="flex items-center gap-3">
-          <button onClick={() => router.back()} className="text-navy text-sm">←</button>
+          <button onClick={() => router.push('/services')} className="text-navy text-sm">←</button>
           <div>
             <h1 className="font-display text-lg font-medium text-navy leading-tight">In-House Services</h1>
             <p className="text-[11px] text-tx-light">Professionals delivered to your door</p>
