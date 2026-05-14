@@ -43,11 +43,14 @@ function DriverContent() {
   const sp     = useSearchParams()
   const id     = params.id as string
 
-  const pickupDate  = sp.get('pickup_date')  ?? ''
-  const dropoffDate = sp.get('dropoff_date') ?? ''
-  const pickupTime  = sp.get('pickup_time')  ?? ''
-  const dropoffTime = sp.get('dropoff_time') ?? ''
-  const pickupName  = sp.get('pickup_name')  ?? ''
+  const pickupDate         = sp.get('pickup_date')          ?? ''
+  const dropoffDate        = sp.get('dropoff_date')         ?? ''
+  const pickupTime         = sp.get('pickup_time')          ?? ''
+  const dropoffTime        = sp.get('dropoff_time')         ?? ''
+  const pickupName         = sp.get('pickup_name')          ?? ''
+  const pickupType         = sp.get('pickup_type')          ?? ''
+  const pickupLocationName = sp.get('pickup_location_name') ?? ''
+  const deliveryAddress    = sp.get('delivery_address')     ?? ''
   const days = pickupDate && dropoffDate ? daysBetween(pickupDate, dropoffDate) : 1
 
   const [vehicle, setVehicle]   = useState<CarRental | null>(null)
@@ -111,12 +114,19 @@ function DriverContent() {
       .filter(e => selectedExtras.has(e.id))
       .map(e => ({ name: e.name, price: e.is_free ? 0 : (e.price_type === 'per_day' ? e.price * days : e.price), price_type: e.price_type }))
 
+    const pickupDisplayName = pickupType === 'location' ? pickupLocationName
+      : pickupType === 'delivery' ? deliveryAddress
+      : pickupName
+
     const enquiryState = {
       vehicle_id:       id,
       vehicle_name:     vehicle.name,
       car_class:        vehicle.car_class ?? '',
       vehicle:          vehicle,
-      pickup_location:  pickupName,
+      pickup_type:      pickupType || 'location',
+      pickup_location:  pickupDisplayName,
+      pickup_location_name: pickupLocationName || undefined,
+      delivery_address: deliveryAddress || undefined,
       pickup_place_id:  sp.get('pickup_place_id') ?? '',
       diff_dropoff:     sp.get('diff_dropoff') === 'true',
       dropoff_location: sp.get('dropoff_name') ?? undefined,

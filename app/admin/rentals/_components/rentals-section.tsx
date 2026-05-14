@@ -43,7 +43,7 @@ const INPUT = 'w-full px-3 py-2 border border-border rounded-sm text-sm text-tx 
 const LABEL = 'block text-[11px] font-bold text-tx-mid uppercase tracking-wide mb-1'
 const SELECT = `${INPUT} cursor-pointer`
 
-const TABS = ['Vehicles', 'Vehicle Types', 'Extras & Essentials', 'Images', 'Car Listings', 'Car Extras', 'Car Enquiries', 'Category Images']
+const TABS = ['Vehicles', 'Vehicle Types', 'Extras & Essentials', 'Images', 'Car Listings', 'Car Extras', 'Car Enquiries', 'Category Images', 'Pickup Locations', 'Ports']
 
 const VEHICLE_CATEGORIES = ['car', 'motorcycle', 'bike', 'buggy', 'boat', 'scooter', 'atv', 'other']
 const REGIONS = ['chania', 'rethymno', 'heraklion', 'lasithi']
@@ -657,12 +657,26 @@ type ExtraFormData = {
   pricingMode: 'day' | 'unit'; price_per_day: string; price_per_unit: string
   unit_label: string; is_active: boolean; sort_order: string
   image: string
+  // Vacation Essentials product fields
+  full_description: string
+  usage_instructions: string
+  price_3day: string
+  price_week: string
+  custom_pricing_note: string
+  external_links: { label: string; url: string }[]
+  images: string[]
+  image_wide: string
+  image_square: string
 }
 const EXTRA_DEFAULTS: ExtraFormData = {
   name: '', description: '', category: 'beach',
   pricingMode: 'day', price_per_day: '', price_per_unit: '', unit_label: 'item',
   is_active: true, sort_order: '0',
   image: '',
+  full_description: '', usage_instructions: '',
+  price_3day: '', price_week: '',
+  custom_pricing_note: 'Contact us for longer durations',
+  external_links: [], images: [], image_wide: '', image_square: '',
 }
 
 function ExtraForm({ initial, onClose, onSaved }: {
@@ -678,6 +692,15 @@ function ExtraForm({ initial, onClose, onSaved }: {
       unit_label: initial.unit_label ?? 'item',
       is_active: initial.is_active, sort_order: String(initial.sort_order),
       image: initial.image ?? '',
+      full_description: (initial as any).full_description ?? '',
+      usage_instructions: (initial as any).usage_instructions ?? '',
+      price_3day: (initial as any).price_3day != null ? String((initial as any).price_3day) : '',
+      price_week: (initial as any).price_week != null ? String((initial as any).price_week) : '',
+      custom_pricing_note: (initial as any).custom_pricing_note ?? 'Contact us for longer durations',
+      external_links: (initial as any).external_links ?? [],
+      images: (initial as any).images ?? [],
+      image_wide: (initial as any).image_wide ?? '',
+      image_square: (initial as any).image_square ?? '',
     }
   })
   const [saving, setSaving] = useState(false)
@@ -685,6 +708,9 @@ function ExtraForm({ initial, onClose, onSaved }: {
   const [imageUploading, setImageUploading] = useState(false)
   const [imageError, setImageError] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const wideImgRef = useRef<HTMLInputElement>(null)
+  const [newLinkLabel, setNewLinkLabel] = useState('')
+  const [newLinkUrl, setNewLinkUrl] = useState('')
 
   function set<K extends keyof ExtraFormData>(k: K, v: ExtraFormData[K]) { setForm(f => ({ ...f, [k]: v })) }
 
@@ -714,6 +740,15 @@ function ExtraForm({ initial, onClose, onSaved }: {
       unit_label: form.unit_label || 'item',
       is_active: form.is_active, sort_order: Number(form.sort_order) || 0,
       image: form.image || null,
+      full_description: form.full_description || null,
+      usage_instructions: form.usage_instructions || null,
+      price_3day: form.price_3day ? Number(form.price_3day) : null,
+      price_week: form.price_week ? Number(form.price_week) : null,
+      custom_pricing_note: form.custom_pricing_note || null,
+      external_links: form.external_links,
+      images: form.images.length ? form.images : null,
+      image_wide: form.image_wide || null,
+      image_square: form.image_square || null,
     }
     const url = initial ? `/api/admin/extras/${initial.id}` : '/api/admin/extras'
     const method = initial ? 'PUT' : 'POST'
@@ -791,6 +826,88 @@ function ExtraForm({ initial, onClose, onSaved }: {
         <label className={LABEL}>Sort Order</label>
         <input className={INPUT} type="number" value={form.sort_order} onChange={e => set('sort_order', e.target.value)} />
       </div>
+
+      {/* ─ Vacation Essentials product fields ─ */}
+      <div className="border-t border-border pt-4 space-y-4">
+        <p className="text-[11px] font-bold text-tx-mid uppercase tracking-wide">Vacation Essentials — Product Details</p>
+
+        <div>
+          <label className={LABEL}>Wide / Hero Image</label>
+          {form.image_wide && (
+            <div className="mb-2 relative inline-block">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={form.image_wide} alt="" className="w-full h-28 object-cover rounded-sm border border-border" />
+              <button type="button" onClick={() => set('image_wide', '')} className="absolute top-0.5 right-0.5 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center">×</button>
+            </div>
+          )}
+          <input ref={wideImgRef} type="file" accept="image/*" className="hidden" onChange={async e => {
+            const file = e.target.files?.[0]; if (!file) return
+            setImageUploading(true)
+            const fd = new globalThis.FormData()
+            fd.append('file', file)
+            fd.append('bucket', 'rental-images')
+            fd.append('slug', `essentials/${slugify(form.name || 'extra')}-wide`)
+            const res = await fetch('/api/admin/upload', { method: 'POST', body: fd })
+            const json = await res.json()
+            if (json.url) set('image_wide', json.url)
+            setImageUploading(false)
+            if (wideImgRef.current) wideImgRef.current.value = ''
+          }} />
+          <button type="button" onClick={() => wideImgRef.current?.click()} disabled={imageUploading}
+            className="px-3 py-1.5 border border-dashed border-border rounded-sm text-sm text-tx-mid hover:border-navy hover:text-navy transition-colors disabled:opacity-50">
+            {imageUploading ? 'Uploading…' : form.image_wide ? 'Replace' : '+ Upload Wide Image'}
+          </button>
+        </div>
+
+        <div>
+          <label className={LABEL}>Full Description</label>
+          <textarea className={INPUT} rows={5} value={form.full_description} onChange={e => set('full_description', e.target.value)} placeholder="Detailed product description shown on the product page…" />
+        </div>
+
+        <div>
+          <label className={LABEL}>Usage Instructions</label>
+          <textarea className={INPUT} rows={3} value={form.usage_instructions} onChange={e => set('usage_instructions', e.target.value)} placeholder="How to use / set up this product…" />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className={LABEL}>3-Day Price (€)</label>
+            <input className={INPUT} type="number" min="0" value={form.price_3day} onChange={e => set('price_3day', e.target.value)} placeholder="e.g. 25" />
+          </div>
+          <div>
+            <label className={LABEL}>Weekly Price (€)</label>
+            <input className={INPUT} type="number" min="0" value={form.price_week} onChange={e => set('price_week', e.target.value)} placeholder="e.g. 40" />
+          </div>
+        </div>
+
+        <div>
+          <label className={LABEL}>Custom Pricing Note</label>
+          <input className={INPUT} value={form.custom_pricing_note} onChange={e => set('custom_pricing_note', e.target.value)} />
+        </div>
+
+        <div>
+          <label className={LABEL}>External Links</label>
+          <div className="space-y-2 mb-2">
+            {form.external_links.map((link, i) => (
+              <div key={i} className="flex items-center gap-2 text-sm bg-sand px-3 py-2 rounded-sm">
+                <span className="flex-1 truncate text-navy font-medium">{link.label}</span>
+                <span className="text-tx-light text-xs truncate max-w-[160px]">{link.url}</span>
+                <button type="button" onClick={() => set('external_links', form.external_links.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600 text-xs ml-1">✕</button>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <input className={INPUT} value={newLinkLabel} onChange={e => setNewLinkLabel(e.target.value)} placeholder="Label (e.g. Product page)" />
+            <input className={INPUT} value={newLinkUrl} onChange={e => setNewLinkUrl(e.target.value)} placeholder="https://…" />
+            <button type="button" onClick={() => {
+              if (newLinkLabel.trim() && newLinkUrl.trim()) {
+                set('external_links', [...form.external_links, { label: newLinkLabel.trim(), url: newLinkUrl.trim() }])
+                setNewLinkLabel(''); setNewLinkUrl('')
+              }
+            }} className="px-3 py-2 bg-navy text-white text-xs font-semibold rounded-sm whitespace-nowrap">Add</button>
+          </div>
+        </div>
+      </div>
     </Drawer>
   )
 }
@@ -862,6 +979,26 @@ function CarListingForm({ initial, onClose, onSaved }: {
   const [uploading, setUploading] = useState(false)
   const wideRef  = useRef<HTMLInputElement>(null)
   const squareRef = useRef<HTMLInputElement>(null)
+  const [availableLocations, setAvailableLocations] = useState<any[]>([])
+  const [selectedLocationIds, setSelectedLocationIds] = useState<string[]>([])
+
+  useEffect(() => {
+    const fetches: Promise<void>[] = [
+      fetch('/api/admin/rental-pickup-locations').then(r => r.json()).then(data => {
+        setAvailableLocations(Array.isArray(data) ? data : [])
+      }),
+    ]
+    if (initial?.id) {
+      fetches.push(
+        fetch(`/api/admin/rental-pickup-locations?rental_id=${initial.id}`).then(r => r.json()).then(data => {
+          if (Array.isArray(data)) {
+            setSelectedLocationIds(data.map((row: any) => row.pickup_location_id))
+          }
+        })
+      )
+    }
+    Promise.all(fetches).catch(() => {})
+  }, [initial?.id])
 
   function set<K extends keyof CarListingFormData>(k: K, v: CarListingFormData[K]) {
     setForm(f => ({ ...f, [k]: v }))
@@ -930,6 +1067,15 @@ function CarListingForm({ initial, onClose, onSaved }: {
     const method = initial ? 'PUT' : 'POST'
     const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
     if (!res.ok) { const d = await res.json(); setError(d.error ?? 'Error saving'); setSaving(false); return }
+    const saved = await res.json()
+    const rentalId = initial?.id ?? saved?.id
+    if (rentalId) {
+      await fetch('/api/admin/rental-pickup-locations/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rental_id: rentalId, location_ids: selectedLocationIds }),
+      })
+    }
     onSaved()
   }
 
@@ -1074,6 +1220,33 @@ function CarListingForm({ initial, onClose, onSaved }: {
         <label className={LABEL}>Sort Order</label>
         <input className={INPUT} type="number" value={form.sort_order} onChange={e => set('sort_order', e.target.value)} />
       </div>
+
+      {availableLocations.length > 0 && (
+        <div>
+          <p className={LABEL}>Pickup Locations</p>
+          <p className="text-[11px] text-tx-light mb-2">Select which locations this vehicle can be picked up from</p>
+          <div className="space-y-2">
+            {availableLocations.map(loc => (
+              <label key={loc.id} className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedLocationIds.includes(loc.id)}
+                  onChange={() => {
+                    setSelectedLocationIds(prev =>
+                      prev.includes(loc.id)
+                        ? prev.filter(id => id !== loc.id)
+                        : [...prev, loc.id]
+                    )
+                  }}
+                  className="w-4 h-4 accent-navy"
+                />
+                <span className="text-sm text-tx">{loc.name}</span>
+                {loc.address && <span className="text-[11px] text-tx-light truncate">— {loc.address}</span>}
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
     </Drawer>
   )
 }
@@ -1317,6 +1490,284 @@ function RentalImageManager() {
 
 // ── Main Section ───────────────────────────────────────────────────────────────
 
+// ── Pickup Locations Tab ────────────────────────────────────────────────────
+
+function PickupLocationsTab({ locations, onSaved }: { locations: any[]; onSaved: () => void }) {
+  const EMPTY = { name: '', address: '', vehicle_categories: ['car', 'atv_motorbike'], sort_order: '0', is_active: true }
+  const [editing, setEditing] = useState<any | null>(null)
+  const [form, setForm] = useState(EMPTY)
+  const [saving, setSaving] = useState(false)
+
+  function openNew() { setForm(EMPTY); setEditing('new') }
+  function openEdit(loc: any) {
+    setForm({
+      name: loc.name, address: loc.address ?? '',
+      vehicle_categories: loc.vehicle_categories ?? ['car', 'atv_motorbike'],
+      sort_order: String(loc.sort_order), is_active: loc.is_active,
+    })
+    setEditing(loc)
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    const payload = {
+      ...form,
+      sort_order: Number(form.sort_order),
+    }
+    if (editing === 'new') {
+      await fetch('/api/admin/rental-pickup-locations', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+      })
+    } else {
+      await fetch(`/api/admin/rental-pickup-locations/${editing.id}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+      })
+    }
+    setSaving(false)
+    setEditing(null)
+    onSaved()
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm('Delete this pickup location?')) return
+    await fetch(`/api/admin/rental-pickup-locations/${id}`, { method: 'DELETE' })
+    onSaved()
+  }
+
+  const VEHICLE_CATS = ['car', 'atv_motorbike', 'bike_ebike', 'boat']
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="font-display text-xl text-navy">Pickup Locations</h2>
+        <button onClick={openNew} className="px-4 py-2 bg-navy text-white text-sm font-semibold rounded-sm hover:bg-navy-light">
+          + Add Location
+        </button>
+      </div>
+
+      <div className="bg-white border border-border rounded-sm overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-sand border-b border-border">
+            <tr>
+              <th className="px-4 py-2 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Name</th>
+              <th className="px-4 py-2 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Address</th>
+              <th className="px-4 py-2 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Categories</th>
+              <th className="px-4 py-2 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Order</th>
+              <th className="px-4 py-2 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Active</th>
+              <th className="px-4 py-2" />
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {locations.map(loc => (
+              <tr key={loc.id} className="hover:bg-sand/30">
+                <td className="px-4 py-3 font-medium text-navy">{loc.name}</td>
+                <td className="px-4 py-3 text-tx-mid text-xs">{loc.address ?? '—'}</td>
+                <td className="px-4 py-3">
+                  <div className="flex flex-wrap gap-1">
+                    {(loc.vehicle_categories ?? []).map((c: string) => (
+                      <span key={c} className="text-[10px] px-1.5 py-0.5 bg-navy/10 text-navy rounded-sm">{c}</span>
+                    ))}
+                  </div>
+                </td>
+                <td className="px-4 py-3 text-tx-mid">{loc.sort_order}</td>
+                <td className="px-4 py-3">
+                  <Toggle checked={loc.is_active} onChange={async () => {
+                    await fetch(`/api/admin/rental-pickup-locations/${loc.id}`, {
+                      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ is_active: !loc.is_active }),
+                    })
+                    onSaved()
+                  }} />
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <button onClick={() => openEdit(loc)} className="text-xs text-teal hover:underline mr-3">Edit</button>
+                  <button onClick={() => handleDelete(loc.id)} className="text-xs text-red-500 hover:underline">Delete</button>
+                </td>
+              </tr>
+            ))}
+            {locations.length === 0 && (
+              <tr><td colSpan={6} className="px-4 py-8 text-center text-tx-light text-sm">No pickup locations yet</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {editing !== null && (
+        <Drawer
+          title={editing === 'new' ? 'Add Pickup Location' : 'Edit Pickup Location'}
+          onClose={() => setEditing(null)}
+          onSave={handleSave}
+          saving={saving}
+        >
+          <div>
+            <label className={LABEL}>Name *</label>
+            <input className={INPUT} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Chania Airport" />
+          </div>
+          <div>
+            <label className={LABEL}>Address</label>
+            <input className={INPUT} value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="Chania International Airport, Souda, 73200" />
+          </div>
+          <div>
+            <label className={LABEL}>Vehicle Categories</label>
+            <div className="flex flex-wrap gap-2">
+              {VEHICLE_CATS.map(cat => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => {
+                    const cats = form.vehicle_categories.includes(cat)
+                      ? form.vehicle_categories.filter(c => c !== cat)
+                      : [...form.vehicle_categories, cat]
+                    setForm(f => ({ ...f, vehicle_categories: cats }))
+                  }}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                    form.vehicle_categories.includes(cat)
+                      ? 'bg-navy text-white border-navy'
+                      : 'bg-white text-tx-mid border-border hover:border-navy'
+                  }`}
+                >{cat}</button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className={LABEL}>Sort Order</label>
+            <input type="number" className={INPUT} value={form.sort_order} onChange={e => setForm(f => ({ ...f, sort_order: e.target.value }))} />
+          </div>
+          <div className="flex items-center justify-between">
+            <label className={LABEL}>Active</label>
+            <Toggle checked={form.is_active} onChange={() => setForm(f => ({ ...f, is_active: !f.is_active }))} />
+          </div>
+        </Drawer>
+      )}
+    </div>
+  )
+}
+
+// ── Ports Tab ───────────────────────────────────────────────────────────────
+
+function PortsTab({ ports, onSaved }: { ports: any[]; onSaved: () => void }) {
+  const EMPTY = { name: '', area: 'Chania', address: '', sort_order: '0', is_active: true }
+  const [editing, setEditing] = useState<any | null>(null)
+  const [form, setForm] = useState(EMPTY)
+  const [saving, setSaving] = useState(false)
+
+  function openNew() { setForm(EMPTY); setEditing('new') }
+  function openEdit(port: any) {
+    setForm({
+      name: port.name, area: port.area ?? 'Chania', address: port.address ?? '',
+      sort_order: String(port.sort_order), is_active: port.is_active,
+    })
+    setEditing(port)
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    const payload = { ...form, sort_order: Number(form.sort_order) }
+    if (editing === 'new') {
+      await fetch('/api/admin/rental-ports', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+      })
+    } else {
+      await fetch(`/api/admin/rental-ports/${editing.id}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+      })
+    }
+    setSaving(false)
+    setEditing(null)
+    onSaved()
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm('Delete this port?')) return
+    await fetch(`/api/admin/rental-ports/${id}`, { method: 'DELETE' })
+    onSaved()
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="font-display text-xl text-navy">Boat Ports</h2>
+        <button onClick={openNew} className="px-4 py-2 bg-navy text-white text-sm font-semibold rounded-sm hover:bg-navy-light">
+          + Add Port
+        </button>
+      </div>
+
+      <div className="bg-white border border-border rounded-sm overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-sand border-b border-border">
+            <tr>
+              <th className="px-4 py-2 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Name</th>
+              <th className="px-4 py-2 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Area</th>
+              <th className="px-4 py-2 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Address</th>
+              <th className="px-4 py-2 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Order</th>
+              <th className="px-4 py-2 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Active</th>
+              <th className="px-4 py-2" />
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {ports.map(port => (
+              <tr key={port.id} className="hover:bg-sand/30">
+                <td className="px-4 py-3 font-medium text-navy">{port.name}</td>
+                <td className="px-4 py-3 text-tx-mid">{port.area ?? '—'}</td>
+                <td className="px-4 py-3 text-tx-mid text-xs">{port.address ?? '—'}</td>
+                <td className="px-4 py-3 text-tx-mid">{port.sort_order}</td>
+                <td className="px-4 py-3">
+                  <Toggle checked={port.is_active} onChange={async () => {
+                    await fetch(`/api/admin/rental-ports/${port.id}`, {
+                      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ is_active: !port.is_active }),
+                    })
+                    onSaved()
+                  }} />
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <button onClick={() => openEdit(port)} className="text-xs text-teal hover:underline mr-3">Edit</button>
+                  <button onClick={() => handleDelete(port.id)} className="text-xs text-red-500 hover:underline">Delete</button>
+                </td>
+              </tr>
+            ))}
+            {ports.length === 0 && (
+              <tr><td colSpan={6} className="px-4 py-8 text-center text-tx-light text-sm">No ports yet</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {editing !== null && (
+        <Drawer
+          title={editing === 'new' ? 'Add Port' : 'Edit Port'}
+          onClose={() => setEditing(null)}
+          onSave={handleSave}
+          saving={saving}
+        >
+          <div>
+            <label className={LABEL}>Port Name *</label>
+            <input className={INPUT} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Marathi" />
+          </div>
+          <div>
+            <label className={LABEL}>Area</label>
+            <input className={INPUT} value={form.area} onChange={e => setForm(f => ({ ...f, area: e.target.value }))} placeholder="Chania" />
+          </div>
+          <div>
+            <label className={LABEL}>Address</label>
+            <input className={INPUT} value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} />
+          </div>
+          <div>
+            <label className={LABEL}>Sort Order</label>
+            <input type="number" className={INPUT} value={form.sort_order} onChange={e => setForm(f => ({ ...f, sort_order: e.target.value }))} />
+          </div>
+          <div className="flex items-center justify-between">
+            <label className={LABEL}>Active</label>
+            <Toggle checked={form.is_active} onChange={() => setForm(f => ({ ...f, is_active: !f.is_active }))} />
+          </div>
+        </Drawer>
+      )}
+    </div>
+  )
+}
+
+// ── Main Section ────────────────────────────────────────────────────────────
+
 export function RentalsSection() {
   const [tab, setTab] = useState(0)
   const [rentals, setRentals] = useState<Rental[]>([])
@@ -1348,11 +1799,15 @@ export function RentalsSection() {
   const [essentialsCatData, setEssentialsCatData] = useState<any[]>([])
   const [essentialsCatUploading, setEssentialsCatUploading] = useState<string | null>(null)
 
+  // Pickup locations & ports
+  const [pickupLocations, setPickupLocations] = useState<any[]>([])
+  const [ports, setPorts] = useState<any[]>([])
+
   function showCarToast(msg: string) { setCarToast(msg); setTimeout(() => setCarToast(''), 3000) }
 
   const fetchAll = useCallback(async () => {
     setLoading(true)
-    const [r, vt, ex, pr, cl, ce, enq, ci, ec] = await Promise.all([
+    const [r, vt, ex, pr, cl, ce, enq, ci, ec, pl, po] = await Promise.all([
       fetch('/api/admin/rentals').then(r => r.json()),
       fetch('/api/admin/vehicle-types?exclude=transfer').then(r => r.json()),
       fetch('/api/admin/extras').then(r => r.json()),
@@ -1362,6 +1817,8 @@ export function RentalsSection() {
       fetch('/api/admin/bookings?item_type=rental').then(r => r.json()),
       fetch('/api/admin/rental-category-images').then(r => r.json()),
       fetch('/api/rentals/essentials-categories').then(r => r.json()),
+      fetch('/api/admin/rental-pickup-locations').then(r => r.json()),
+      fetch('/api/admin/rental-ports').then(r => r.json()),
     ])
     setRentals(Array.isArray(r) ? r : [])
     setVehicleTypes(Array.isArray(vt) ? vt : [])
@@ -1372,6 +1829,8 @@ export function RentalsSection() {
     setCarEnquiries(Array.isArray(enq) ? enq : [])
     setCategoryImages(Array.isArray(ci) ? ci : [])
     setEssentialsCatData(Array.isArray(ec?.categories) ? ec.categories : [])
+    setPickupLocations(Array.isArray(pl) ? pl : [])
+    setPorts(Array.isArray(po) ? po : [])
     setLoading(false)
   }, [])
 
@@ -2010,6 +2469,22 @@ export function RentalsSection() {
           </div>
         )
       })()}
+
+      {/* ── Tab 8: Pickup Locations ── */}
+      {!loading && tab === 8 && (
+        <PickupLocationsTab
+          locations={pickupLocations}
+          onSaved={fetchAll}
+        />
+      )}
+
+      {/* ── Tab 9: Ports ── */}
+      {!loading && tab === 9 && (
+        <PortsTab
+          ports={ports}
+          onSaved={fetchAll}
+        />
+      )}
 
       {/* ── Drawers ── */}
       {rentalForm !== null && (

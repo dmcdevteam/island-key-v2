@@ -57,18 +57,21 @@ function ResultsContent() {
   const router = useRouter()
   const sp     = useSearchParams()
 
-  const pickupName    = sp.get('pickup_name')    ?? ''
-  const pickupDate    = sp.get('pickup_date')    ?? ''
-  const dropoffDate   = sp.get('dropoff_date')   ?? ''
-  const pickupTime    = sp.get('pickup_time')    ?? ''
-  const dropoffTime   = sp.get('dropoff_time')   ?? ''
-  const pickupPlaceId = sp.get('pickup_place_id') ?? ''
-  const pickupLat     = sp.get('pickup_lat')     ?? ''
-  const pickupLng     = sp.get('pickup_lng')     ?? ''
-  const diffDropoff   = sp.get('diff_dropoff')   === 'true'
-  const dropoffName   = sp.get('dropoff_name')   ?? ''
-  const dropoffPlaceId = sp.get('dropoff_place_id') ?? ''
-  const category      = sp.get('category')       ?? 'car'
+  const pickupName         = sp.get('pickup_name')         ?? ''
+  const pickupDate         = sp.get('pickup_date')         ?? ''
+  const dropoffDate        = sp.get('dropoff_date')        ?? ''
+  const pickupTime         = sp.get('pickup_time')         ?? ''
+  const dropoffTime        = sp.get('dropoff_time')        ?? ''
+  const pickupPlaceId      = sp.get('pickup_place_id')     ?? ''
+  const pickupLat          = sp.get('pickup_lat')          ?? ''
+  const pickupLng          = sp.get('pickup_lng')          ?? ''
+  const diffDropoff        = sp.get('diff_dropoff')        === 'true'
+  const dropoffName        = sp.get('dropoff_name')        ?? ''
+  const dropoffPlaceId     = sp.get('dropoff_place_id')    ?? ''
+  const category           = sp.get('category')           ?? 'car'
+  const pickupType         = sp.get('pickup_type')         ?? ''
+  const pickupLocationName = sp.get('pickup_location_name') ?? ''
+  const deliveryAddress    = sp.get('delivery_address')    ?? ''
 
   const days = pickupDate && dropoffDate ? daysBetween(pickupDate, dropoffDate) : 1
 
@@ -115,7 +118,10 @@ function ResultsContent() {
     const datePart = pickupDate && dropoffDate
       ? `${pickupDate.split('-').reverse().join('/')} – ${dropoffDate.split('-').reverse().join('/')}`
       : ''
-    return [pickupName, datePart].filter(Boolean).join(' · ')
+    const locationPart = pickupType === 'location' ? pickupLocationName
+      : pickupType === 'delivery' ? deliveryAddress
+      : pickupName
+    return [locationPart, datePart].filter(Boolean).join(' · ')
   })()
 
   function clearFilters() {
@@ -153,7 +159,14 @@ function ResultsContent() {
           onClick={() => router.push(`/rentals/search?category=${category}&${sp.toString()}`)}
           className="flex-1 text-left min-w-0"
         >
-          <p className="text-sm text-navy font-medium truncate">{summaryLabel || 'Search rentals'}</p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-sm text-navy font-medium truncate">{summaryLabel || 'Search rentals'}</p>
+            {pickupType === 'delivery' && (
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 whitespace-nowrap flex-shrink-0">
+                Delivery — extra fees may apply
+              </span>
+            )}
+          </div>
           <p className="text-[11px] text-tx-light">{days} day{days !== 1 ? 's' : ''} · {filtered.length} vehicle{filtered.length !== 1 ? 's' : ''}</p>
         </button>
         <button

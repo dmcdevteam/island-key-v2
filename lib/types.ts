@@ -482,6 +482,66 @@ export interface CarRentalExtra {
   created_at: string
 }
 
+export interface RentalPickupLocation {
+  id: string
+  name: string
+  address: string | null
+  lat: number | null
+  lng: number | null
+  google_maps_url: string | null
+  vehicle_categories: string[]
+  is_active: boolean
+  sort_order: number
+  created_at: string
+}
+
+export interface RentalPort {
+  id: string
+  name: string
+  area: string | null
+  address: string | null
+  lat: number | null
+  lng: number | null
+  google_maps_url: string | null
+  is_active: boolean
+  sort_order: number
+  created_at: string
+}
+
+export interface RentalEssential {
+  id: string
+  name: string
+  slug: string | null
+  description: string | null
+  full_description: string | null
+  usage_instructions: string | null
+  external_links: { label: string; url: string }[]
+  category: string
+  price_per_day: number | null
+  price_3day: number | null
+  price_week: number | null
+  custom_pricing_note: string | null
+  images: string[] | null
+  image_wide: string | null
+  image_square: string | null
+  focal_x: number | null
+  focal_y: number | null
+  is_active: boolean
+  sort_order: number
+}
+
+export interface CartItem {
+  id: string           // rental_extra id
+  slug: string
+  name: string
+  category: string
+  price_per_day: number
+  image_wide: string | null
+  image_square: string | null
+  quantity: number
+  days: number         // rental duration in days
+}
+
 export interface CarEnquiryPayload {
   vehicle_id: string
   vehicle_name: string

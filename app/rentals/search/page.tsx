@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useRef, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -17,8 +17,17 @@ const CATEGORY_BG: Record<string, string> = {
   boat:         'linear-gradient(135deg,#2D4A7A 0%,#1A8A7D 100%)',
 }
 
-type Suggestion = { place_id: string; description: string; types: string[] }
-type PlaceResult = { display_name: string; place_id: string; lat: number; lng: number }
+type Suggestion   = { place_id: string; description: string; types: string[] }
+type PlaceResult  = { display_name: string; place_id: string; lat: number; lng: number }
+
+type RentalPickupLocation = {
+  id: string; name: string; address: string | null
+  google_maps_url: string | null; vehicle_categories: string[]
+}
+
+type RentalPort = {
+  id: string; name: string; area: string; address: string | null
+}
 
 function generateTimeSlots(): string[] {
   const slots: string[] = []
@@ -34,15 +43,10 @@ const TIME_SLOTS = generateTimeSlots()
 const TODAY = new Date().toISOString().split('T')[0]
 
 function PlacesInput({
-  placeholder,
-  value,
-  onSelect,
-  onClear,
+  placeholder, value, onSelect, onClear,
 }: {
-  placeholder: string
-  value: PlaceResult | null
-  onSelect: (p: PlaceResult) => void
-  onClear: () => void
+  placeholder: string; value: PlaceResult | null
+  onSelect: (p: PlaceResult) => void; onClear: () => void
 }) {
   const [text, setText] = useState(value?.display_name ?? '')
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
@@ -59,8 +63,7 @@ function PlacesInput({
   }
 
   function handleChange(v: string) {
-    setText(v)
-    onClear()
+    setText(v); onClear()
     if (timer.current) clearTimeout(timer.current)
     timer.current = setTimeout(() => {
       fetchSuggestions(v).then(() => setOpen(true))
@@ -68,9 +71,7 @@ function PlacesInput({
   }
 
   async function selectSuggestion(s: Suggestion) {
-    setOpen(false)
-    setSuggestions([])
-    setText(s.description)
+    setOpen(false); setSuggestions([]); setText(s.description)
     try {
       const res  = await fetch(`/api/places/details?place_id=${encodeURIComponent(s.place_id)}`)
       const data = await res.json()
@@ -122,54 +123,126 @@ function PlacesInput({
 }
 
 function SearchContent() {
-  const router = useRouter()
-  const sp     = useSearchParams()
+  const router   = useRouter()
+  const sp       = useSearchParams()
   const category = sp.get('category') ?? 'car'
 
-  const [pickup,   setPickup]   = useState<PlaceResult | null>(null)
-  const [dropoff,  setDropoff]  = useState<PlaceResult | null>(null)
+  const isCarAtv = category === 'car' || category === 'atv_motorbike'
+  const isBike   = category === 'bike_ebike'
+  const isBoat   = category === 'boat'
+
+  // ── Car/ATV pickup state ──────────────────────────────────────────────────
+  const [locations,          setLocations]          = useState<RentalPickupLocation[]>([])
+  const [locLoading,         setLocLoading]         = useState(false)
+  const [pickupType,         setPickupType]         = useState<'location' | 'delivery'>('location')
+  const [selectedLocationId,   setSelectedLocationId]   = useState<string | null>(null)
+  const [selectedLocationName, setSelectedLocationName] = useState<string | null>(null)
+  const [deliveryPlace,      setDeliveryPlace]      = useState<PlaceResult | null>(null)
+
+  // ── Bike pickup state (unchanged) ────────────────────────────────────────
+  const [pickup,      setPickup]      = useState<PlaceResult | null>(null)
+  const [dropoff,     setDropoff]     = useState<PlaceResult | null>(null)
   const [diffDropoff, setDiffDropoff] = useState(false)
 
+  // ── Boat port state ───────────────────────────────────────────────────────
+  const [ports,           setPorts]           = useState<RentalPort[]>([])
+  const [portsLoading,    setPortsLoading]    = useState(false)
+  const [selectedPortId,  setSelectedPortId]  = useState<string | null>(null)
+  const [selectedPortName,setSelectedPortName]= useState<string | null>(null)
+
+  // ── Shared date/time state ────────────────────────────────────────────────
   const [pickupDate,  setPickupDate]  = useState('')
   const [dropoffDate, setDropoffDate] = useState('')
   const [pickupTime,  setPickupTime]  = useState('11:00')
   const [dropoffTime, setDropoffTime] = useState('11:00')
+  const [showDates,   setShowDates]   = useState(false)
 
-  const [showDates, setShowDates] = useState(false)
+  useEffect(() => {
+    if (!isCarAtv) return
+    setLocLoading(true)
+    fetch(`/api/rentals/pickup-locations?category=${category}`)
+      .then(r => r.json())
+      .then(d => { setLocations(Array.isArray(d.locations) ? d.locations : []); setLocLoading(false) })
+      .catch(() => setLocLoading(false))
+  }, [category, isCarAtv])
 
-  const canSearch = !!(pickup && pickupDate && dropoffDate)
+  useEffect(() => {
+    if (!isBoat) return
+    setPortsLoading(true)
+    fetch('/api/rentals/ports')
+      .then(r => r.json())
+      .then(d => { setPorts(Array.isArray(d.ports) ? d.ports : []); setPortsLoading(false) })
+      .catch(() => setPortsLoading(false))
+  }, [isBoat])
+
+  const canSearch = (() => {
+    if (!pickupDate || !dropoffDate) return false
+    if (isCarAtv) return pickupType === 'location' ? !!selectedLocationId : !!deliveryPlace
+    if (isBike)   return !!pickup
+    if (isBoat)   return !!selectedPortId
+    return false
+  })()
 
   function handleSearch() {
-    if (!canSearch || !pickup) return
+    if (!canSearch) return
     const params = new URLSearchParams({
-      pickup_name:     pickup.display_name,
-      pickup_place_id: pickup.place_id,
-      pickup_lat:      String(pickup.lat),
-      pickup_lng:      String(pickup.lng),
-      pickup_date:     pickupDate,
-      dropoff_date:    dropoffDate,
-      pickup_time:     pickupTime,
-      dropoff_time:    dropoffTime,
+      pickup_date: pickupDate, dropoff_date: dropoffDate,
+      pickup_time: pickupTime, dropoff_time: dropoffTime,
       category,
     })
-    if (diffDropoff && dropoff) {
-      params.set('diff_dropoff',     'true')
-      params.set('dropoff_name',     dropoff.display_name)
-      params.set('dropoff_place_id', dropoff.place_id)
+    if (isCarAtv) {
+      if (pickupType === 'location') {
+        params.set('pickup_type', 'location')
+        params.set('pickup_location_id', selectedLocationId!)
+        params.set('pickup_location_name', selectedLocationName!)
+        params.set('pickup_name', selectedLocationName!) // compat
+      } else {
+        params.set('pickup_type', 'delivery')
+        params.set('delivery_address', deliveryPlace!.display_name)
+        params.set('delivery_place_id', deliveryPlace!.place_id)
+        params.set('pickup_name', deliveryPlace!.display_name)
+      }
+      router.push(`/rentals/cars/results?${params.toString()}`)
+    } else if (isBike) {
+      if (pickup) {
+        params.set('pickup_name', pickup.display_name)
+        params.set('pickup_place_id', pickup.place_id)
+        params.set('pickup_lat', String(pickup.lat))
+        params.set('pickup_lng', String(pickup.lng))
+      }
+      if (diffDropoff && dropoff) {
+        params.set('diff_dropoff', 'true')
+        params.set('dropoff_name', dropoff.display_name)
+        params.set('dropoff_place_id', dropoff.place_id)
+      }
+      router.push(`/rentals/cars/results?${params.toString()}`)
+    } else if (isBoat) {
+      params.set('port_id', selectedPortId!)
+      params.set('port_name', selectedPortName!)
+      router.push(`/rentals/boats/coming-soon?${params.toString()}`)
     }
-    router.push(`/rentals/cars/results?${params.toString()}`)
   }
 
   const dateDisplay = pickupDate && dropoffDate
     ? `${pickupDate.split('-').reverse().join('/')} – ${dropoffDate.split('-').reverse().join('/')}`
     : 'Select dates'
 
+  function handleLocationSelect(loc: RentalPickupLocation) {
+    setSelectedLocationId(loc.id)
+    setSelectedLocationName(loc.name)
+  }
+
+  function handleDeliveryToggle(on: boolean) {
+    setPickupType(on ? 'delivery' : 'location')
+    if (on) { setSelectedLocationId(null); setSelectedLocationName(null) }
+    else    { setDeliveryPlace(null) }
+  }
+
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-start pt-[72px] px-5 pb-10"
       style={{ background: CATEGORY_BG[category] ?? CATEGORY_BG.car }}
     >
-      {/* Back */}
       <button
         onClick={() => router.back()}
         className="self-start mb-4 text-white/70 hover:text-white text-sm font-medium"
@@ -183,20 +256,144 @@ function SearchContent() {
 
         <div className="bg-white rounded-2xl shadow-2xl overflow-visible space-y-0">
 
-          {/* Pick-up location */}
-          <div className="px-4 pt-4 pb-2">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Pick-up Location</p>
-            <PlacesInput
-              placeholder="Hotel, address or landmark"
-              value={pickup}
-              onSelect={setPickup}
-              onClear={() => setPickup(null)}
-            />
-          </div>
+          {/* ── Car / ATV: pickup location selector ── */}
+          {isCarAtv && (
+            <>
+              <div className="px-4 pt-4 pb-3">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Select Pick-up Location</p>
 
-          <div className="mx-4 border-t border-gray-100" />
+                {locLoading && <p className="text-sm text-gray-400 py-2">Loading locations…</p>}
 
-          {/* Rental dates */}
+                {!locLoading && locations.length > 0 && (
+                  <div className="space-y-2">
+                    {locations.map(loc => {
+                      const selected = selectedLocationId === loc.id && pickupType === 'location'
+                      return (
+                        <button
+                          key={loc.id}
+                          onClick={() => { handleDeliveryToggle(false); handleLocationSelect(loc) }}
+                          className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl border-2 text-left transition-all ${
+                            selected
+                              ? 'border-navy bg-navy/5'
+                              : 'border-gray-100 bg-gray-50 hover:border-gray-200'
+                          }`}
+                        >
+                          {selected && (
+                            <div className="absolute left-0 top-2 bottom-2 w-0.5 bg-teal rounded-full" style={{ position: 'relative', width: 3, height: 'auto', background: '#1A8A7D', borderRadius: 2, flexShrink: 0 }} />
+                          )}
+                          <span style={{ color: '#D4854A', fontSize: 18, flexShrink: 0 }}>📍</span>
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-sm font-semibold leading-tight ${selected ? 'text-navy' : 'text-gray-700'}`}>{loc.name}</p>
+                            {loc.address && <p className="text-[11px] text-gray-400 mt-0.5 truncate">{loc.address}</p>}
+                          </div>
+                          {loc.google_maps_url && (
+                            <a
+                              href={loc.google_maps_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={e => e.stopPropagation()}
+                              className="flex-shrink-0 w-7 h-7 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:text-navy hover:border-navy transition-colors"
+                              title="View on Google Maps"
+                            >
+                              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                <path d="M5 2H2a1 1 0 00-1 1v7a1 1 0 001 1h7a1 1 0 001-1V7M8 1h3m0 0v3m0-3L5 7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            </a>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {/* Delivery toggle */}
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600 font-medium">Deliver to my accommodation</span>
+                    <button
+                      type="button"
+                      onClick={() => handleDeliveryToggle(pickupType !== 'delivery')}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${pickupType === 'delivery' ? 'bg-teal' : 'bg-gray-200'}`}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${pickupType === 'delivery' ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                  </div>
+
+                  {pickupType === 'delivery' && (
+                    <div className="mt-2.5">
+                      <PlacesInput
+                        placeholder="Enter your address or accommodation name"
+                        value={deliveryPlace}
+                        onSelect={setDeliveryPlace}
+                        onClear={() => setDeliveryPlace(null)}
+                      />
+                      <p className="text-[11px] text-amber-600 italic mt-2 flex items-start gap-1">
+                        <span>⚠️</span>
+                        <span>Delivery is available on request — extra charges may apply. We will confirm delivery fee with your enquiry.</span>
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="mx-4 border-t border-gray-100" />
+            </>
+          )}
+
+          {/* ── Bike: existing Places input ── */}
+          {isBike && (
+            <>
+              <div className="px-4 pt-4 pb-2">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Pick-up Location</p>
+                <PlacesInput
+                  placeholder="Hotel, address or landmark"
+                  value={pickup}
+                  onSelect={setPickup}
+                  onClear={() => setPickup(null)}
+                />
+              </div>
+              <div className="mx-4 border-t border-gray-100" />
+            </>
+          )}
+
+          {/* ── Boat: port selector ── */}
+          {isBoat && (
+            <>
+              <div className="px-4 pt-4 pb-3">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Select Departure Port</p>
+
+                {portsLoading && <p className="text-sm text-gray-400 py-2">Loading ports…</p>}
+
+                {!portsLoading && ports.length > 0 && (
+                  <div className="space-y-2">
+                    {ports.map(port => {
+                      const selected = selectedPortId === port.id
+                      return (
+                        <button
+                          key={port.id}
+                          onClick={() => { setSelectedPortId(port.id); setSelectedPortName(port.name) }}
+                          className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl border-2 text-left transition-all ${
+                            selected
+                              ? 'border-navy bg-navy/5'
+                              : 'border-gray-100 bg-gray-50 hover:border-gray-200'
+                          }`}
+                        >
+                          <span style={{ color: '#2D4A7A', fontSize: 18, flexShrink: 0 }}>⚓</span>
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-sm font-semibold leading-tight ${selected ? 'text-navy' : 'text-gray-700'}`}>{port.name}</p>
+                            {port.area && <p className="text-[11px] text-gray-400 mt-0.5">{port.area}</p>}
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+              <div className="mx-4 border-t border-gray-100" />
+            </>
+          )}
+
+          {/* ── Rental dates ── */}
           <div className="px-4 py-3">
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Rental Dates</p>
             <button
@@ -211,9 +408,7 @@ function SearchContent() {
                 <div>
                   <label className="text-[10px] text-gray-400 uppercase tracking-wide block mb-1">Pick-up</label>
                   <input
-                    type="date"
-                    value={pickupDate}
-                    min={TODAY}
+                    type="date" value={pickupDate} min={TODAY}
                     onChange={e => {
                       setPickupDate(e.target.value)
                       if (dropoffDate && e.target.value >= dropoffDate) setDropoffDate('')
@@ -224,9 +419,7 @@ function SearchContent() {
                 <div>
                   <label className="text-[10px] text-gray-400 uppercase tracking-wide block mb-1">Drop-off</label>
                   <input
-                    type="date"
-                    value={dropoffDate}
-                    min={pickupDate || TODAY}
+                    type="date" value={dropoffDate} min={pickupDate || TODAY}
                     onChange={e => setDropoffDate(e.target.value)}
                     className="w-full border border-border-light rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:border-navy/40"
                   />
@@ -237,17 +430,14 @@ function SearchContent() {
 
           <div className="mx-4 border-t border-gray-100" />
 
-          {/* Times */}
+          {/* ── Times ── */}
           <div className="px-4 py-3 grid grid-cols-2 gap-3">
             <div>
               <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1.5">Pick-up Time</label>
               <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-xl">
                 <span style={{ color: '#D4854A', fontSize: 14 }}>🕐</span>
-                <select
-                  value={pickupTime}
-                  onChange={e => setPickupTime(e.target.value)}
-                  className="flex-1 text-sm text-navy outline-none bg-transparent"
-                >
+                <select value={pickupTime} onChange={e => setPickupTime(e.target.value)}
+                  className="flex-1 text-sm text-navy outline-none bg-transparent">
                   {TIME_SLOTS.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
@@ -256,43 +446,42 @@ function SearchContent() {
               <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1.5">Drop-off Time</label>
               <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-xl">
                 <span style={{ color: '#D4854A', fontSize: 14 }}>🕐</span>
-                <select
-                  value={dropoffTime}
-                  onChange={e => setDropoffTime(e.target.value)}
-                  className="flex-1 text-sm text-navy outline-none bg-transparent"
-                >
+                <select value={dropoffTime} onChange={e => setDropoffTime(e.target.value)}
+                  className="flex-1 text-sm text-navy outline-none bg-transparent">
                   {TIME_SLOTS.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
             </div>
           </div>
 
-          <div className="mx-4 border-t border-gray-100" />
-
-          {/* Different drop-off */}
-          <div className="px-4 py-3">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={diffDropoff}
-                onChange={e => { setDiffDropoff(e.target.checked); if (!e.target.checked) setDropoff(null) }}
-                className="rounded border-gray-300 text-navy"
-              />
-              <span className="text-sm text-tx-mid font-medium">Different drop-off?</span>
-            </label>
-            {diffDropoff && (
-              <div className="mt-2">
-                <PlacesInput
-                  placeholder="Drop-off location"
-                  value={dropoff}
-                  onSelect={setDropoff}
-                  onClear={() => setDropoff(null)}
-                />
+          {/* ── Bike only: different drop-off ── */}
+          {isBike && (
+            <>
+              <div className="mx-4 border-t border-gray-100" />
+              <div className="px-4 py-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox" checked={diffDropoff}
+                    onChange={e => { setDiffDropoff(e.target.checked); if (!e.target.checked) setDropoff(null) }}
+                    className="rounded border-gray-300 text-navy"
+                  />
+                  <span className="text-sm text-tx-mid font-medium">Different drop-off?</span>
+                </label>
+                {diffDropoff && (
+                  <div className="mt-2">
+                    <PlacesInput
+                      placeholder="Drop-off location"
+                      value={dropoff}
+                      onSelect={setDropoff}
+                      onClear={() => setDropoff(null)}
+                    />
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </>
+          )}
 
-          {/* Search button */}
+          {/* ── Search button ── */}
           <div className="px-4 pb-4">
             <button
               onClick={handleSearch}
@@ -301,7 +490,14 @@ function SearchContent() {
             >
               <span>🔍</span> Search
             </button>
-            {!pickup && <p className="text-[11px] text-gray-400 text-center mt-2">Enter a pick-up location to continue</p>}
+            {!canSearch && pickupDate && dropoffDate && (
+              <p className="text-[11px] text-gray-400 text-center mt-2">
+                {isCarAtv && pickupType === 'location' && !selectedLocationId ? 'Select a pick-up location to continue' : ''}
+                {isCarAtv && pickupType === 'delivery' && !deliveryPlace ? 'Enter a delivery address to continue' : ''}
+                {isBike && !pickup ? 'Enter a pick-up location to continue' : ''}
+                {isBoat && !selectedPortId ? 'Select a departure port to continue' : ''}
+              </p>
+            )}
           </div>
         </div>
       </div>
