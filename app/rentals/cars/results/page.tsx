@@ -114,8 +114,13 @@ function ResultsContent() {
       .catch(() => setLoading(false))
   }, [category])
 
-  const distinctClasses = Array.from(new Set(rentals.filter(r => r.car_class).map(r => r.car_class!)))
-  const showCarousel    = distinctClasses.length > 1
+  const ATV_CLASSES  = ['atv', 'motorbike', 'scooter', 'buggy']
+  const BIKE_CLASSES = ['ebike', 'city_bike', 'mountain_bike']
+
+  const distinctClasses = category === 'atv_motorbike' ? ATV_CLASSES
+    : category === 'bike_ebike'   ? BIKE_CLASSES
+    : Array.from(new Set(rentals.filter(r => r.car_class).map(r => r.car_class!)))
+  const showCarousel = category === 'atv_motorbike' || category === 'bike_ebike' || distinctClasses.length > 1
   const ctaLabel        = CTA_LABELS[category] ?? 'Reserve →'
 
   function bikeHeightMatch(riderHeight: string | null, filter: string): boolean {
@@ -285,8 +290,8 @@ function ResultsContent() {
         </div>
       )}
 
-      {/* Sort strip — hidden for bikes */}
-      {!isBike && <div className="px-4 pb-3 grid grid-cols-2 gap-2">
+      {/* Sort strip — cars only */}
+      {category === 'car' && <div className="px-4 pb-3 grid grid-cols-2 gap-2">
         <button
           onClick={() => setSortMode('price')}
           className={`flex items-center justify-center gap-2 py-2.5 rounded-xl border text-sm font-semibold transition-colors ${
@@ -402,8 +407,10 @@ function ResultsContent() {
           {!loading && filtered.length === 0 && (
             <div className="text-center py-16 text-tx-light text-sm">
               <p className="text-2xl mb-3">🚗</p>
-              <p className="font-medium text-navy">No vehicles match your filters</p>
-              <button onClick={clearFilters} className="mt-3 text-teal text-sm font-semibold">Clear filters</button>
+              <p className="font-medium text-navy">
+                {activeClass !== 'all' ? 'No vehicles in this category yet.' : 'No vehicles match your filters'}
+              </p>
+              {activeClass === 'all' && <button onClick={clearFilters} className="mt-3 text-teal text-sm font-semibold">Clear filters</button>}
             </div>
           )}
 
