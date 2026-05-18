@@ -1614,6 +1614,7 @@ function PickupLocationsTab({ locations, onSaved }: { locations: any[]; onSaved:
           <thead className="bg-sand border-b border-border">
             <tr>
               <th className="px-4 py-2 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Name</th>
+              <th className="px-4 py-2 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">City</th>
               <th className="px-4 py-2 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Address</th>
               <th className="px-4 py-2 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Categories</th>
               <th className="px-4 py-2 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Order</th>
@@ -1625,6 +1626,7 @@ function PickupLocationsTab({ locations, onSaved }: { locations: any[]; onSaved:
             {locations.map(loc => (
               <tr key={loc.id} className="hover:bg-sand/30">
                 <td className="px-4 py-3 font-medium text-navy">{loc.name}</td>
+                <td className="px-4 py-3 text-tx-mid text-xs">{loc.city ?? '—'}</td>
                 <td className="px-4 py-3 text-tx-mid text-xs">{loc.address ?? '—'}</td>
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap gap-1">
@@ -1650,7 +1652,7 @@ function PickupLocationsTab({ locations, onSaved }: { locations: any[]; onSaved:
               </tr>
             ))}
             {locations.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-tx-light text-sm">No pickup locations yet</td></tr>
+              <tr><td colSpan={7} className="px-4 py-8 text-center text-tx-light text-sm">No pickup locations yet</td></tr>
             )}
           </tbody>
         </table>

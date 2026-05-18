@@ -22,7 +22,7 @@ type Suggestion   = { place_id: string; description: string; types: string[] }
 type PlaceResult  = { display_name: string; place_id: string; lat: number; lng: number }
 
 type RentalPickupLocation = {
-  id: string; name: string; address: string | null
+  id: string; name: string; city: string | null; address: string | null
   google_maps_url: string | null; vehicle_categories: string[]
 }
 
@@ -141,6 +141,8 @@ function SearchContent() {
   const [selectedLocationAddress, setSelectedLocationAddress] = useState<string | null>(null)
   const [selectedLocationGMapsUrl,setSelectedLocationGMapsUrl]= useState<string | null>(null)
   const [deliveryPlace,      setDeliveryPlace]      = useState<PlaceResult | null>(null)
+  const [locDropdownOpen,    setLocDropdownOpen]    = useState(false)
+  const locDropdownRef = useRef<HTMLDivElement>(null)
 
   // ── Bike pickup state (unchanged) ────────────────────────────────────────
   const [pickup,      setPickup]      = useState<PlaceResult | null>(null)
@@ -176,6 +178,21 @@ function SearchContent() {
       .then(d => { setPorts(Array.isArray(d.ports) ? d.ports : []); setPortsLoading(false) })
       .catch(() => setPortsLoading(false))
   }, [isBoat])
+
+  useEffect(() => {
+    function onMouseDown(e: MouseEvent) {
+      if (locDropdownRef.current && !locDropdownRef.current.contains(e.target as Node)) {
+        setLocDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onMouseDown)
+    return () => document.removeEventListener('mousedown', onMouseDown)
+  }, [])
+
+  const CITY_ORDER = ['Chania', 'Rethymnon', 'Heraklion']
+  const groupedLocations = CITY_ORDER
+    .map(city => ({ city, locs: locations.filter(l => (l.city ?? 'Chania') === city) }))
+    .filter(g => g.locs.length > 0)
 
   const canSearch = (() => {
     if (!pickupDate || !dropoffDate) return false
@@ -256,7 +273,7 @@ function SearchContent() {
 
         <div className="bg-white rounded-2xl shadow-2xl overflow-visible space-y-0">
 
-          {/* ── Car / ATV: pickup location chips ── */}
+          {/* ── Car / ATV: grouped pickup dropdown ── */}
           {isCarAtv && (
             <>
               <div className="px-4 pt-4 pb-3">
@@ -266,42 +283,58 @@ function SearchContent() {
 
                 {!locLoading && (
                   <>
-                    {/* Horizontal chip row */}
-                    <div className="flex overflow-x-auto gap-3 pb-2 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                      {locations.map(loc => {
-                        const selected = selectedLocationId === loc.id && pickupType === 'location'
-                        return (
-                          <button
-                            key={loc.id}
-                            onClick={() => { handleDeliveryToggle(false); handleLocationSelect(loc) }}
-                            className={`flex-shrink-0 flex items-center gap-2 px-4 py-3 rounded-full border-2 shadow-sm active:scale-95 transition-all font-semibold text-sm whitespace-nowrap ${
-                              selected
-                                ? 'bg-navy border-navy text-white'
-                                : 'bg-white border-gray-200 text-navy'
-                            }`}
-                          >
-                            <span style={{ color: selected ? 'white' : '#D4854A', fontSize: 14 }}>📍</span>
-                            {loc.name}
-                          </button>
-                        )
-                      })}
-
-                      {/* Delivery chip — last in the row */}
+                    {/* Dropdown trigger */}
+                    <div className="relative" ref={locDropdownRef}>
                       <button
-                        onClick={() => handleDeliveryToggle(pickupType !== 'delivery')}
-                        className={`flex-shrink-0 flex items-center gap-2 px-4 py-3 rounded-full border-2 shadow-sm active:scale-95 transition-all font-semibold text-sm whitespace-nowrap ${
-                          pickupType === 'delivery'
-                            ? 'bg-terra border-terra text-white'
-                            : 'bg-white border-dashed border-terra text-terra'
-                        }`}
-                        style={{ borderStyle: pickupType === 'delivery' ? 'solid' : 'dashed' }}
+                        onClick={() => setLocDropdownOpen(o => !o)}
+                        className="w-full flex items-center gap-3 px-4 py-4 bg-white border-2 border-border rounded-xl text-left"
                       >
-                        <span style={{ fontSize: 14 }}>🚚</span>
-                        Deliver to me
+                        <span style={{ color: '#D4854A', fontSize: 16, flexShrink: 0 }}>📍</span>
+                        <span className={`flex-1 text-sm ${selectedLocationId && pickupType === 'location' ? 'text-navy font-medium' : 'text-gray-400'}`}>
+                          {selectedLocationId && pickupType === 'location' ? selectedLocationName : 'Select pick-up location'}
+                        </span>
+                        <span className="text-gray-400 text-xs" style={{ transform: locDropdownOpen ? 'rotate(180deg)' : 'none', display: 'inline-block', transition: 'transform 0.15s' }}>▼</span>
                       </button>
+
+                      {/* Dropdown panel */}
+                      {locDropdownOpen && (
+                        <div className="absolute left-0 right-0 top-full mt-1 bg-white rounded-xl shadow-xl z-50 overflow-y-auto" style={{ maxHeight: 280 }}>
+                          {groupedLocations.map((group, gi) => (
+                            <div key={group.city}>
+                              {gi > 0 && <div className="border-t border-gray-100 mx-4" />}
+                              <p className="px-4 py-2 text-[11px] font-semibold text-gray-400 uppercase tracking-wide">{group.city}</p>
+                              {group.locs.map(loc => {
+                                const selected = selectedLocationId === loc.id && pickupType === 'location'
+                                return (
+                                  <button
+                                    key={loc.id}
+                                    onClick={() => { handleDeliveryToggle(false); handleLocationSelect(loc); setLocDropdownOpen(false) }}
+                                    className={`w-full flex items-center gap-3 px-4 py-3 text-left border-l-2 transition-colors ${
+                                      selected ? 'border-teal' : 'border-transparent hover:bg-gray-50'
+                                    }`}
+                                  >
+                                    <span style={{ fontSize: 14, flexShrink: 0 }}>📍</span>
+                                    <span className={`text-sm ${selected ? 'text-teal' : 'text-navy'}`}>{loc.name}</span>
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          ))}
+
+                          {/* Deliver to me */}
+                          <div className="border-t border-gray-100" />
+                          <button
+                            onClick={() => { handleDeliveryToggle(true); setLocDropdownOpen(false) }}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50"
+                          >
+                            <span style={{ fontSize: 14, flexShrink: 0 }}>🚚</span>
+                            <span className="text-sm font-medium text-terra">Deliver to my accommodation</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
 
-                    {/* Delivery address input — revealed below chip row */}
+                    {/* Delivery address input */}
                     {pickupType === 'delivery' && (
                       <div className="mt-3">
                         <PlacesInput
