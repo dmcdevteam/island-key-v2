@@ -386,6 +386,22 @@ function SearchContent() {
                   onSelect={setPickup}
                   onClear={() => setPickup(null)}
                 />
+                {pickup?.place_id && process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY && (
+                  <div className="mt-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={`https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(pickup.display_name)}&zoom=14&size=600x200&markers=color:0x1B2D4F%7C${encodeURIComponent(pickup.display_name)}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`}
+                      className="w-full rounded-xl border border-border"
+                      alt="Delivery location"
+                    />
+                    <a
+                      href={`https://maps.google.com/?q=${encodeURIComponent(pickup.display_name)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-teal font-medium mt-2 inline-block"
+                    >Open in Google Maps →</a>
+                  </div>
+                )}
               </div>
               <div className="mx-4 border-t border-gray-100" />
             </>

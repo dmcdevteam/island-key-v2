@@ -95,12 +95,15 @@ function ResultsContent() {
   const days   = pickupDate && dropoffDate ? daysBetween(pickupDate, dropoffDate) : 1
   const isBike = category === 'bike_ebike'
 
-  const [rentals,     setRentals]     = useState<CarRental[]>([])
-  const [loading,     setLoading]     = useState(true)
-  const [activeClass, setActiveClass] = useState<string>('all')
-  const [sortMode,    setSortMode]    = useState<SortMode>('price')
-  const [filterOpen,  setFilterOpen]  = useState(false)
-  const [filters,     setFilters]     = useState<FilterState>({ transmission: '', fuel_type: '', seats: '', car_class: '' })
+  const [rentals,          setRentals]          = useState<CarRental[]>([])
+  const [loading,          setLoading]          = useState(true)
+  const [activeClass,      setActiveClass]      = useState<string>('all')
+  const [sortMode,         setSortMode]         = useState<SortMode>('price')
+  const [filterOpen,       setFilterOpen]       = useState(false)
+  const [filters,          setFilters]          = useState<FilterState>({ transmission: '', fuel_type: '', seats: '', car_class: '' })
+  const [bikeMinPrice,     setBikeMinPrice]     = useState('')
+  const [bikeMaxPrice,     setBikeMaxPrice]     = useState('')
+  const [bikeHeightFilter, setBikeHeightFilter] = useState('')
 
   const carouselRef = useRef<HTMLDivElement>(null)
 
@@ -115,13 +118,31 @@ function ResultsContent() {
   const showCarousel    = distinctClasses.length > 1
   const ctaLabel        = CTA_LABELS[category] ?? 'Reserve →'
 
+  function bikeHeightMatch(riderHeight: string | null, filter: string): boolean {
+    if (!filter) return true
+    if (!riderHeight) return true
+    const nums = riderHeight.match(/\d+/g)?.map(Number) ?? []
+    if (nums.length === 0) return true
+    const min = Math.min(...nums)
+    const max = Math.max(...nums)
+    if (filter === '190plus') return max >= 190
+    const h = parseInt(filter)
+    return min <= h && max >= h
+  }
+
   // Filtering
   const filtered = rentals.filter(r => {
     if (activeClass !== 'all' && r.car_class !== activeClass) return false
-    if (sortMode === 'zero_deposit' && !r.zero_deposit) return false
-    if (filters.transmission && r.transmission !== filters.transmission) return false
-    if (filters.fuel_type && r.fuel_type !== filters.fuel_type) return false
-    if (filters.seats && (r.seats ?? 0) < parseInt(filters.seats)) return false
+    if (isBike) {
+      if (bikeMinPrice && (r.price_per_day ?? 0) < parseFloat(bikeMinPrice)) return false
+      if (bikeMaxPrice && (r.price_per_day ?? 0) > parseFloat(bikeMaxPrice)) return false
+      if (bikeHeightFilter && !bikeHeightMatch(r.rider_height ?? null, bikeHeightFilter)) return false
+    } else {
+      if (sortMode === 'zero_deposit' && !r.zero_deposit) return false
+      if (filters.transmission && r.transmission !== filters.transmission) return false
+      if (filters.fuel_type && r.fuel_type !== filters.fuel_type) return false
+      if (filters.seats && (r.seats ?? 0) < parseInt(filters.seats)) return false
+    }
     return true
   }).sort((a, b) => (a.price_per_day ?? 0) - (b.price_per_day ?? 0))
 
@@ -152,6 +173,9 @@ function ResultsContent() {
     setFilters({ transmission: '', fuel_type: '', seats: '', car_class: '' })
     setActiveClass('all')
     setSortMode('price')
+    setBikeMinPrice('')
+    setBikeMaxPrice('')
+    setBikeHeightFilter('')
   }
 
   const ChipGroup = ({ options, value, onChange }: {
@@ -471,78 +495,137 @@ function ResultsContent() {
               <button onClick={clearFilters} className="text-sm text-teal font-semibold">Clear All</button>
             </div>
 
-            <div className="space-y-5">
-              <div>
-                <p className="text-[11px] font-bold text-tx-mid uppercase tracking-widest mb-2">Sort by</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <button onClick={() => setSortMode('price')}
-                    className={`py-2 rounded-xl border text-sm font-semibold transition-colors ${sortMode === 'price' ? 'bg-navy text-white border-navy' : 'border-border-light text-tx-mid'}`}>
-                    💶 Lowest Price
-                  </button>
-                  <button onClick={() => setSortMode('zero_deposit')}
-                    className={`py-2 rounded-xl border text-sm font-semibold transition-colors ${sortMode === 'zero_deposit' ? 'bg-navy text-white border-navy' : 'border-border-light text-tx-mid'}`}>
-                    🛡 Zero Deposit
-                  </button>
-                </div>
-              </div>
+            {isBike ? (
+              <div className="space-y-5">
+                {distinctClasses.length > 0 && (
+                  <div>
+                    <p className="text-[11px] font-bold text-tx-mid uppercase tracking-widest mb-2">Vehicle Type</p>
+                    <ChipGroup
+                      value={activeClass === 'all' ? '' : activeClass}
+                      onChange={v => setActiveClass(v || 'all')}
+                      options={[
+                        { label: 'All', value: '' },
+                        ...distinctClasses.map(c => ({ label: vehicleClassLabel(c), value: c })),
+                      ]}
+                    />
+                  </div>
+                )}
 
-              <div>
-                <p className="text-[11px] font-bold text-tx-mid uppercase tracking-widest mb-2">Transmission</p>
-                <ChipGroup
-                  value={filters.transmission}
-                  onChange={v => setFilters(f => ({ ...f, transmission: v }))}
-                  options={[
-                    { label: 'All', value: '' },
-                    { label: 'Manual', value: 'manual' },
-                    { label: 'Automatic', value: 'automatic' },
-                  ]}
-                />
-              </div>
-
-              <div>
-                <p className="text-[11px] font-bold text-tx-mid uppercase tracking-widest mb-2">Fuel Type</p>
-                <ChipGroup
-                  value={filters.fuel_type}
-                  onChange={v => setFilters(f => ({ ...f, fuel_type: v }))}
-                  options={[
-                    { label: 'All', value: '' },
-                    { label: 'Petrol', value: 'petrol' },
-                    { label: 'Diesel', value: 'diesel' },
-                    { label: 'Electric', value: 'electric' },
-                    { label: 'Hybrid', value: 'hybrid' },
-                  ]}
-                />
-              </div>
-
-              <div>
-                <p className="text-[11px] font-bold text-tx-mid uppercase tracking-widest mb-2">Seats</p>
-                <ChipGroup
-                  value={filters.seats}
-                  onChange={v => setFilters(f => ({ ...f, seats: v }))}
-                  options={[
-                    { label: 'All', value: '' },
-                    { label: '2+', value: '2' },
-                    { label: '4+', value: '4' },
-                    { label: '5+', value: '5' },
-                    { label: '7+', value: '7' },
-                  ]}
-                />
-              </div>
-
-              {distinctClasses.length > 0 && (
                 <div>
-                  <p className="text-[11px] font-bold text-tx-mid uppercase tracking-widest mb-2">Vehicle Class</p>
+                  <p className="text-[11px] font-bold text-tx-mid uppercase tracking-widest mb-2">Price per Day</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex items-center gap-2 px-3 py-2.5 border border-border-light rounded-xl">
+                      <span className="text-tx-light text-sm flex-shrink-0">Min €</span>
+                      <input
+                        type="number"
+                        value={bikeMinPrice}
+                        onChange={e => setBikeMinPrice(e.target.value)}
+                        placeholder="0"
+                        className="flex-1 text-sm text-navy outline-none w-full"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-2.5 border border-border-light rounded-xl">
+                      <span className="text-tx-light text-sm flex-shrink-0">Max €</span>
+                      <input
+                        type="number"
+                        value={bikeMaxPrice}
+                        onChange={e => setBikeMaxPrice(e.target.value)}
+                        placeholder="any"
+                        className="flex-1 text-sm text-navy outline-none w-full"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-[11px] font-bold text-tx-mid uppercase tracking-widest mb-2">Rider Height</p>
                   <ChipGroup
-                    value={activeClass === 'all' ? '' : activeClass}
-                    onChange={v => setActiveClass(v || 'all')}
+                    value={bikeHeightFilter}
+                    onChange={v => setBikeHeightFilter(v)}
                     options={[
                       { label: 'All', value: '' },
-                      ...distinctClasses.map(c => ({ label: vehicleClassLabel(c), value: c })),
+                      { label: 'Up to 170cm', value: '170' },
+                      { label: 'Up to 180cm', value: '180' },
+                      { label: 'Up to 190cm', value: '190' },
+                      { label: '190cm+', value: '190plus' },
                     ]}
                   />
                 </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                <div>
+                  <p className="text-[11px] font-bold text-tx-mid uppercase tracking-widest mb-2">Sort by</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button onClick={() => setSortMode('price')}
+                      className={`py-2 rounded-xl border text-sm font-semibold transition-colors ${sortMode === 'price' ? 'bg-navy text-white border-navy' : 'border-border-light text-tx-mid'}`}>
+                      💶 Lowest Price
+                    </button>
+                    <button onClick={() => setSortMode('zero_deposit')}
+                      className={`py-2 rounded-xl border text-sm font-semibold transition-colors ${sortMode === 'zero_deposit' ? 'bg-navy text-white border-navy' : 'border-border-light text-tx-mid'}`}>
+                      🛡 Zero Deposit
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-[11px] font-bold text-tx-mid uppercase tracking-widest mb-2">Transmission</p>
+                  <ChipGroup
+                    value={filters.transmission}
+                    onChange={v => setFilters(f => ({ ...f, transmission: v }))}
+                    options={[
+                      { label: 'All', value: '' },
+                      { label: 'Manual', value: 'manual' },
+                      { label: 'Automatic', value: 'automatic' },
+                    ]}
+                  />
+                </div>
+
+                <div>
+                  <p className="text-[11px] font-bold text-tx-mid uppercase tracking-widest mb-2">Fuel Type</p>
+                  <ChipGroup
+                    value={filters.fuel_type}
+                    onChange={v => setFilters(f => ({ ...f, fuel_type: v }))}
+                    options={[
+                      { label: 'All', value: '' },
+                      { label: 'Petrol', value: 'petrol' },
+                      { label: 'Diesel', value: 'diesel' },
+                      { label: 'Electric', value: 'electric' },
+                      { label: 'Hybrid', value: 'hybrid' },
+                    ]}
+                  />
+                </div>
+
+                <div>
+                  <p className="text-[11px] font-bold text-tx-mid uppercase tracking-widest mb-2">Seats</p>
+                  <ChipGroup
+                    value={filters.seats}
+                    onChange={v => setFilters(f => ({ ...f, seats: v }))}
+                    options={[
+                      { label: 'All', value: '' },
+                      { label: '2+', value: '2' },
+                      { label: '4+', value: '4' },
+                      { label: '5+', value: '5' },
+                      { label: '7+', value: '7' },
+                    ]}
+                  />
+                </div>
+
+                {distinctClasses.length > 0 && (
+                  <div>
+                    <p className="text-[11px] font-bold text-tx-mid uppercase tracking-widest mb-2">Vehicle Class</p>
+                    <ChipGroup
+                      value={activeClass === 'all' ? '' : activeClass}
+                      onChange={v => setActiveClass(v || 'all')}
+                      options={[
+                        { label: 'All', value: '' },
+                        ...distinctClasses.map(c => ({ label: vehicleClassLabel(c), value: c })),
+                      ]}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
 
             <button
               onClick={() => setFilterOpen(false)}
