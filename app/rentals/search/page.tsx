@@ -27,7 +27,8 @@ type RentalPickupLocation = {
 }
 
 type RentalPort = {
-  id: string; name: string; area: string; address: string | null
+  id: string; name: string; area: string | null; address: string | null
+  lat: number | null; lng: number | null; google_maps_url: string | null
 }
 
 function generateTimeSlots(): string[] {
@@ -149,11 +150,14 @@ function SearchContent() {
   const [dropoff,     setDropoff]     = useState<PlaceResult | null>(null)
   const [diffDropoff, setDiffDropoff] = useState(false)
 
-  // ── Boat port state ───────────────────────────────────────────────────────
+  // ── Boat state ────────────────────────────────────────────────────────────
+  const [boatTab,         setBoatTab]         = useState<'rentals' | 'experiences'>('rentals')
+  const [boatCity,        setBoatCity]        = useState<string | null>(null)
   const [ports,           setPorts]           = useState<RentalPort[]>([])
   const [portsLoading,    setPortsLoading]    = useState(false)
   const [selectedPortId,  setSelectedPortId]  = useState<string | null>(null)
   const [selectedPortName,setSelectedPortName]= useState<string | null>(null)
+  const [boatSkipper,     setBoatSkipper]     = useState<'with' | 'without' | null>(null)
 
   // ── Shared date/time state ────────────────────────────────────────────────
   const [pickupDate,  setPickupDate]  = useState('')
@@ -171,13 +175,16 @@ function SearchContent() {
   }, [category, isCarAtv])
 
   useEffect(() => {
-    if (!isBoat) return
+    if (!isBoat || !boatCity) return
     setPortsLoading(true)
-    fetch('/api/rentals/ports')
+    setPorts([])
+    setSelectedPortId(null)
+    setSelectedPortName(null)
+    fetch(`/api/rentals/ports?city=${encodeURIComponent(boatCity)}`)
       .then(r => r.json())
       .then(d => { setPorts(Array.isArray(d.ports) ? d.ports : []); setPortsLoading(false) })
       .catch(() => setPortsLoading(false))
-  }, [isBoat])
+  }, [isBoat, boatCity])
 
   useEffect(() => {
     function onMouseDown(e: MouseEvent) {
@@ -198,7 +205,7 @@ function SearchContent() {
     if (!pickupDate || !dropoffDate) return false
     if (isCarAtv) return pickupType === 'location' ? !!selectedLocationId : !!deliveryPlace
     if (isBike)   return !!pickup
-    if (isBoat)   return !!selectedPortId
+    if (isBoat)   return !!boatCity
     return false
   })()
 
@@ -236,9 +243,11 @@ function SearchContent() {
       }
       router.push(`/rentals/cars/results?${params.toString()}`)
     } else if (isBoat) {
-      params.set('port_id', selectedPortId!)
-      params.set('port_name', selectedPortName!)
-      router.push(`/rentals/boats/coming-soon?${params.toString()}`)
+      params.set('city', boatCity!)
+      if (selectedPortId)   params.set('port_id', selectedPortId)
+      if (selectedPortName) params.set('port_name', selectedPortName)
+      if (boatSkipper)      params.set('with_skipper', boatSkipper === 'with' ? 'true' : 'false')
+      router.push(`/rentals/boats/results?${params.toString()}`)
     }
   }
 
@@ -407,39 +416,120 @@ function SearchContent() {
             </>
           )}
 
-          {/* ── Boat: port selector ── */}
+          {/* ── Boat: city + port map + skipper ── */}
           {isBoat && (
             <>
+              {/* Toggle tabs */}
               <div className="px-4 pt-4 pb-3">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Select Departure Port</p>
+                <div className="grid grid-cols-2 gap-1 bg-gray-100 p-1 rounded-xl">
+                  <button
+                    onClick={() => setBoatTab('rentals')}
+                    className={`py-2 rounded-lg text-sm font-semibold transition-colors ${
+                      boatTab === 'rentals' ? 'bg-navy text-white' : 'text-tx-mid'
+                    }`}
+                  >⛵ Boat Rentals</button>
+                  <button
+                    onClick={() => { setBoatTab('experiences'); router.push('/activities?boat=true') }}
+                    className="py-2 rounded-lg text-sm font-semibold text-tx-mid"
+                  >🤿 Daily Experiences</button>
+                </div>
+              </div>
 
-                {portsLoading && <p className="text-sm text-gray-400 py-2">Loading ports…</p>}
+              <div className="mx-4 border-t border-gray-100" />
 
-                {!portsLoading && ports.length > 0 && (
-                  <div className="space-y-2">
-                    {ports.map(port => {
-                      const selected = selectedPortId === port.id
+              {/* City dropdown */}
+              <div className="px-4 pt-3 pb-2">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Place of Departure</p>
+                <div className="flex gap-2">
+                  {['Chania', 'Rethymnon', 'Heraklion'].map(city => (
+                    <button
+                      key={city}
+                      onClick={() => setBoatCity(boatCity === city ? null : city)}
+                      className={`flex-1 py-2.5 rounded-xl border text-sm font-semibold transition-colors ${
+                        boatCity === city
+                          ? 'bg-navy text-white border-navy'
+                          : 'bg-white text-tx-mid border-border-light hover:border-navy'
+                      }`}
+                    >{city}</button>
+                  ))}
+                </div>
+
+                {/* Port map + chips */}
+                {boatCity && (
+                  <div className="mt-3">
+                    {portsLoading && <p className="text-sm text-gray-400 py-2">Loading ports…</p>}
+
+                    {!portsLoading && ports.length > 0 && (() => {
+                      const portsWithCoords = ports.filter(p => p.lat && p.lng)
+                      const avgLat = portsWithCoords.length
+                        ? portsWithCoords.reduce((s, p) => s + p.lat!, 0) / portsWithCoords.length
+                        : 35.52
+                      const avgLng = portsWithCoords.length
+                        ? portsWithCoords.reduce((s, p) => s + p.lng!, 0) / portsWithCoords.length
+                        : 24.02
+                      const markerStr = portsWithCoords
+                        .map(p => `markers=color:0x1B2D4F%7C${p.lat},${p.lng}`)
+                        .join('&')
+
                       return (
-                        <button
-                          key={port.id}
-                          onClick={() => { setSelectedPortId(port.id); setSelectedPortName(port.name) }}
-                          className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl border-2 text-left transition-all ${
-                            selected
-                              ? 'border-navy bg-navy/5'
-                              : 'border-gray-100 bg-gray-50 hover:border-gray-200'
-                          }`}
-                        >
-                          <span style={{ color: '#2D4A7A', fontSize: 18, flexShrink: 0 }}>⚓</span>
-                          <div className="flex-1 min-w-0">
-                            <p className={`text-sm font-semibold leading-tight ${selected ? 'text-navy' : 'text-gray-700'}`}>{port.name}</p>
-                            {port.area && <p className="text-[11px] text-gray-400 mt-0.5">{port.area}</p>}
+                        <>
+                          {process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY && portsWithCoords.length > 0 && (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img
+                              src={`https://maps.googleapis.com/maps/api/staticmap?size=600x250&zoom=11&center=${avgLat},${avgLng}&${markerStr}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`}
+                              alt={`Ports in ${boatCity}`}
+                              className="w-full rounded-xl my-3 border border-border-light"
+                            />
+                          )}
+                          <div className="flex flex-wrap gap-2">
+                            {ports.map(port => (
+                              <button
+                                key={port.id}
+                                onClick={() => {
+                                  if (selectedPortId === port.id) { setSelectedPortId(null); setSelectedPortName(null) }
+                                  else { setSelectedPortId(port.id); setSelectedPortName(port.name) }
+                                }}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-colors ${
+                                  selectedPortId === port.id
+                                    ? 'bg-navy text-white border-navy'
+                                    : 'bg-white text-tx-mid border-border-light hover:border-navy'
+                                }`}
+                              >
+                                <span>📍</span>{port.name}
+                              </button>
+                            ))}
                           </div>
-                        </button>
+                          {selectedPortName && (
+                            <p className="text-[12px] text-navy font-medium mt-2">Departing from: {selectedPortName}</p>
+                          )}
+                        </>
                       )
-                    })}
+                    })()}
                   </div>
                 )}
               </div>
+
+              <div className="mx-4 border-t border-gray-100" />
+
+              {/* Skipper */}
+              <div className="px-4 py-3">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Skipper</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setBoatSkipper(boatSkipper === 'with' ? null : 'with')}
+                    className={`py-3 rounded-xl border text-sm font-semibold transition-colors ${
+                      boatSkipper === 'with' ? 'bg-navy text-white border-navy' : 'bg-white text-tx-mid border-border-light'
+                    }`}
+                  >⚓ With skipper</button>
+                  <button
+                    onClick={() => setBoatSkipper(boatSkipper === 'without' ? null : 'without')}
+                    className={`py-3 rounded-xl border text-sm font-semibold transition-colors ${
+                      boatSkipper === 'without' ? 'bg-navy text-white border-navy' : 'bg-white text-tx-mid border-border-light'
+                    }`}
+                  >Without skipper</button>
+                </div>
+              </div>
+
               <div className="mx-4 border-t border-gray-100" />
             </>
           )}
@@ -525,7 +615,7 @@ function SearchContent() {
                 {isCarAtv && pickupType === 'location' && !selectedLocationId ? 'Select a pick-up location to continue' : ''}
                 {isCarAtv && pickupType === 'delivery' && !deliveryPlace ? 'Enter a delivery address to continue' : ''}
                 {isBike && !pickup ? 'Enter a pick-up location to continue' : ''}
-                {isBoat && !selectedPortId ? 'Select a departure port to continue' : ''}
+                {isBoat && !boatCity ? 'Select a city to continue' : ''}
               </p>
             )}
           </div>

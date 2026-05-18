@@ -119,6 +119,7 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
     sort_order:          activity?.sort_order?.toString() ?? '0',
     is_featured:         activity?.is_featured ?? false,
     is_active:           activity?.is_active ?? true,
+    is_boat_activity:    activity?.is_boat_activity ?? false,
   })
 
   function set(field: string, value: unknown) {
@@ -459,6 +460,7 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
         sort_order:          parseInt(form.sort_order) || 0,
         is_featured:         form.is_featured,
         is_active:           form.is_active,
+        is_boat_activity:    form.is_boat_activity,
       }
       await onSave(payload)
     } catch (err) {
@@ -983,6 +985,15 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" checked={form.is_active} onChange={e => set('is_active', e.target.checked)} className="rounded" />
                   <span className="text-sm text-tx">Active</span>
+                </label>
+              </div>
+              <div className="col-span-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={form.is_boat_activity} onChange={e => set('is_boat_activity', e.target.checked)} className="rounded" />
+                  <div>
+                    <span className="text-sm text-tx font-medium">Boat Activity</span>
+                    <p className="text-[11px] text-tx-light">Mark to include in Boat Rentals daily experiences</p>
+                  </div>
                 </label>
               </div>
             </div>

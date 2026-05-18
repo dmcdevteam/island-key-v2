@@ -107,6 +107,7 @@ export interface Activity {
   item_type: 'activity' | 'service';
   is_featured: boolean;
   is_active: boolean;
+  is_boat_activity: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -470,6 +471,21 @@ export interface CarRental {
   day_discounts: Record<string, number> | null
   bike_tcs: string | null
   availability_note: string | null
+  // Boat-specific fields
+  capacity: number | null
+  length_m: number | null
+  engine_power: number | null
+  year_built: number | null
+  licence_required: boolean
+  with_skipper: boolean
+  fuel_included: boolean
+  min_rental_age: number | null
+  checkin_time: string | null
+  checkout_time: string | null
+  cancellation_policy: string | null
+  boat_equipment: string[] | null
+  boat_faq: { question: string; answer: string }[] | null
+  port_id: string | null
 }
 
 export interface RentalEssentialsCategory {
