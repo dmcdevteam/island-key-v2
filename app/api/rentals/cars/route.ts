@@ -4,6 +4,7 @@ import { createServerClient } from '@/lib/supabase'
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const id           = searchParams.get('id')
+  const type         = searchParams.get('type') ?? 'car'
   const car_class    = searchParams.get('car_class')
   const zero_deposit = searchParams.get('zero_deposit')
   const transmission = searchParams.get('transmission')
@@ -15,7 +16,7 @@ export async function GET(request: Request) {
   let query = supabase
     .from('rentals')
     .select('*')
-    .eq('type', 'car')
+    .eq('type', type)
     .eq('is_active', true)
     .order('sort_order', { ascending: true })
     .order('price_per_day', { ascending: true })

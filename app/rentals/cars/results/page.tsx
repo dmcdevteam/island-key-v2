@@ -85,11 +85,11 @@ function ResultsContent() {
   const carouselRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    fetch('/api/rentals/cars')
+    fetch(`/api/rentals/cars?type=${encodeURIComponent(category)}`)
       .then(r => r.json())
       .then(data => { setRentals(Array.isArray(data.rentals) ? data.rentals : []); setLoading(false) })
       .catch(() => setLoading(false))
-  }, [])
+  }, [category])
 
   // Filtering
   const filtered = rentals.filter(r => {
