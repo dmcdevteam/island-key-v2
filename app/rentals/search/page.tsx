@@ -6,7 +6,7 @@ import DateRangePicker, { toDate, fromDate } from '@/components/ui/date-range-pi
 
 const CATEGORY_LABELS: Record<string, string> = {
   car:          'Cars',
-  atv_motorbike: 'ATV & Motorbike',
+  atv_motorbike: 'ATV / Motorbikes / Scooters',
   bike_ebike:   'Bike & E-Bike',
   boat:         'Boat',
 }

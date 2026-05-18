@@ -388,7 +388,7 @@ function VehicleForm({
         <label className={LABEL}>Type *</label>
         <select className={SELECT} value={form.type} onChange={e => set('type', e.target.value)}>
           <option value="car">Car</option>
-          <option value="atv_motorbike">ATV &amp; Motorbike</option>
+          <option value="atv_motorbike">ATV / Motorbikes / Scooters</option>
           <option value="bike_ebike">Bike &amp; E-Bike</option>
           <option value="boat">Boat</option>
         </select>
@@ -1121,7 +1121,7 @@ function CarListingForm({ initial, onClose, onSaved }: {
         <label className={LABEL}>Type *</label>
         <select className={SELECT} value={form.type} onChange={e => { set('type', e.target.value); set('car_class', '') }}>
           <option value="car">Car</option>
-          <option value="atv_motorbike">ATV &amp; Motorbike</option>
+          <option value="atv_motorbike">ATV / Motorbikes / Scooters</option>
           <option value="bike_ebike">Bike &amp; E-Bike</option>
           <option value="boat">Boat</option>
         </select>
@@ -2386,7 +2386,7 @@ export function RentalsSection() {
       {!loading && tab === 7 && (() => {
         const CAT_LABELS: Record<string, string> = {
           car: 'Cars',
-          atv_motorbike: 'ATV & Motorbike',
+          atv_motorbike: 'ATV / Motorbikes / Scooters',
           bike_ebike: 'Bike & E-Bike',
           boat: 'Boat',
           essentials: 'Vacation Essentials — Main Card',

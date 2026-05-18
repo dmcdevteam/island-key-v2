@@ -14,7 +14,7 @@ const CATEGORIES = [
   },
   {
     slug: 'atv_motorbike',
-    label: 'ATV & Motorbike',
+    label: 'ATV / Motorbikes / Scooters',
     tagline: 'Explore every dirt track',
     gradient: 'linear-gradient(135deg, #D4854A 0%, #B8612A 100%)',
   },
