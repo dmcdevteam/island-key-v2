@@ -110,7 +110,7 @@ function ResultsContent() {
       .catch(() => setLoading(false))
   }, [category])
 
-  const distinctClasses = [...new Set(rentals.filter(r => r.car_class).map(r => r.car_class!))]
+  const distinctClasses = Array.from(new Set(rentals.filter(r => r.car_class).map(r => r.car_class!)))
   const showCarousel    = distinctClasses.length > 1
   const ctaLabel        = CTA_LABELS[category] ?? 'Reserve →'
 
