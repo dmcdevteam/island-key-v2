@@ -1553,43 +1553,22 @@ function RentalImageManager() {
 // ── Pickup Locations Tab ────────────────────────────────────────────────────
 
 function PickupLocationsTab({ locations, onSaved }: { locations: any[]; onSaved: () => void }) {
-  const EMPTY = { name: '', address: '', vehicle_categories: ['car', 'atv_motorbike'], sort_order: '0', is_active: true }
-  const [editing, setEditing]   = useState<any | null>(null)
-  const [form, setForm]         = useState(EMPTY)
-  const [lat, setLat]           = useState<number | null>(null)
-  const [lng, setLng]           = useState<number | null>(null)
-  const [geocoding, setGeocoding] = useState(false)
-  const [saving, setSaving]     = useState(false)
+  const EMPTY = { name: '', city: 'Chania', address: '', google_maps_url: '', vehicle_categories: ['car', 'atv_motorbike'], sort_order: '0', is_active: true }
+  const [editing, setEditing] = useState<any | null>(null)
+  const [form, setForm]       = useState(EMPTY)
+  const [saving, setSaving]   = useState(false)
 
-  const MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY ?? ''
+  const MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? ''
 
-  function openNew() { setForm(EMPTY); setLat(null); setLng(null); setEditing('new') }
+  function openNew() { setForm(EMPTY); setEditing('new') }
   function openEdit(loc: any) {
     setForm({
-      name: loc.name, address: loc.address ?? '',
+      name: loc.name, city: loc.city ?? 'Chania', address: loc.address ?? '',
+      google_maps_url: loc.google_maps_url ?? '',
       vehicle_categories: loc.vehicle_categories ?? ['car', 'atv_motorbike'],
       sort_order: String(loc.sort_order), is_active: loc.is_active,
     })
-    setLat(loc.lat ?? null)
-    setLng(loc.lng ?? null)
     setEditing(loc)
-  }
-
-  async function handleGeocode() {
-    if (!form.address.trim()) return
-    setGeocoding(true)
-    try {
-      const res = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(form.address)}&key=${MAPS_KEY}`
-      )
-      const data = await res.json()
-      if (data.results?.[0]) {
-        const loc = data.results[0].geometry.location
-        setLat(loc.lat)
-        setLng(loc.lng)
-      }
-    } catch {}
-    setGeocoding(false)
   }
 
   async function handleSave() {
@@ -1597,8 +1576,7 @@ function PickupLocationsTab({ locations, onSaved }: { locations: any[]; onSaved:
     const payload = {
       ...form,
       sort_order: Number(form.sort_order),
-      lat: lat ?? null,
-      lng: lng ?? null,
+      google_maps_url: form.google_maps_url || null,
     }
     if (editing === 'new') {
       await fetch('/api/admin/rental-pickup-locations', {
@@ -1638,7 +1616,6 @@ function PickupLocationsTab({ locations, onSaved }: { locations: any[]; onSaved:
               <th className="px-4 py-2 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Name</th>
               <th className="px-4 py-2 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Address</th>
               <th className="px-4 py-2 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Categories</th>
-              <th className="px-4 py-2 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Coords</th>
               <th className="px-4 py-2 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Order</th>
               <th className="px-4 py-2 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Active</th>
               <th className="px-4 py-2" />
@@ -1655,9 +1632,6 @@ function PickupLocationsTab({ locations, onSaved }: { locations: any[]; onSaved:
                       <span key={c} className="text-[10px] px-1.5 py-0.5 bg-navy/10 text-navy rounded-sm">{c}</span>
                     ))}
                   </div>
-                </td>
-                <td className="px-4 py-3 text-[11px] text-tx-light">
-                  {loc.lat != null ? `${Number(loc.lat).toFixed(4)}, ${Number(loc.lng).toFixed(4)}` : '—'}
                 </td>
                 <td className="px-4 py-3 text-tx-mid">{loc.sort_order}</td>
                 <td className="px-4 py-3">
@@ -1676,7 +1650,7 @@ function PickupLocationsTab({ locations, onSaved }: { locations: any[]; onSaved:
               </tr>
             ))}
             {locations.length === 0 && (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-tx-light text-sm">No pickup locations yet</td></tr>
+              <tr><td colSpan={6} className="px-4 py-8 text-center text-tx-light text-sm">No pickup locations yet</td></tr>
             )}
           </tbody>
         </table>
@@ -1694,36 +1668,42 @@ function PickupLocationsTab({ locations, onSaved }: { locations: any[]; onSaved:
             <input className={INPUT} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Chania Airport" />
           </div>
           <div>
-            <label className={LABEL}>Address</label>
-            <div className="flex gap-2">
-              <input
-                className={INPUT}
-                value={form.address}
-                onChange={e => { setForm(f => ({ ...f, address: e.target.value })); setLat(null); setLng(null) }}
-                placeholder="Chania International Airport, Souda, 73200"
-              />
-              <button
-                type="button"
-                onClick={handleGeocode}
-                disabled={geocoding || !form.address.trim()}
-                className="px-3 py-2 bg-teal text-white text-xs font-semibold rounded-sm whitespace-nowrap disabled:opacity-50"
-              >
-                {geocoding ? '…' : '📍 Locate'}
-              </button>
-            </div>
+            <label className={LABEL}>City *</label>
+            <select className={SELECT} value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))}>
+              <option value="Chania">Chania</option>
+              <option value="Rethymnon">Rethymnon</option>
+              <option value="Heraklion">Heraklion</option>
+            </select>
           </div>
-
-          {lat != null && lng != null && MAPS_KEY && (
+          <div>
+            <label className={LABEL}>Address (paste from Google Maps)</label>
+            <input
+              className={INPUT}
+              value={form.address}
+              onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
+              placeholder="e.g. Chania International Airport, Souda 73200, Greece"
+            />
+          </div>
+          {form.address && MAPS_KEY && (
             <div>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={`https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=14&size=400x180&markers=color:red%7C${lat},${lng}&key=${MAPS_KEY}`}
+                src={`https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(form.address)}&zoom=14&size=600x200&markers=${encodeURIComponent(form.address)}&key=${MAPS_KEY}`}
                 alt="Map preview"
                 className="w-full rounded-sm border border-border"
               />
-              <p className="text-[11px] text-tx-light mt-1">📍 {lat.toFixed(6)}, {lng.toFixed(6)}</p>
             </div>
           )}
+          <div>
+            <label className={LABEL}>Google Maps link (optional)</label>
+            <input
+              className={INPUT}
+              value={form.google_maps_url}
+              onChange={e => setForm(f => ({ ...f, google_maps_url: e.target.value }))}
+              placeholder="Paste a Google Maps share link"
+            />
+            <p className="text-[11px] text-tx-light mt-1">Open Google Maps → share → copy link</p>
+          </div>
 
           <div>
             <label className={LABEL}>Vehicle Categories</label>

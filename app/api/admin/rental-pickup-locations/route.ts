@@ -20,7 +20,7 @@ export async function GET(request: Request) {
 
   const { data, error } = await supabase
     .from('rental_pickup_locations')
-    .select('*')
+    .select('id, name, city, address, google_maps_url, vehicle_categories, is_active, sort_order')
     .order('sort_order')
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data ?? [])

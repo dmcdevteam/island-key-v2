@@ -8,7 +8,7 @@ export async function GET(request: Request) {
   const supabase = createServerClient()
   let query = supabase
     .from('rental_pickup_locations')
-    .select('*')
+    .select('id, name, city, address, google_maps_url, vehicle_categories, is_active, sort_order')
     .eq('is_active', true)
     .order('sort_order')
 

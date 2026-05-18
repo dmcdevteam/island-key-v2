@@ -136,8 +136,10 @@ function SearchContent() {
   const [locations,          setLocations]          = useState<RentalPickupLocation[]>([])
   const [locLoading,         setLocLoading]         = useState(false)
   const [pickupType,         setPickupType]         = useState<'location' | 'delivery'>('location')
-  const [selectedLocationId,   setSelectedLocationId]   = useState<string | null>(null)
-  const [selectedLocationName, setSelectedLocationName] = useState<string | null>(null)
+  const [selectedLocationId,      setSelectedLocationId]      = useState<string | null>(null)
+  const [selectedLocationName,    setSelectedLocationName]    = useState<string | null>(null)
+  const [selectedLocationAddress, setSelectedLocationAddress] = useState<string | null>(null)
+  const [selectedLocationGMapsUrl,setSelectedLocationGMapsUrl]= useState<string | null>(null)
   const [deliveryPlace,      setDeliveryPlace]      = useState<PlaceResult | null>(null)
 
   // ── Bike pickup state (unchanged) ────────────────────────────────────────
@@ -226,11 +228,13 @@ function SearchContent() {
   function handleLocationSelect(loc: RentalPickupLocation) {
     setSelectedLocationId(loc.id)
     setSelectedLocationName(loc.name)
+    setSelectedLocationAddress(loc.address ?? null)
+    setSelectedLocationGMapsUrl(loc.google_maps_url ?? null)
   }
 
   function handleDeliveryToggle(on: boolean) {
     setPickupType(on ? 'delivery' : 'location')
-    if (on) { setSelectedLocationId(null); setSelectedLocationName(null) }
+    if (on) { setSelectedLocationId(null); setSelectedLocationName(null); setSelectedLocationAddress(null); setSelectedLocationGMapsUrl(null) }
     else    { setDeliveryPlace(null) }
   }
 
@@ -310,6 +314,24 @@ function SearchContent() {
                           <span>⚠️</span>
                           <span>Delivery is available on request — extra charges may apply. We will confirm delivery fee with your enquiry.</span>
                         </p>
+                      </div>
+                    )}
+
+                    {/* Static map for selected pickup location */}
+                    {pickupType === 'location' && selectedLocationId && selectedLocationAddress && process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY && (
+                      <div className="mt-3">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={`https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(selectedLocationAddress)}&zoom=14&size=600x200&markers=color:0x1B2D4F%7C${encodeURIComponent(selectedLocationAddress)}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`}
+                          alt={selectedLocationName ?? 'Pickup location'}
+                          className="w-full rounded-xl border border-border-light"
+                        />
+                        <a
+                          href={selectedLocationGMapsUrl || `https://maps.google.com/?q=${encodeURIComponent(selectedLocationAddress)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-teal font-medium mt-2 inline-block"
+                        >Open in Google Maps →</a>
                       </div>
                     )}
                   </>
