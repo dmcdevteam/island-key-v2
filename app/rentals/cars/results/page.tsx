@@ -309,7 +309,7 @@ function ResultsContent() {
 
           {!loading && filtered.map(rental => {
             const heroSrc = rental.image_wide ?? rental.images?.[0] ?? null
-            const features = rental.features ?? {}
+            const features = (rental.features ?? {}) as Record<string, boolean>
 
             return (
               <button
@@ -386,7 +386,7 @@ function ResultsContent() {
           {!loading && filtered.map(rental => {
             const heroSrc = rental.image_wide ?? rental.images?.[0] ?? null
             const totalPrice = (rental.price_per_day ?? 0) * days
-            const features = rental.features ?? {}
+            const features = (rental.features ?? {}) as Record<string, boolean>
             const activeFeatures = Object.entries(features).filter(([, v]) => v)
 
             return (
