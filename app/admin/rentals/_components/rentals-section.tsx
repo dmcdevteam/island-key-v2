@@ -124,6 +124,14 @@ type RentalFormData = {
   features: string[]
   is_featured: boolean; is_active: boolean; sort_order: string
   images: string[]
+  // Boat-specific
+  capacity: string; length_m: string; engine_power: string; year_built: string
+  port_id: string; licence_required: boolean; with_skipper: boolean
+  fuel_included: boolean; min_rental_age: string
+  checkin_time: string; checkout_time: string
+  cancellation_policy: string
+  boat_equipment: string[]
+  boat_faq: { q: string; a: string }[]
 }
 
 const RENTAL_DEFAULTS: RentalFormData = {
@@ -136,6 +144,14 @@ const RENTAL_DEFAULTS: RentalFormData = {
   features: [],
   is_featured: false, is_active: true, sort_order: '0',
   images: [],
+  // Boat-specific
+  capacity: '', length_m: '', engine_power: '', year_built: '',
+  port_id: '', licence_required: false, with_skipper: false,
+  fuel_included: false, min_rental_age: '',
+  checkin_time: '09:00', checkout_time: '09:00',
+  cancellation_policy: '',
+  boat_equipment: [],
+  boat_faq: [],
 }
 
 function VehicleForm({
@@ -167,11 +183,32 @@ function VehicleForm({
       is_active: initial.is_active,
       sort_order: String(initial.sort_order),
       images: initial.images ?? [],
+      capacity: (initial as any).capacity != null ? String((initial as any).capacity) : '',
+      length_m: (initial as any).length_m != null ? String((initial as any).length_m) : '',
+      engine_power: (initial as any).engine_power != null ? String((initial as any).engine_power) : '',
+      year_built: (initial as any).year_built != null ? String((initial as any).year_built) : '',
+      port_id: (initial as any).port_id ?? '',
+      licence_required: (initial as any).licence_required ?? false,
+      with_skipper: (initial as any).with_skipper ?? false,
+      fuel_included: (initial as any).fuel_included ?? false,
+      min_rental_age: (initial as any).min_rental_age != null ? String((initial as any).min_rental_age) : '',
+      checkin_time: (initial as any).checkin_time ?? '09:00',
+      checkout_time: (initial as any).checkout_time ?? '09:00',
+      cancellation_policy: (initial as any).cancellation_policy ?? '',
+      boat_equipment: (initial as any).boat_equipment ?? [],
+      boat_faq: (initial as any).boat_faq ?? [],
     }
   })
   const [featureInput, setFeatureInput] = useState('')
+  const [equipmentInput, setEquipmentInput] = useState('')
+  const [faqDraft, setFaqDraft] = useState({ q: '', a: '' })
+  const [ports, setPorts] = useState<{ id: string; name: string; area: string }[]>([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    fetch('/api/rentals/ports').then(r => r.json()).then(d => setPorts(d.ports ?? []))
+  }, [])
   const [focalPoint, setFocalPoint] = useState<FocalPoint | null>(
     initial?.focal_x != null && initial?.focal_y != null
       ? { x: initial.focal_x, y: initial.focal_y }
@@ -211,6 +248,23 @@ function VehicleForm({
 
   function removeFeature(f: string) {
     set('features', form.features.filter(x => x !== f))
+  }
+
+  function addEquipment() {
+    const e = equipmentInput.trim()
+    if (e && !form.boat_equipment.includes(e)) set('boat_equipment', [...form.boat_equipment, e])
+    setEquipmentInput('')
+  }
+
+  function addFaq() {
+    if (faqDraft.q.trim() && faqDraft.a.trim()) {
+      set('boat_faq', [...form.boat_faq, { q: faqDraft.q.trim(), a: faqDraft.a.trim() }])
+      setFaqDraft({ q: '', a: '' })
+    }
+  }
+
+  function removeFaq(i: number) {
+    set('boat_faq', form.boat_faq.filter((_, idx) => idx !== i))
   }
 
   async function handleFilesSelect(e: React.ChangeEvent<HTMLInputElement>) {
@@ -349,6 +403,22 @@ function VehicleForm({
       images: imageItems.map(i => i.url),
       focal_x: focalPoint?.x ?? null,
       focal_y: focalPoint?.y ?? null,
+      ...(form.type === 'boat' ? {
+        capacity: form.capacity ? Number(form.capacity) : null,
+        length_m: form.length_m ? Number(form.length_m) : null,
+        engine_power: form.engine_power ? Number(form.engine_power) : null,
+        year_built: form.year_built ? Number(form.year_built) : null,
+        port_id: form.port_id || null,
+        licence_required: form.licence_required,
+        with_skipper: form.with_skipper,
+        fuel_included: form.fuel_included,
+        min_rental_age: form.min_rental_age ? Number(form.min_rental_age) : null,
+        checkin_time: form.checkin_time || null,
+        checkout_time: form.checkout_time || null,
+        cancellation_policy: form.cancellation_policy || null,
+        boat_equipment: form.boat_equipment.length ? form.boat_equipment : null,
+        boat_faq: form.boat_faq.length ? form.boat_faq : null,
+      } : {}),
     }
     const url = initial ? `/api/admin/rentals/${initial.id}` : '/api/admin/rentals'
     const method = initial ? 'PUT' : 'POST'
@@ -393,6 +463,159 @@ function VehicleForm({
           <option value="boat">Boat</option>
         </select>
       </div>
+
+      {/* ── Boat Specifications ── */}
+      {form.type === 'boat' && (
+        <div className="border border-border rounded-sm p-4 space-y-3 bg-blue-50/40">
+          <p className="text-[11px] font-bold text-tx-mid uppercase tracking-wide">Boat Specifications</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={LABEL}>Capacity (people)</label>
+              <input className={INPUT} type="number" min="1" value={form.capacity} onChange={e => set('capacity', e.target.value)} placeholder="e.g. 10" />
+            </div>
+            <div>
+              <label className={LABEL}>Length (m)</label>
+              <input className={INPUT} type="number" min="0" step="0.1" value={form.length_m} onChange={e => set('length_m', e.target.value)} placeholder="e.g. 8.5" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={LABEL}>Engine Power (HP)</label>
+              <input className={INPUT} type="number" min="0" value={form.engine_power} onChange={e => set('engine_power', e.target.value)} placeholder="e.g. 150" />
+            </div>
+            <div>
+              <label className={LABEL}>Year Built</label>
+              <input className={INPUT} type="number" min="1980" max="2030" value={form.year_built} onChange={e => set('year_built', e.target.value)} placeholder="e.g. 2020" />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Boat Details ── */}
+      {form.type === 'boat' && (
+        <div className="border border-border rounded-sm p-4 space-y-3 bg-blue-50/40">
+          <p className="text-[11px] font-bold text-tx-mid uppercase tracking-wide">Boat Details</p>
+          <div>
+            <label className={LABEL}>Port</label>
+            <select className={SELECT} value={form.port_id} onChange={e => set('port_id', e.target.value)}>
+              <option value="">— Select port —</option>
+              {ports.map(p => (
+                <option key={p.id} value={p.id}>{p.name} ({p.area})</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className={LABEL}>Licence Required</span>
+            <Toggle checked={form.licence_required} onChange={() => set('licence_required', !form.licence_required)} />
+          </div>
+          <div className="flex items-center justify-between">
+            <span className={LABEL}>Comes with Skipper</span>
+            <Toggle checked={form.with_skipper} onChange={() => set('with_skipper', !form.with_skipper)} />
+          </div>
+          <div className="flex items-center justify-between">
+            <span className={LABEL}>Fuel Included</span>
+            <Toggle checked={form.fuel_included} onChange={() => set('fuel_included', !form.fuel_included)} />
+          </div>
+          <div>
+            <label className={LABEL}>Minimum Rental Age</label>
+            <input className={INPUT} type="number" min="18" value={form.min_rental_age} onChange={e => set('min_rental_age', e.target.value)} placeholder="e.g. 18" />
+          </div>
+        </div>
+      )}
+
+      {/* ── Check-in / Check-out ── */}
+      {form.type === 'boat' && (
+        <div className="border border-border rounded-sm p-4 space-y-3 bg-blue-50/40">
+          <p className="text-[11px] font-bold text-tx-mid uppercase tracking-wide">Check-in &amp; Check-out</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={LABEL}>Check-in Time</label>
+              <input className={INPUT} type="time" value={form.checkin_time} onChange={e => set('checkin_time', e.target.value)} />
+            </div>
+            <div>
+              <label className={LABEL}>Check-out Time</label>
+              <input className={INPUT} type="time" value={form.checkout_time} onChange={e => set('checkout_time', e.target.value)} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Cancellation Policy ── */}
+      {form.type === 'boat' && (
+        <div className="border border-border rounded-sm p-4 space-y-3 bg-blue-50/40">
+          <p className="text-[11px] font-bold text-tx-mid uppercase tracking-wide">Cancellation Policy</p>
+          <textarea
+            className={INPUT} rows={3}
+            value={form.cancellation_policy}
+            onChange={e => set('cancellation_policy', e.target.value)}
+            placeholder="e.g. Free cancellation up to 48h before departure…"
+          />
+        </div>
+      )}
+
+      {/* ── Equipment ── */}
+      {form.type === 'boat' && (
+        <div className="border border-border rounded-sm p-4 space-y-3 bg-blue-50/40">
+          <p className="text-[11px] font-bold text-tx-mid uppercase tracking-wide">Equipment</p>
+          <div className="flex gap-2">
+            <input
+              className={INPUT}
+              placeholder="Add equipment item…"
+              value={equipmentInput}
+              onChange={e => setEquipmentInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addEquipment() } }}
+            />
+            <button type="button" onClick={addEquipment} className="px-3 py-2 bg-navy text-white text-sm rounded-sm hover:bg-navy-light flex-shrink-0">Add</button>
+          </div>
+          {form.boat_equipment.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {form.boat_equipment.map(eq => (
+                <span key={eq} className="flex items-center gap-1 px-2 py-0.5 bg-white border border-border text-tx text-xs rounded">
+                  {eq}
+                  <button type="button" onClick={() => set('boat_equipment', form.boat_equipment.filter(x => x !== eq))} className="text-tx-light hover:text-tx">×</button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── FAQ ── */}
+      {form.type === 'boat' && (
+        <div className="border border-border rounded-sm p-4 space-y-3 bg-blue-50/40">
+          <p className="text-[11px] font-bold text-tx-mid uppercase tracking-wide">FAQ</p>
+          <div className="space-y-2">
+            <input
+              className={INPUT}
+              placeholder="Question"
+              value={faqDraft.q}
+              onChange={e => setFaqDraft(d => ({ ...d, q: e.target.value }))}
+            />
+            <input
+              className={INPUT}
+              placeholder="Answer"
+              value={faqDraft.a}
+              onChange={e => setFaqDraft(d => ({ ...d, a: e.target.value }))}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addFaq() } }}
+            />
+            <button type="button" onClick={addFaq} className="px-3 py-2 bg-navy text-white text-sm rounded-sm hover:bg-navy-light">+ Add FAQ</button>
+          </div>
+          {form.boat_faq.length > 0 && (
+            <div className="space-y-2">
+              {form.boat_faq.map((item, i) => (
+                <div key={i} className="flex items-start justify-between gap-2 bg-white border border-border rounded-sm p-2 text-xs">
+                  <div>
+                    <p className="font-medium text-tx">{item.q}</p>
+                    <p className="text-tx-mid mt-0.5">{item.a}</p>
+                  </div>
+                  <button type="button" onClick={() => removeFaq(i)} className="text-red-400 hover:text-red-600 flex-shrink-0">×</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className={LABEL}>Seats</label>
@@ -2001,7 +2224,7 @@ function PickupLocationsTab({ locations, onSaved }: { locations: any[]; onSaved:
 // ── Ports Tab ───────────────────────────────────────────────────────────────
 
 function PortsTab({ ports, onSaved }: { ports: any[]; onSaved: () => void }) {
-  const EMPTY = { name: '', area: 'Chania', address: '', sort_order: '0', is_active: true }
+  const EMPTY = { name: '', area: 'Chania', address: '', lat: '', lng: '', sort_order: '0', is_active: true }
   const [editing, setEditing] = useState<any | null>(null)
   const [form, setForm] = useState(EMPTY)
   const [saving, setSaving] = useState(false)
@@ -2010,6 +2233,8 @@ function PortsTab({ ports, onSaved }: { ports: any[]; onSaved: () => void }) {
   function openEdit(port: any) {
     setForm({
       name: port.name, area: port.area ?? 'Chania', address: port.address ?? '',
+      lat: port.lat != null ? String(port.lat) : '',
+      lng: port.lng != null ? String(port.lng) : '',
       sort_order: String(port.sort_order), is_active: port.is_active,
     })
     setEditing(port)
@@ -2017,7 +2242,12 @@ function PortsTab({ ports, onSaved }: { ports: any[]; onSaved: () => void }) {
 
   async function handleSave() {
     setSaving(true)
-    const payload = { ...form, sort_order: Number(form.sort_order) }
+    const payload = {
+      ...form,
+      sort_order: Number(form.sort_order),
+      lat: form.lat ? Number(form.lat) : null,
+      lng: form.lng ? Number(form.lng) : null,
+    }
     if (editing === 'new') {
       await fetch('/api/admin/rental-ports', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
@@ -2106,6 +2336,16 @@ function PortsTab({ ports, onSaved }: { ports: any[]; onSaved: () => void }) {
           <div>
             <label className={LABEL}>Address</label>
             <input className={INPUT} value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={LABEL}>Latitude</label>
+              <input className={INPUT} type="number" step="any" value={form.lat} onChange={e => setForm(f => ({ ...f, lat: e.target.value }))} placeholder="e.g. 35.5138" />
+            </div>
+            <div>
+              <label className={LABEL}>Longitude</label>
+              <input className={INPUT} type="number" step="any" value={form.lng} onChange={e => setForm(f => ({ ...f, lng: e.target.value }))} placeholder="e.g. 24.0180" />
+            </div>
           </div>
           <div>
             <label className={LABEL}>Sort Order</label>
