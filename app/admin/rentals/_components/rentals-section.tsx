@@ -43,7 +43,7 @@ const INPUT = 'w-full px-3 py-2 border border-border rounded-sm text-sm text-tx 
 const LABEL = 'block text-[11px] font-bold text-tx-mid uppercase tracking-wide mb-1'
 const SELECT = `${INPUT} cursor-pointer`
 
-const TABS = ['Vehicles', 'Vehicle Types', 'Extras & Essentials', 'Images', 'Car Listings', 'Car Extras', 'Car Enquiries', 'Category Images', 'Pickup Locations', 'Ports']
+const TABS = ['Vehicles', 'Vehicle Types', 'Extras & Essentials', 'Images', 'Car Listings', 'Car Extras', 'Car Enquiries', 'Category Images', 'Pickup Locations', 'Ports', 'Bike Extras']
 
 const VEHICLE_CATEGORIES = ['car', 'motorcycle', 'bike', 'buggy', 'boat', 'scooter', 'atv', 'other']
 const REGIONS = ['chania', 'rethymno', 'heraklion', 'lasithi']
@@ -949,7 +949,16 @@ type CarListingFormData = {
   feat_no_hidden_charges: boolean; feat_unlimited_km: boolean
   image_wide: string; image_square: string; images: string[]
   is_active: boolean; is_featured: boolean; sort_order: string; region: string
+  // Bike-specific
+  rider_height: string; max_speed: string; motor_power: string
+  autonomy: string; gears: string; delivery_area: string; availability_note: string
+  bike_includes: string[]
+  day_discount_4: string; day_discount_5: string
+  day_discount_6: string; day_discount_7plus: string
+  bike_tcs: string
 }
+
+const BIKE_INCLUDES_DEFAULT = ['Helmet', 'Pump', 'Lock', 'Bottle holder', 'Repair set']
 
 const CAR_LISTING_DEFAULTS: CarListingFormData = {
   name: '', type: 'car', car_class: '', description: '',
@@ -960,6 +969,11 @@ const CAR_LISTING_DEFAULTS: CarListingFormData = {
   feat_no_hidden_charges: true, feat_unlimited_km: false,
   image_wide: '', image_square: '', images: [],
   is_active: true, is_featured: false, sort_order: '0', region: 'chania',
+  rider_height: '', max_speed: '', motor_power: '', autonomy: '', gears: '',
+  delivery_area: '', availability_note: '',
+  bike_includes: BIKE_INCLUDES_DEFAULT,
+  day_discount_4: '', day_discount_5: '', day_discount_6: '', day_discount_7plus: '',
+  bike_tcs: '',
 }
 
 function CarListingForm({ initial, onClose, onSaved }: {
@@ -995,6 +1009,19 @@ function CarListingForm({ initial, onClose, onSaved }: {
       is_featured: !!initial.is_featured,
       sort_order: String(initial.sort_order ?? 0),
       region: initial.region ?? 'chania',
+      rider_height: initial.rider_height ?? '',
+      max_speed: initial.max_speed ?? '',
+      motor_power: initial.motor_power ?? '',
+      autonomy: initial.autonomy ?? '',
+      gears: initial.gears ?? '',
+      delivery_area: initial.delivery_area ?? '',
+      availability_note: initial.availability_note ?? '',
+      bike_includes: initial.bike_includes ?? BIKE_INCLUDES_DEFAULT,
+      day_discount_4: initial.day_discounts?.['4'] != null ? String(initial.day_discounts['4']) : '',
+      day_discount_5: initial.day_discounts?.['5'] != null ? String(initial.day_discounts['5']) : '',
+      day_discount_6: initial.day_discounts?.['6'] != null ? String(initial.day_discounts['6']) : '',
+      day_discount_7plus: initial.day_discounts?.['7plus'] != null ? String(initial.day_discounts['7plus']) : '',
+      bike_tcs: initial.bike_tcs ?? '',
     }
   })
   const [saving, setSaving] = useState(false)
@@ -1089,6 +1116,25 @@ function CarListingForm({ initial, onClose, onSaved }: {
       is_featured: form.is_featured,
       sort_order: Number(form.sort_order) || 0,
       region: form.region,
+      ...(form.type === 'bike_ebike' ? {
+        rider_height: form.rider_height || null,
+        max_speed: form.max_speed || null,
+        motor_power: form.motor_power || null,
+        autonomy: form.autonomy || null,
+        gears: form.gears || null,
+        delivery_area: form.delivery_area || null,
+        availability_note: form.availability_note || null,
+        bike_includes: form.bike_includes.length ? form.bike_includes : null,
+        day_discounts: (() => {
+          const d: Record<string, number> = {}
+          if (form.day_discount_4)    d['4']     = Number(form.day_discount_4)
+          if (form.day_discount_5)    d['5']     = Number(form.day_discount_5)
+          if (form.day_discount_6)    d['6']     = Number(form.day_discount_6)
+          if (form.day_discount_7plus) d['7plus'] = Number(form.day_discount_7plus)
+          return Object.keys(d).length ? d : null
+        })(),
+        bike_tcs: form.bike_tcs || null,
+      } : {}),
     }
     const url = initial ? `/api/admin/car-listings/${initial.id}` : '/api/admin/car-listings'
     const method = initial ? 'PUT' : 'POST'
@@ -1264,6 +1310,93 @@ function CarListingForm({ initial, onClose, onSaved }: {
         <label className={LABEL}>Sort Order</label>
         <input className={INPUT} type="number" value={form.sort_order} onChange={e => set('sort_order', e.target.value)} />
       </div>
+
+      {/* ── Bike-specific fields ── */}
+      {form.type === 'bike_ebike' && (
+        <>
+          <div className="border-t border-border pt-4">
+            <p className="font-semibold text-navy text-sm mb-3">Bike Specifications</p>
+            <div className="space-y-3">
+              <div>
+                <label className={LABEL}>Rider Height</label>
+                <input className={INPUT} value={form.rider_height} onChange={e => set('rider_height', e.target.value)} placeholder="155–195 cm" />
+              </div>
+              <div>
+                <label className={LABEL}>Max Speed</label>
+                <input className={INPUT} value={form.max_speed} onChange={e => set('max_speed', e.target.value)} placeholder="25 km/h" />
+              </div>
+              <div>
+                <label className={LABEL}>Motor Power (E-Bikes only)</label>
+                <input className={INPUT} value={form.motor_power} onChange={e => set('motor_power', e.target.value)} placeholder="250W" />
+              </div>
+              <div>
+                <label className={LABEL}>Range / Autonomy (E-Bikes only)</label>
+                <input className={INPUT} value={form.autonomy} onChange={e => set('autonomy', e.target.value)} placeholder="104 km" />
+              </div>
+              <div>
+                <label className={LABEL}>Gears</label>
+                <input className={INPUT} value={form.gears} onChange={e => set('gears', e.target.value)} placeholder="7-speed Shimano" />
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-border pt-4">
+            <p className="font-semibold text-navy text-sm mb-3">Delivery</p>
+            <div className="space-y-3">
+              <div>
+                <label className={LABEL}>Delivery Area</label>
+                <input className={INPUT} value={form.delivery_area} onChange={e => set('delivery_area', e.target.value)} placeholder="Kolymbari to Platanias" />
+              </div>
+              <div>
+                <label className={LABEL}>Availability Note</label>
+                <input className={INPUT} value={form.availability_note} onChange={e => set('availability_note', e.target.value)} placeholder="Limited Availability" />
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-border pt-4">
+            <p className="font-semibold text-navy text-sm mb-2">What's Included</p>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {form.bike_includes.map((item, i) => (
+                <span key={i} className="flex items-center gap-1 text-xs bg-sand px-2 py-1 rounded-full text-navy">
+                  {item}
+                  <button type="button" onClick={() => set('bike_includes', form.bike_includes.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600 ml-0.5">×</button>
+                </span>
+              ))}
+            </div>
+            <BikeIncludeInput
+              onAdd={item => { if (!form.bike_includes.includes(item)) set('bike_includes', [...form.bike_includes, item]) }}
+            />
+          </div>
+
+          <div className="border-t border-border pt-4">
+            <p className="font-semibold text-navy text-sm mb-1">Day Discounts (from Day 4)</p>
+            <p className="text-[11px] text-tx-light mb-3">Set discount % for each rental day beyond 3. Leave blank for no discount.</p>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                ['day_discount_4', 'Day 4 discount'],
+                ['day_discount_5', 'Day 5 discount'],
+                ['day_discount_6', 'Day 6 discount'],
+                ['day_discount_7plus', 'Day 7+ discount'],
+              ].map(([key, label]) => (
+                <div key={key}>
+                  <label className={LABEL}>{label} (%)</label>
+                  <input className={INPUT} type="number" min="0" max="100"
+                    value={form[key as keyof CarListingFormData] as string}
+                    onChange={e => set(key as keyof CarListingFormData, e.target.value as any)}
+                    placeholder="0" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="border-t border-border pt-4">
+            <label className={LABEL}>Terms & Conditions</label>
+            <p className="text-[11px] text-tx-light mb-1">Leave blank to use default T&Cs</p>
+            <textarea className={INPUT} rows={5} value={form.bike_tcs} onChange={e => set('bike_tcs', e.target.value)} placeholder="Leave blank to use default T&Cs" />
+          </div>
+        </>
+      )}
 
       {availableLocations.length > 0 && (
         <div>
@@ -1551,6 +1684,128 @@ function RentalImageManager() {
 // ── Main Section ───────────────────────────────────────────────────────────────
 
 // ── Pickup Locations Tab ────────────────────────────────────────────────────
+
+// ── BikeIncludeInput ────────────────────────────────────────────────────────
+
+function BikeIncludeInput({ onAdd }: { onAdd: (item: string) => void }) {
+  const [val, setVal] = useState('')
+  return (
+    <div className="flex gap-2">
+      <input
+        className={INPUT}
+        value={val}
+        onChange={e => setVal(e.target.value)}
+        placeholder="Add item (e.g. Repair set)"
+        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); if (val.trim()) { onAdd(val.trim()); setVal('') } } }}
+      />
+      <button type="button"
+        onClick={() => { if (val.trim()) { onAdd(val.trim()); setVal('') } }}
+        className="px-3 py-2 bg-navy text-white text-xs font-semibold rounded-sm whitespace-nowrap">
+        Add
+      </button>
+    </div>
+  )
+}
+
+// ── BikeExtrasTab ────────────────────────────────────────────────────────────
+
+function BikeExtrasTab({ extras, onSaved }: { extras: any[]; onSaved: () => void }) {
+  const EMPTY = { name: '', price: '', sort_order: '0', is_active: true }
+  const [editing, setEditing] = useState<any | null>(null)
+  const [form, setForm]       = useState(EMPTY)
+  const [saving, setSaving]   = useState(false)
+
+  function openNew()     { setForm(EMPTY); setEditing('new') }
+  function openEdit(e: any) {
+    setForm({ name: e.name, price: e.price != null ? String(e.price) : '', sort_order: String(e.sort_order), is_active: e.is_active })
+    setEditing(e)
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    const payload = { ...form, price: form.price ? Number(form.price) : null, sort_order: Number(form.sort_order) }
+    if (editing === 'new') {
+      await fetch('/api/admin/bike-extras', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+    } else {
+      await fetch(`/api/admin/bike-extras/${editing.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+    }
+    setSaving(false); setEditing(null); onSaved()
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm('Delete this bike extra?')) return
+    await fetch(`/api/admin/bike-extras/${id}`, { method: 'DELETE' })
+    onSaved()
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="font-display text-xl text-navy">Bike Extras</h2>
+        <button onClick={openNew} className="px-4 py-2 bg-navy text-white text-sm font-semibold rounded-sm hover:bg-navy-light">+ Add Extra</button>
+      </div>
+
+      <div className="bg-white border border-border rounded-sm overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-sand border-b border-border">
+            <tr>
+              <th className="px-4 py-2 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Name</th>
+              <th className="px-4 py-2 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Price</th>
+              <th className="px-4 py-2 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Sort</th>
+              <th className="px-4 py-2 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Active</th>
+              <th className="px-4 py-2" />
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {extras.map(extra => (
+              <tr key={extra.id} className="hover:bg-sand/30">
+                <td className="px-4 py-3 font-medium text-navy">{extra.name}</td>
+                <td className="px-4 py-3 text-tx-mid">{extra.price != null ? `€${Number(extra.price).toFixed(2)}` : '—'}</td>
+                <td className="px-4 py-3 text-tx-mid">{extra.sort_order}</td>
+                <td className="px-4 py-3">
+                  <Toggle checked={extra.is_active} onChange={async () => {
+                    await fetch(`/api/admin/bike-extras/${extra.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_active: !extra.is_active }) })
+                    onSaved()
+                  }} />
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <button onClick={() => openEdit(extra)} className="text-xs text-teal hover:underline mr-3">Edit</button>
+                  <button onClick={() => handleDelete(extra.id)} className="text-xs text-red-500 hover:underline">Delete</button>
+                </td>
+              </tr>
+            ))}
+            {extras.length === 0 && (
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-tx-light text-sm">No bike extras yet</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {editing !== null && (
+        <Drawer title={editing === 'new' ? 'Add Bike Extra' : 'Edit Bike Extra'} onClose={() => setEditing(null)} onSave={handleSave} saving={saving}>
+          <div>
+            <label className={LABEL}>Name *</label>
+            <input className={INPUT} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Speedometer" />
+          </div>
+          <div>
+            <label className={LABEL}>Price (€)</label>
+            <input className={INPUT} type="number" min="0" step="0.01" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))} placeholder="3.00" />
+          </div>
+          <div>
+            <label className={LABEL}>Sort Order</label>
+            <input className={INPUT} type="number" value={form.sort_order} onChange={e => setForm(f => ({ ...f, sort_order: e.target.value }))} />
+          </div>
+          <div className="flex items-center justify-between">
+            <label className={LABEL}>Active</label>
+            <Toggle checked={form.is_active} onChange={() => setForm(f => ({ ...f, is_active: !f.is_active }))} />
+          </div>
+        </Drawer>
+      )}
+    </div>
+  )
+}
+
+// ── Pickup Locations Tab ─────────────────────────────────────────────────────
 
 function PickupLocationsTab({ locations, onSaved }: { locations: any[]; onSaved: () => void }) {
   const EMPTY = { name: '', city: 'Chania', address: '', google_maps_url: '', vehicle_categories: ['car', 'atv_motorbike'], sort_order: '0', is_active: true }
@@ -1899,15 +2154,16 @@ export function RentalsSection() {
   const [essentialsCatData, setEssentialsCatData] = useState<any[]>([])
   const [essentialsCatUploading, setEssentialsCatUploading] = useState<string | null>(null)
 
-  // Pickup locations & ports
+  // Pickup locations, ports, bike extras
   const [pickupLocations, setPickupLocations] = useState<any[]>([])
   const [ports, setPorts] = useState<any[]>([])
+  const [bikeExtras, setBikeExtras] = useState<any[]>([])
 
   function showCarToast(msg: string) { setCarToast(msg); setTimeout(() => setCarToast(''), 3000) }
 
   const fetchAll = useCallback(async () => {
     setLoading(true)
-    const [r, vt, ex, pr, cl, ce, enq, ci, ec, pl, po] = await Promise.all([
+    const [r, vt, ex, pr, cl, ce, enq, ci, ec, pl, po, be] = await Promise.all([
       fetch('/api/admin/rentals').then(r => r.json()),
       fetch('/api/admin/vehicle-types?exclude=transfer').then(r => r.json()),
       fetch('/api/admin/extras').then(r => r.json()),
@@ -1919,6 +2175,7 @@ export function RentalsSection() {
       fetch('/api/rentals/essentials-categories').then(r => r.json()),
       fetch('/api/admin/rental-pickup-locations').then(r => r.json()),
       fetch('/api/admin/rental-ports').then(r => r.json()),
+      fetch('/api/admin/bike-extras').then(r => r.json()),
     ])
     setRentals(Array.isArray(r) ? r : [])
     setVehicleTypes(Array.isArray(vt) ? vt : [])
@@ -1931,6 +2188,7 @@ export function RentalsSection() {
     setEssentialsCatData(Array.isArray(ec?.categories) ? ec.categories : [])
     setPickupLocations(Array.isArray(pl) ? pl : [])
     setPorts(Array.isArray(po) ? po : [])
+    setBikeExtras(Array.isArray(be) ? be : Array.isArray(be?.extras) ? be.extras : [])
     setLoading(false)
   }, [])
 
@@ -2582,6 +2840,14 @@ export function RentalsSection() {
       {!loading && tab === 9 && (
         <PortsTab
           ports={ports}
+          onSaved={fetchAll}
+        />
+      )}
+
+      {/* ── Tab 10: Bike Extras ── */}
+      {!loading && tab === 10 && (
+        <BikeExtrasTab
+          extras={bikeExtras}
           onSaved={fetchAll}
         />
       )}

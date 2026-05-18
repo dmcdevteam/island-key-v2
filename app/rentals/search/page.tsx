@@ -515,6 +515,56 @@ function SearchContent() {
           </div>
         </div>
       </div>
+
+      {isBike && <BikeHowItWorks />}
+    </div>
+  )
+}
+
+const HOW_IT_WORKS = [
+  {
+    n: 1,
+    title: 'Choose Your Location',
+    desc: 'Tell us where in Chania you want your bike delivered — or where you\'ll collect it.',
+  },
+  {
+    n: 2,
+    title: 'Pick Up or Delivery',
+    desc: 'We deliver directly to your villa or hotel. Or collect from our partner location — your choice.',
+  },
+  {
+    n: 3,
+    title: 'Select Your Dates',
+    desc: 'Choose your rental start and end dates. The longer you ride, the better the rate.',
+  },
+  {
+    n: 4,
+    title: 'We\'ll Sort the Rest',
+    desc: 'Confirm your enquiry and we\'ll be in touch within 2 hours to finalise details.',
+  },
+]
+
+function BikeHowItWorks() {
+  return (
+    <div className="w-full max-w-[440px] mt-6">
+      <h2 className="font-display text-navy text-[20px] font-semibold mb-4">How It Works</h2>
+      <div className="grid grid-cols-2 gap-3">
+        {HOW_IT_WORKS.map(step => (
+          <div
+            key={step.n}
+            className="bg-white rounded-2xl border border-border-light p-5 shadow-sm flex flex-col items-center text-center"
+          >
+            <div
+              className="w-11 h-11 rounded-full flex items-center justify-center mb-3 flex-shrink-0"
+              style={{ background: '#1A8A7D' }}
+            >
+              <span className="text-white font-bold text-base">{step.n}</span>
+            </div>
+            <p className="font-semibold text-navy text-[15px] leading-snug mb-1">{step.title}</p>
+            <p className="text-gray-400 text-[13px] leading-relaxed">{step.desc}</p>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

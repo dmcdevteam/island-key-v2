@@ -419,11 +419,14 @@ export interface ArticleFull {
   created_at: string;
 }
 
-// ─── Car Rentals ───────────────────────────────────────────────
+// ─── Car / Vehicle Rentals ─────────────────────────────────────
 export interface CarRental {
   id: string
-  type: 'car'
-  car_class: 'small' | 'medium' | 'compact' | 'suv' | 'convertible' | 'van' | 'luxury' | 'offroad' | null
+  type: string
+  car_class: 'small' | 'medium' | 'compact' | 'suv' | 'convertible' | 'van' | 'luxury' | 'offroad'
+           | 'atv' | 'motorbike' | 'scooter' | 'buggy'
+           | 'city_bike' | 'ebike' | 'mountain_bike'
+           | null
   name: string
   description: string | null
   price_per_day: number
@@ -456,6 +459,17 @@ export interface CarRental {
   sort_order: number
   region: string
   pickup_locations: string[] | null
+  // Bike-specific fields
+  rider_height: string | null
+  max_speed: string | null
+  motor_power: string | null
+  autonomy: string | null
+  gears: string | null
+  delivery_area: string | null
+  bike_includes: string[] | null
+  day_discounts: Record<string, number> | null
+  bike_tcs: string | null
+  availability_note: string | null
 }
 
 export interface RentalEssentialsCategory {
@@ -482,12 +496,19 @@ export interface CarRentalExtra {
   created_at: string
 }
 
+export interface BikeRentalExtra {
+  id: string
+  name: string
+  price: number | null
+  is_active: boolean
+  sort_order: number
+}
+
 export interface RentalPickupLocation {
   id: string
   name: string
+  city: string | null
   address: string | null
-  lat: number | null
-  lng: number | null
   google_maps_url: string | null
   vehicle_categories: string[]
   is_active: boolean

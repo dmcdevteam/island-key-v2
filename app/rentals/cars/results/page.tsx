@@ -92,7 +92,8 @@ function ResultsContent() {
   const pickupLocationName = sp.get('pickup_location_name') ?? ''
   const deliveryAddress    = sp.get('delivery_address')    ?? ''
 
-  const days = pickupDate && dropoffDate ? daysBetween(pickupDate, dropoffDate) : 1
+  const days   = pickupDate && dropoffDate ? daysBetween(pickupDate, dropoffDate) : 1
+  const isBike = category === 'bike_ebike'
 
   const [rentals,     setRentals]     = useState<CarRental[]>([])
   const [loading,     setLoading]     = useState(true)
@@ -260,8 +261,8 @@ function ResultsContent() {
         </div>
       )}
 
-      {/* Sort strip */}
-      <div className="px-4 pb-3 grid grid-cols-2 gap-2">
+      {/* Sort strip — hidden for bikes */}
+      {!isBike && <div className="px-4 pb-3 grid grid-cols-2 gap-2">
         <button
           onClick={() => setSortMode('price')}
           className={`flex items-center justify-center gap-2 py-2.5 rounded-xl border text-sm font-semibold transition-colors ${
@@ -282,110 +283,182 @@ function ResultsContent() {
           <span>Zero Deposit</span>
           <span className={`text-[10px] ${sortMode === 'zero_deposit' ? 'text-white/70' : 'text-tx-light'}`}>({zeroDepositCount})</span>
         </button>
-      </div>
+      </div>}
 
       {/* Vehicle list */}
-      <div className="px-4 space-y-4">
-        {loading && Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="bg-white rounded-2xl border border-border-light overflow-hidden">
-            <div className="h-[180px] bg-navy/5 animate-pulse" />
-            <div className="p-4 space-y-2">
-              <div className="h-5 bg-navy/5 rounded animate-pulse w-2/3" />
-              <div className="h-4 bg-navy/5 rounded animate-pulse w-1/3" />
+      {isBike ? (
+        /* ── Bike: 2-column compact grid ── */
+        <div className="grid grid-cols-2 gap-3 px-3">
+          {loading && Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-xl border border-border-light overflow-hidden">
+              <div className="aspect-[3/2] bg-navy/5 animate-pulse" />
+              <div className="p-3 space-y-2">
+                <div className="h-3 bg-navy/5 rounded animate-pulse w-1/2" />
+                <div className="h-4 bg-navy/5 rounded animate-pulse w-3/4" />
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
 
-        {!loading && filtered.length === 0 && (
-          <div className="text-center py-16 text-tx-light text-sm">
-            <p className="text-2xl mb-3">🚗</p>
-            <p className="font-medium text-navy">No vehicles match your filters</p>
-            <button onClick={clearFilters} className="mt-3 text-teal text-sm font-semibold">Clear filters</button>
-          </div>
-        )}
+          {!loading && filtered.length === 0 && (
+            <div className="col-span-2 text-center py-16 text-tx-light text-sm">
+              <p className="text-2xl mb-3">🚲</p>
+              <p className="font-medium text-navy">No bikes match your filters</p>
+              <button onClick={clearFilters} className="mt-3 text-teal text-sm font-semibold">Clear filters</button>
+            </div>
+          )}
 
-        {!loading && filtered.map(rental => {
-          const heroSrc = rental.image_wide ?? rental.images?.[0] ?? null
-          const totalPrice = (rental.price_per_day ?? 0) * days
-          const features = rental.features ?? {}
-          const activeFeatures = Object.entries(features).filter(([, v]) => v)
+          {!loading && filtered.map(rental => {
+            const heroSrc = rental.image_wide ?? rental.images?.[0] ?? null
+            const features = rental.features ?? {}
 
-          return (
-            <div key={rental.id} className="bg-white rounded-2xl border border-border-light overflow-hidden shadow-sm">
-              {/* Hero image */}
-              <div className="relative">
+            return (
+              <button
+                key={rental.id}
+                onClick={() => router.push(`/rentals/bikes/${rental.id}?${buildParams(rental.id)}`)}
+                className="bg-white rounded-xl border border-border-light overflow-hidden shadow-sm text-left active:scale-[0.98] transition-transform"
+              >
+                {/* Photo — 3:2 */}
                 {heroSrc ? (
                   <FocalImage
                     src={heroSrc}
                     alt={rental.name}
-                    className="w-full aspect-video object-cover"
+                    className="w-full aspect-[3/2] object-cover"
                     focalPoint={rental.focal_x != null && rental.focal_y != null ? { x: rental.focal_x, y: rental.focal_y } : null}
                   />
                 ) : (
-                  <div
-                    className="w-full aspect-video flex items-center justify-center"
-                    style={{ background: CAR_CLASS_GRADIENTS[rental.car_class ?? ''] ?? '#1B2D4F' }}
-                  >
-                    <span className="text-4xl">🚗</span>
+                  <div className="w-full aspect-[3/2] flex items-center justify-center bg-teal/10">
+                    <span className="text-3xl">🚲</span>
                   </div>
                 )}
-                {/* Class badge */}
-                {rental.car_class && (
-                  <span className="absolute top-2 left-2 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-white/90 text-navy">
-                    {vehicleClassLabel(rental.car_class)}
-                  </span>
-                )}
-                {/* Zero deposit badge */}
-                {rental.zero_deposit && (
-                  <span className="absolute top-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal text-white">
-                    Zero Deposit
-                  </span>
-                )}
-              </div>
 
-              <div className="p-4">
-                {/* Name + price */}
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <h3 className="font-display text-lg text-navy leading-tight">{rental.name}</h3>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-base font-bold text-navy">€{totalPrice.toFixed(0)}</p>
-                    <p className="text-[11px] text-tx-light">€{rental.price_per_day}/day</p>
+                <div className="p-3">
+                  {rental.car_class && (
+                    <p className="text-[11px] text-gray-400 mb-0.5">{vehicleClassLabel(rental.car_class)}</p>
+                  )}
+                  {rental.delivery_area && (
+                    <p className="text-[11px] text-gray-400 mb-0.5">📍 {rental.delivery_area}</p>
+                  )}
+                  <p className="font-semibold text-navy text-[13px] leading-snug line-clamp-2 mb-1">{rental.name}</p>
+
+                  <div className="space-y-0.5 mb-2">
+                    {rental.motor_power && <p className="text-[11px] text-gray-400">⚡ {rental.motor_power}</p>}
+                    {rental.autonomy    && <p className="text-[11px] text-gray-400">🔋 {rental.autonomy}</p>}
+                    {!rental.motor_power && rental.gears && <p className="text-[11px] text-gray-400">⚙️ {rental.gears}</p>}
+                    {rental.rider_height && <p className="text-[11px] text-gray-400">👤 {rental.rider_height}</p>}
+                  </div>
+
+                  <p className="font-semibold text-navy text-[13px]">€{rental.price_per_day}/day</p>
+
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {features.free_cancellation && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-teal/10 text-teal font-semibold">✓ Free Cancel</span>
+                    )}
+                    {rental.availability_note && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-teal/10 text-teal font-semibold">{rental.availability_note}</span>
+                    )}
                   </div>
                 </div>
-
-                {/* Specs row */}
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {rental.seats   && <span className="text-[11px] text-tx-mid bg-sand px-2 py-0.5 rounded-full">🪑 {rental.seats} seats</span>}
-                  {rental.doors   && <span className="text-[11px] text-tx-mid bg-sand px-2 py-0.5 rounded-full">🚪 {rental.doors} doors</span>}
-                  {rental.transmission && <span className="text-[11px] text-tx-mid bg-sand px-2 py-0.5 rounded-full">⚙️ {rental.transmission}</span>}
-                  {rental.fuel_type    && <span className="text-[11px] text-tx-mid bg-sand px-2 py-0.5 rounded-full">⛽ {rental.fuel_type}</span>}
-                  {rental.ac           && <span className="text-[11px] text-tx-mid bg-sand px-2 py-0.5 rounded-full">❄️ A/C</span>}
-                </div>
-
-                {/* Features */}
-                {activeFeatures.length > 0 && (
-                  <div className="space-y-1 mb-3">
-                    {activeFeatures.map(([key]) => (
-                      <p key={key} className="text-[11px] text-teal flex items-center gap-1.5">
-                        <span className="text-teal">✓</span>
-                        {FEATURE_LABELS[key] ?? key}
-                      </p>
-                    ))}
-                  </div>
-                )}
-
-                {/* CTA */}
-                <button
-                  onClick={() => router.push(`/rentals/cars/${rental.id}/driver?${buildParams(rental.id)}`)}
-                  className="w-full py-3 bg-navy text-white text-sm font-semibold rounded-xl active:scale-[0.98] transition-transform"
-                >
-                  {ctaLabel}
-                </button>
+              </button>
+            )
+          })}
+        </div>
+      ) : (
+        /* ── Cars / ATVs: standard single-column list ── */
+        <div className="px-4 space-y-4">
+          {loading && Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-2xl border border-border-light overflow-hidden">
+              <div className="h-[180px] bg-navy/5 animate-pulse" />
+              <div className="p-4 space-y-2">
+                <div className="h-5 bg-navy/5 rounded animate-pulse w-2/3" />
+                <div className="h-4 bg-navy/5 rounded animate-pulse w-1/3" />
               </div>
             </div>
-          )
-        })}
-      </div>
+          ))}
+
+          {!loading && filtered.length === 0 && (
+            <div className="text-center py-16 text-tx-light text-sm">
+              <p className="text-2xl mb-3">🚗</p>
+              <p className="font-medium text-navy">No vehicles match your filters</p>
+              <button onClick={clearFilters} className="mt-3 text-teal text-sm font-semibold">Clear filters</button>
+            </div>
+          )}
+
+          {!loading && filtered.map(rental => {
+            const heroSrc = rental.image_wide ?? rental.images?.[0] ?? null
+            const totalPrice = (rental.price_per_day ?? 0) * days
+            const features = rental.features ?? {}
+            const activeFeatures = Object.entries(features).filter(([, v]) => v)
+
+            return (
+              <div key={rental.id} className="bg-white rounded-2xl border border-border-light overflow-hidden shadow-sm">
+                <div className="relative">
+                  {heroSrc ? (
+                    <FocalImage
+                      src={heroSrc}
+                      alt={rental.name}
+                      className="w-full aspect-video object-cover"
+                      focalPoint={rental.focal_x != null && rental.focal_y != null ? { x: rental.focal_x, y: rental.focal_y } : null}
+                    />
+                  ) : (
+                    <div
+                      className="w-full aspect-video flex items-center justify-center"
+                      style={{ background: CAR_CLASS_GRADIENTS[rental.car_class ?? ''] ?? '#1B2D4F' }}
+                    >
+                      <span className="text-4xl">🚗</span>
+                    </div>
+                  )}
+                  {rental.car_class && (
+                    <span className="absolute top-2 left-2 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-white/90 text-navy">
+                      {vehicleClassLabel(rental.car_class)}
+                    </span>
+                  )}
+                  {rental.zero_deposit && (
+                    <span className="absolute top-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal text-white">
+                      Zero Deposit
+                    </span>
+                  )}
+                </div>
+
+                <div className="p-4">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <h3 className="font-display text-lg text-navy leading-tight">{rental.name}</h3>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-base font-bold text-navy">€{totalPrice.toFixed(0)}</p>
+                      <p className="text-[11px] text-tx-light">€{rental.price_per_day}/day</p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {rental.seats        && <span className="text-[11px] text-tx-mid bg-sand px-2 py-0.5 rounded-full">🪑 {rental.seats} seats</span>}
+                    {rental.doors        && <span className="text-[11px] text-tx-mid bg-sand px-2 py-0.5 rounded-full">🚪 {rental.doors} doors</span>}
+                    {rental.transmission && <span className="text-[11px] text-tx-mid bg-sand px-2 py-0.5 rounded-full">⚙️ {rental.transmission}</span>}
+                    {rental.fuel_type    && <span className="text-[11px] text-tx-mid bg-sand px-2 py-0.5 rounded-full">⛽ {rental.fuel_type}</span>}
+                    {rental.ac           && <span className="text-[11px] text-tx-mid bg-sand px-2 py-0.5 rounded-full">❄️ A/C</span>}
+                  </div>
+
+                  {activeFeatures.length > 0 && (
+                    <div className="space-y-1 mb-3">
+                      {activeFeatures.map(([key]) => (
+                        <p key={key} className="text-[11px] text-teal flex items-center gap-1.5">
+                          <span className="text-teal">✓</span>
+                          {FEATURE_LABELS[key] ?? key}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => router.push(`/rentals/cars/${rental.id}/driver?${buildParams(rental.id)}`)}
+                    className="w-full py-3 bg-navy text-white text-sm font-semibold rounded-xl active:scale-[0.98] transition-transform"
+                  >
+                    {ctaLabel}
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       {/* Filter bottom sheet */}
       {filterOpen && (

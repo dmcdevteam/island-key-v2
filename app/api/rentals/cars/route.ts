@@ -13,9 +13,19 @@ export async function GET(request: Request) {
 
   const supabase = createServerClient()
 
+  const COLS = [
+    'id','type','car_class','name','description','price_per_day','price_per_week',
+    'seats','doors','transmission','fuel_type','ac','zero_deposit','deposit_amount',
+    'insurance_included','features','images','image_wide','image_square',
+    'focal_x','focal_y','focal_sq_x','focal_sq_y',
+    'is_active','is_featured','sort_order','region','pickup_locations',
+    'rider_height','max_speed','motor_power','autonomy','gears',
+    'delivery_area','bike_includes','day_discounts','bike_tcs','availability_note',
+  ].join(',')
+
   let query = supabase
     .from('rentals')
-    .select('*')
+    .select(COLS)
     .eq('type', type)
     .eq('is_active', true)
     .order('sort_order', { ascending: true })
