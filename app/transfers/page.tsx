@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ProfileAvatar } from '@/app/_components/profile-avatar';
 import { generateTimeSlots } from '@/lib/transfers';
 import { BottomNav } from '@/components/ui/bottom-nav';
+import DateRangePicker, { toDate, fromDate } from '@/components/ui/date-range-picker';
 
 type PlaceResult = {
   name:      string;
@@ -267,22 +268,24 @@ export default function TransfersSearchPage() {
           <div className="border-t border-gray-100" />
 
           {/* Date & time */}
-          <div className="flex items-center gap-3 px-4 py-3">
-            <span className="text-base flex-shrink-0">📅</span>
-            <input
-              type="date"
-              value={date}
-              min={new Date().toISOString().split('T')[0]}
-              onChange={e => setDate(e.target.value)}
-              className="flex-1 text-sm text-navy outline-none bg-transparent"
+          <div className="px-4 py-3 space-y-2">
+            <DateRangePicker
+              singleDate
+              startDate={toDate(date)}
+              endDate={null}
+              onChange={(s) => setDate(fromDate(s))}
+              placeholder="Select date"
             />
-            <select
-              value={time}
-              onChange={e => setTime(e.target.value)}
-              className="text-sm text-navy outline-none bg-transparent"
-            >
-              {slots.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
+            <div className="flex items-center gap-2 px-1">
+              <span className="text-xs text-gray-400 flex-shrink-0">Time</span>
+              <select
+                value={time}
+                onChange={e => setTime(e.target.value)}
+                className="flex-1 text-sm text-navy outline-none bg-transparent"
+              >
+                {slots.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
           </div>
 
           <div className="border-t border-gray-100" />
@@ -305,22 +308,25 @@ export default function TransfersSearchPage() {
                   className="text-xs text-tx-light hover:text-navy"
                 >Remove ✕</button>
               </div>
-              <div className="flex items-center gap-3">
-                <span className="text-base leading-none flex-shrink-0">↩</span>
-                <input
-                  type="date"
-                  value={retDate}
-                  min={date || new Date().toISOString().split('T')[0]}
-                  onChange={e => setRetDate(e.target.value)}
-                  className="flex-1 text-sm text-navy outline-none bg-transparent"
+              <div className="space-y-2">
+                <DateRangePicker
+                  singleDate
+                  startDate={toDate(retDate)}
+                  endDate={null}
+                  onChange={(s) => setRetDate(fromDate(s))}
+                  placeholder="Return date"
+                  minDate={toDate(date) ?? undefined}
                 />
-                <select
-                  value={retTime}
-                  onChange={e => setRetTime(e.target.value)}
-                  className="text-sm text-navy outline-none bg-transparent"
-                >
-                  {slots.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
+                <div className="flex items-center gap-2 px-1">
+                  <span className="text-xs text-gray-400 flex-shrink-0">Return time</span>
+                  <select
+                    value={retTime}
+                    onChange={e => setRetTime(e.target.value)}
+                    className="flex-1 text-sm text-navy outline-none bg-transparent"
+                  >
+                    {slots.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
               </div>
             </div>
           )}

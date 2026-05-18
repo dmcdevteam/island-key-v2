@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { VEHICLE_LABELS, VEHICLE_ORDER, formatTransferDate, generateTimeSlots, type VehicleSlug } from '@/lib/transfers'
 import { getSession } from '@/lib/utils'
 import { createClient } from '@/lib/supabase'
+import DateRangePicker, { toDate, fromDate } from '@/components/ui/date-range-picker'
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
   enquiry:   { bg: '#FFF7ED', text: '#C2410C', label: 'Pending' },
@@ -727,8 +728,13 @@ export default function BookingDetailPage() {
                 <div className="space-y-3">
                   <div>
                     <label className="block text-xs text-tx-light mb-1">New date</label>
-                    <input type="date" value={crDate} onChange={e => setCrDate(e.target.value)}
-                      className="w-full border border-border-light rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-navy/40" />
+                    <DateRangePicker
+                      singleDate
+                      startDate={toDate(crDate)}
+                      endDate={null}
+                      onChange={(s) => setCrDate(fromDate(s))}
+                      placeholder="Select new date"
+                    />
                   </div>
                   <div>
                     <label className="block text-xs text-tx-light mb-1">New time</label>

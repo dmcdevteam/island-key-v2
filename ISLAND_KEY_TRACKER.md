@@ -108,6 +108,7 @@ Decisions not yet made that will affect build or operations.
 | 6 May 2026 | Added TD-008 (stale schema.sql). Added P1-013 (sessionStorage review), P1-014 (subcategory admin management), P1-015 (ATV/Bike/Boat flows), P1-016 (Vacation Essentials enquiry flow). Added OQ-007 (driver age per vehicle category). Marked P1-008 as resolved. | AI Strategy Partner |
 | 6 May 2026 | Added P1-017 (weather-aware activities Layer 1 — passive forecast on activity pages) and P2-012 (weather alerting Layer 2 — active post-booking monitoring + Spyros WA notification). | AI Strategy Partner |
 | 6 May 2026 | Revised P1-017 and P2-012 to match exact agreed spec from prior session: P1-017 = simple coloured suitability dot on activity cards pre-pilot; P2-012 = personalised WhatsApp weather briefings post-pilot using Business API. | AI Strategy Partner |
+| 13 May 2026 | Services section built in full (commit 9a757a4, 20 files, 2234 insertions). Activities tab bar removed. Deals moved to home screen FAB (terra, appears only when active deals exist). "Explore Services" banner added to home. Full services guest journey: /services → in-house/reservations → subcategory → detail → enquiry (WhatsApp + 3-way email). Admin: Services CRUD, Subcategory Images upload, Service Enquiries tab. | AI Strategy Partner |
 
 ---
 

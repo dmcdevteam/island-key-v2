@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useEssentialsCart } from '@/lib/essentials-cart'
+import DateRangePicker, { toDate, fromDate } from '@/components/ui/date-range-picker'
 
 const INPUT = 'w-full px-3 py-2.5 border border-border-light rounded-xl text-sm text-navy bg-white outline-none focus:border-navy/40 transition-colors'
 const LABEL = 'block text-[11px] font-bold text-tx-mid uppercase tracking-widest mb-1.5'
@@ -240,17 +241,14 @@ export default function CartPage() {
                 value={form.property_name} onChange={e => setField('property_name', e.target.value)} placeholder="e.g. Villa Helios, Platanias" />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={LABEL}>Check-in <span className="font-normal normal-case text-tx-light">(optional)</span></label>
-                <input type="date" className={INPUT}
-                  value={form.check_in} onChange={e => setField('check_in', e.target.value)} />
-              </div>
-              <div>
-                <label className={LABEL}>Check-out <span className="font-normal normal-case text-tx-light">(optional)</span></label>
-                <input type="date" className={INPUT}
-                  value={form.check_out} onChange={e => setField('check_out', e.target.value)} />
-              </div>
+            <div>
+              <label className={LABEL}>Stay Dates <span className="font-normal normal-case text-tx-light">(optional)</span></label>
+              <DateRangePicker
+                startDate={toDate(form.check_in)}
+                endDate={toDate(form.check_out)}
+                onChange={(s, e) => { setField('check_in', fromDate(s)); setField('check_out', fromDate(e)) }}
+                placeholder="Select check-in → check-out"
+              />
             </div>
 
             <div>

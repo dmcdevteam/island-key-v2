@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { BookButton } from '@/components/ui/components';
 import { formatPrice, getSession } from '@/lib/utils';
+import DateRangePicker, { toDate, fromDate } from '@/components/ui/date-range-picker';
 import { createClient } from '@/lib/supabase';
 import { FocalImage } from '@/components/FocalImage';
 import type { FocalPoint } from '@/components/FocalImage';
@@ -487,22 +488,16 @@ export default function ActivityDetailPage({ initialActivity }: { initialActivit
             </div>
 
             {/* Date picker */}
-            <div className="flex justify-between items-center py-2.5 border-b border-border-light">
-              <span className="text-[13px] text-tx-mid">Date</span>
-              <input
-                type="date"
-                value={bookingDate}
-                min={session?.check_in ?? new Date().toISOString().slice(0, 10)}
-                max={session?.check_out ?? undefined}
-                onChange={e => {
-                  let v = e.target.value;
-                  const minDate = session?.check_in ?? new Date().toISOString().slice(0, 10);
-                  const maxDate = session?.check_out;
-                  if (v < minDate) v = minDate;
-                  if (maxDate && v > maxDate) v = maxDate;
-                  setBookingDate(v);
-                }}
-                className="text-[13px] font-semibold text-navy bg-transparent outline-none"
+            <div className="py-2.5 border-b border-border-light">
+              <span className="text-[13px] text-tx-mid block mb-2">Date</span>
+              <DateRangePicker
+                singleDate
+                startDate={toDate(bookingDate)}
+                endDate={null}
+                onChange={(s) => setBookingDate(fromDate(s))}
+                placeholder="Select date"
+                minDate={session?.check_in ? toDate(session.check_in) ?? undefined : undefined}
+                maxDate={session?.check_out ? toDate(session.check_out) ?? undefined : undefined}
               />
             </div>
 

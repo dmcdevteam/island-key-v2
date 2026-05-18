@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { getSession } from '@/lib/utils'
+import DateRangePicker, { toDate, fromDate } from '@/components/ui/date-range-picker'
 import type { Service } from '@/lib/types'
 
 const SPYROS_WA = '306974176759'
@@ -149,7 +150,13 @@ function EnquiryModal({ service, onClose }: { service: Service; onClose: () => v
 
             <div className="mb-3">
               <label className="text-[11px] font-semibold text-tx-mid uppercase tracking-wide block mb-1">Preferred Date *</label>
-              <input type="date" min={todayStr()} value={preferredDate} onChange={e => setPreferredDate(e.target.value)} className="w-full border border-border rounded-sm px-3 py-2.5 text-sm text-navy bg-white" />
+              <DateRangePicker
+                singleDate
+                startDate={toDate(preferredDate)}
+                endDate={null}
+                onChange={(s) => setPreferredDate(fromDate(s))}
+                placeholder="Select date"
+              />
             </div>
 
             <div className="mb-3">

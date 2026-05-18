@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import DateRangePicker, { toDate, fromDate } from '@/components/ui/date-range-picker'
 
 const CATEGORY_LABELS: Record<string, string> = {
   car:          'Cars',
@@ -155,7 +156,6 @@ function SearchContent() {
   const [dropoffDate, setDropoffDate] = useState('')
   const [pickupTime,  setPickupTime]  = useState('11:00')
   const [dropoffTime, setDropoffTime] = useState('11:00')
-  const [showDates,   setShowDates]   = useState(false)
 
   useEffect(() => {
     if (!isCarAtv) return
@@ -222,10 +222,6 @@ function SearchContent() {
       router.push(`/rentals/boats/coming-soon?${params.toString()}`)
     }
   }
-
-  const dateDisplay = pickupDate && dropoffDate
-    ? `${pickupDate.split('-').reverse().join('/')} – ${dropoffDate.split('-').reverse().join('/')}`
-    : 'Select dates'
 
   function handleLocationSelect(loc: RentalPickupLocation) {
     setSelectedLocationId(loc.id)
@@ -380,36 +376,15 @@ function SearchContent() {
           {/* ── Rental dates ── */}
           <div className="px-4 py-3">
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Rental Dates</p>
-            <button
-              onClick={() => setShowDates(v => !v)}
-              className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl text-sm text-navy"
-            >
-              <span style={{ color: '#D4854A' }}>📅</span>
-              <span className={pickupDate && dropoffDate ? 'text-navy' : 'text-gray-400'}>{dateDisplay}</span>
-            </button>
-            {showDates && (
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-[10px] text-gray-400 uppercase tracking-wide block mb-1">Pick-up</label>
-                  <input
-                    type="date" value={pickupDate} min={TODAY}
-                    onChange={e => {
-                      setPickupDate(e.target.value)
-                      if (dropoffDate && e.target.value >= dropoffDate) setDropoffDate('')
-                    }}
-                    className="w-full border border-border-light rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:border-navy/40"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] text-gray-400 uppercase tracking-wide block mb-1">Drop-off</label>
-                  <input
-                    type="date" value={dropoffDate} min={pickupDate || TODAY}
-                    onChange={e => setDropoffDate(e.target.value)}
-                    className="w-full border border-border-light rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:border-navy/40"
-                  />
-                </div>
-              </div>
-            )}
+            <DateRangePicker
+              startDate={toDate(pickupDate)}
+              endDate={toDate(dropoffDate)}
+              onChange={(s, e) => {
+                setPickupDate(fromDate(s))
+                setDropoffDate(fromDate(e))
+              }}
+              placeholder="Pick-up → Drop-off"
+            />
           </div>
 
           <div className="mx-4 border-t border-gray-100" />
