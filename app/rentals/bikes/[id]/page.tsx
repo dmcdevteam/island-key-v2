@@ -307,7 +307,7 @@ function BikeDetailContent() {
   }
 
   const heroSrc   = vehicle.image_wide ?? vehicle.images?.[0] ?? null
-  const features  = vehicle.features ?? {}
+  const features  = (vehicle.features ?? {}) as Record<string, boolean>
   const includes  = vehicle.bike_includes ?? ['Helmet', 'Pump', 'Lock', 'Bottle holder', 'Repair set']
   const classLabel = vehicle.car_class ? (VEHICLE_CLASS_LABELS[vehicle.car_class] ?? vehicle.car_class) : null
 
@@ -389,7 +389,7 @@ function BikeDetailContent() {
           {vehicle.delivery_area && (
             <span className="text-[11px] px-2.5 py-1 rounded-full border border-gray-200 text-gray-500">📍 {vehicle.delivery_area}</span>
           )}
-          {features.free_cancellation && (
+          {vehicle.features?.free_cancellation && (
             <span className="text-[11px] px-2.5 py-1 rounded-full border border-teal text-teal">✓ Free Cancellation</span>
           )}
         </div>
