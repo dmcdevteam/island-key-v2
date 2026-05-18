@@ -5,15 +5,29 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { FocalImage } from '@/components/FocalImage'
 import type { CarRental } from '@/lib/types'
 
-const CAR_CLASS_LABELS: Record<string, string> = {
-  small:       'Small Car',
-  medium:      'Medium Car',
-  compact:     'Compact Car',
-  suv:         'SUV',
-  convertible: 'Convertible',
-  van:         'Van',
-  luxury:      'Luxury Car',
-  offroad:     '4×4 Off-Road',
+const VEHICLE_CLASS_LABELS: Record<string, string> = {
+  // Cars
+  small:         'Small Car',
+  medium:        'Medium Car',
+  compact:       'Compact Car',
+  suv:           'SUV',
+  convertible:   'Convertible',
+  van:           'Van',
+  luxury:        'Luxury',
+  offroad:       '4×4 Off-Road',
+  // ATV / Motorbike
+  atv:           'ATV / Quad',
+  motorbike:     'Motorbike',
+  scooter:       'Scooter',
+  buggy:         'Buggy',
+  // Bike / E-Bike
+  city_bike:     'City Bike',
+  ebike:         'E-Bike',
+  mountain_bike: 'Mountain Bike',
+}
+
+function vehicleClassLabel(cls: string): string {
+  return VEHICLE_CLASS_LABELS[cls] ?? cls.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
 
 const CAR_CLASS_GRADIENTS: Record<string, string> = {
@@ -36,8 +50,6 @@ const FEATURE_LABELS: Record<string, string> = {
   unlimited_km:        'Unlimited kilometres',
 }
 
-const CATEGORY_ORDER = ['all', 'small', 'medium', 'compact', 'suv', 'convertible', 'van', 'luxury', 'offroad']
-
 type SortMode = 'price' | 'zero_deposit'
 
 type FilterState = {
@@ -45,6 +57,13 @@ type FilterState = {
   fuel_type:    string
   seats:        string
   car_class:    string
+}
+
+const CTA_LABELS: Record<string, string> = {
+  car:          'Reserve This Car →',
+  atv_motorbike: 'Reserve This Vehicle →',
+  bike_ebike:   'Reserve This Bike →',
+  boat:         'Reserve This Boat →',
 }
 
 function daysBetween(a: string, b: string): number {
@@ -90,6 +109,10 @@ function ResultsContent() {
       .then(data => { setRentals(Array.isArray(data.rentals) ? data.rentals : []); setLoading(false) })
       .catch(() => setLoading(false))
   }, [category])
+
+  const distinctClasses = [...new Set(rentals.filter(r => r.car_class).map(r => r.car_class!))]
+  const showCarousel    = distinctClasses.length > 1
+  const ctaLabel        = CTA_LABELS[category] ?? 'Reserve →'
 
   // Filtering
   const filtered = rentals.filter(r => {
@@ -179,61 +202,63 @@ function ResultsContent() {
         </button>
       </div>
 
-      {/* Category carousel */}
-      <div className="relative px-4 pt-4 pb-2">
-        <button
-          onClick={() => scrollCarousel('left')}
-          className="absolute left-1 top-1/2 -translate-y-1/2 z-10 w-7 h-7 rounded-full bg-white border border-border-light shadow-sm flex items-center justify-center text-navy text-xs"
-        >‹</button>
-
-        <div
-          ref={carouselRef}
-          className="flex gap-2 overflow-x-auto no-scrollbar px-4"
-          style={{ scrollSnapType: 'x mandatory' }}
-        >
-          {/* All card */}
+      {/* Category carousel — only shown when results have multiple distinct classes */}
+      {showCarousel && (
+        <div className="relative px-4 pt-4 pb-2">
           <button
-            onClick={() => setActiveClass('all')}
-            style={{ scrollSnapAlign: 'start' }}
-            className={`flex-shrink-0 w-[88px] rounded-xl overflow-hidden border-2 transition-all ${
-              activeClass === 'all' ? 'border-navy' : 'border-border-light'
-            }`}
-          >
-            <div className="h-[56px] bg-navy flex items-center justify-center">
-              <span className="text-white text-xl">🚗</span>
-            </div>
-            <div className="py-1.5 bg-white text-center">
-              <p className={`text-[11px] font-semibold ${activeClass === 'all' ? 'text-teal' : 'text-navy'}`}>All</p>
-            </div>
-          </button>
+            onClick={() => scrollCarousel('left')}
+            className="absolute left-1 top-1/2 -translate-y-1/2 z-10 w-7 h-7 rounded-full bg-white border border-border-light shadow-sm flex items-center justify-center text-navy text-xs"
+          >‹</button>
 
-          {CATEGORY_ORDER.slice(1).map(cls => (
+          <div
+            ref={carouselRef}
+            className="flex gap-2 overflow-x-auto no-scrollbar px-4"
+            style={{ scrollSnapType: 'x mandatory' }}
+          >
+            {/* All card */}
             <button
-              key={cls}
-              onClick={() => setActiveClass(activeClass === cls ? 'all' : cls)}
+              onClick={() => setActiveClass('all')}
               style={{ scrollSnapAlign: 'start' }}
               className={`flex-shrink-0 w-[88px] rounded-xl overflow-hidden border-2 transition-all ${
-                activeClass === cls ? 'border-navy' : 'border-border-light'
+                activeClass === 'all' ? 'border-navy' : 'border-border-light'
               }`}
             >
-              <div
-                className="h-[56px] flex items-center justify-center"
-                style={{ background: CAR_CLASS_GRADIENTS[cls] ?? '#1B2D4F' }}
-              />
-              <div className="py-1.5 bg-white text-center px-1">
-                <p className={`text-[10px] font-semibold leading-tight ${activeClass === cls ? 'text-teal' : 'text-navy'}`}>
-                  {CAR_CLASS_LABELS[cls]}
-                </p>
+              <div className="h-[56px] bg-navy flex items-center justify-center">
+                <span className="text-white text-xl">🚗</span>
+              </div>
+              <div className="py-1.5 bg-white text-center">
+                <p className={`text-[11px] font-semibold ${activeClass === 'all' ? 'text-teal' : 'text-navy'}`}>All</p>
               </div>
             </button>
-          ))}
-        </div>
 
-        <button
-          onClick={() => scrollCarousel('right')}
-          className="absolute right-1 top-1/2 -translate-y-1/2 z-10 w-7 h-7 rounded-full bg-white border border-border-light shadow-sm flex items-center justify-center text-navy text-xs"
-        >›</button>
-      </div>
+            {distinctClasses.map(cls => (
+              <button
+                key={cls}
+                onClick={() => setActiveClass(activeClass === cls ? 'all' : cls)}
+                style={{ scrollSnapAlign: 'start' }}
+                className={`flex-shrink-0 w-[88px] rounded-xl overflow-hidden border-2 transition-all ${
+                  activeClass === cls ? 'border-navy' : 'border-border-light'
+                }`}
+              >
+                <div
+                  className="h-[56px] flex items-center justify-center"
+                  style={{ background: CAR_CLASS_GRADIENTS[cls] ?? '#1B2D4F' }}
+                />
+                <div className="py-1.5 bg-white text-center px-1">
+                  <p className={`text-[10px] font-semibold leading-tight ${activeClass === cls ? 'text-teal' : 'text-navy'}`}>
+                    {vehicleClassLabel(cls)}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => scrollCarousel('right')}
+            className="absolute right-1 top-1/2 -translate-y-1/2 z-10 w-7 h-7 rounded-full bg-white border border-border-light shadow-sm flex items-center justify-center text-navy text-xs"
+          >›</button>
+        </div>
+      )}
 
       {/* Sort strip */}
       <div className="px-4 pb-3 grid grid-cols-2 gap-2">
@@ -307,7 +332,7 @@ function ResultsContent() {
                 {/* Class badge */}
                 {rental.car_class && (
                   <span className="absolute top-2 left-2 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-white/90 text-navy">
-                    {CAR_CLASS_LABELS[rental.car_class] ?? rental.car_class}
+                    {vehicleClassLabel(rental.car_class)}
                   </span>
                 )}
                 {/* Zero deposit badge */}
@@ -354,7 +379,7 @@ function ResultsContent() {
                   onClick={() => router.push(`/rentals/cars/${rental.id}/driver?${buildParams(rental.id)}`)}
                   className="w-full py-3 bg-navy text-white text-sm font-semibold rounded-xl active:scale-[0.98] transition-transform"
                 >
-                  Reserve This Car →
+                  {ctaLabel}
                 </button>
               </div>
             </div>
@@ -431,17 +456,19 @@ function ResultsContent() {
                 />
               </div>
 
-              <div>
-                <p className="text-[11px] font-bold text-tx-mid uppercase tracking-widest mb-2">Car Size</p>
-                <ChipGroup
-                  value={activeClass === 'all' ? '' : activeClass}
-                  onChange={v => setActiveClass(v || 'all')}
-                  options={[
-                    { label: 'All', value: '' },
-                    ...CATEGORY_ORDER.slice(1).map(c => ({ label: CAR_CLASS_LABELS[c], value: c })),
-                  ]}
-                />
-              </div>
+              {distinctClasses.length > 0 && (
+                <div>
+                  <p className="text-[11px] font-bold text-tx-mid uppercase tracking-widest mb-2">Vehicle Class</p>
+                  <ChipGroup
+                    value={activeClass === 'all' ? '' : activeClass}
+                    onChange={v => setActiveClass(v || 'all')}
+                    options={[
+                      { label: 'All', value: '' },
+                      ...distinctClasses.map(c => ({ label: vehicleClassLabel(c), value: c })),
+                    ]}
+                  />
+                </div>
+              )}
             </div>
 
             <button

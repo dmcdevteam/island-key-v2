@@ -914,12 +914,34 @@ function ExtraForm({ initial, onClose, onSaved }: {
 
 // ── Car Listing Form ───────────────────────────────────────────────────────────
 
-const CAR_CLASSES = ['small', 'medium', 'compact', 'suv', 'convertible', 'van', 'luxury', 'offroad']
+const VEHICLE_CLASS_OPTIONS: Record<string, { value: string; label: string }[]> = {
+  car: [
+    { value: 'small',       label: 'Small Car' },
+    { value: 'medium',      label: 'Medium Car' },
+    { value: 'compact',     label: 'Compact Car' },
+    { value: 'suv',         label: 'SUV' },
+    { value: 'convertible', label: 'Convertible' },
+    { value: 'van',         label: 'Van' },
+    { value: 'luxury',      label: 'Luxury' },
+    { value: 'offroad',     label: '4×4 Off-Road' },
+  ],
+  atv_motorbike: [
+    { value: 'atv',       label: 'ATV / Quad' },
+    { value: 'motorbike', label: 'Motorbike' },
+    { value: 'scooter',   label: 'Scooter' },
+    { value: 'buggy',     label: 'Buggy' },
+  ],
+  bike_ebike: [
+    { value: 'city_bike',     label: 'City Bike' },
+    { value: 'ebike',         label: 'E-Bike' },
+    { value: 'mountain_bike', label: 'Mountain Bike' },
+  ],
+}
 const TRANSMISSIONS = ['manual', 'automatic']
 const FUEL_TYPES = ['petrol', 'diesel', 'electric', 'hybrid']
 
 type CarListingFormData = {
-  name: string; car_class: string; description: string
+  name: string; type: string; car_class: string; description: string
   price_per_day: string; price_per_week: string
   seats: string; doors: string; transmission: string; fuel_type: string
   ac: boolean; zero_deposit: boolean; deposit_amount: string; insurance_included: boolean
@@ -930,7 +952,7 @@ type CarListingFormData = {
 }
 
 const CAR_LISTING_DEFAULTS: CarListingFormData = {
-  name: '', car_class: 'small', description: '',
+  name: '', type: 'car', car_class: '', description: '',
   price_per_day: '', price_per_week: '',
   seats: '', doors: '', transmission: 'manual', fuel_type: 'petrol',
   ac: true, zero_deposit: false, deposit_amount: '', insurance_included: true,
@@ -948,7 +970,8 @@ function CarListingForm({ initial, onClose, onSaved }: {
     const f = initial.features ?? {}
     return {
       name: initial.name ?? '',
-      car_class: initial.car_class ?? 'small',
+      type: initial.type ?? 'car',
+      car_class: initial.car_class ?? '',
       description: initial.description ?? '',
       price_per_day: initial.price_per_day != null ? String(initial.price_per_day) : '',
       price_per_week: initial.price_per_week != null ? String(initial.price_per_week) : '',
@@ -1039,6 +1062,7 @@ function CarListingForm({ initial, onClose, onSaved }: {
     setSaving(true); setError('')
     const body = {
       name: form.name,
+      type: form.type,
       car_class: form.car_class || null,
       description: form.description || null,
       price_per_day: form.price_per_day ? Number(form.price_per_day) : null,
@@ -1093,14 +1117,28 @@ function CarListingForm({ initial, onClose, onSaved }: {
         <label className={LABEL}>Name</label>
         <input className={INPUT} value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. Toyota Yaris" />
       </div>
+      <div>
+        <label className={LABEL}>Type *</label>
+        <select className={SELECT} value={form.type} onChange={e => { set('type', e.target.value); set('car_class', '') }}>
+          <option value="car">Car</option>
+          <option value="atv_motorbike">ATV &amp; Motorbike</option>
+          <option value="bike_ebike">Bike &amp; E-Bike</option>
+          <option value="boat">Boat</option>
+        </select>
+      </div>
       <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className={LABEL}>Car Class</label>
-          <select className={SELECT} value={form.car_class} onChange={e => set('car_class', e.target.value)}>
-            {CAR_CLASSES.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
-          </select>
-        </div>
-        <div>
+        {form.type !== 'boat' && (
+          <div>
+            <label className={LABEL}>Vehicle Class</label>
+            <select className={SELECT} value={form.car_class} onChange={e => set('car_class', e.target.value)}>
+              <option value="">— Select —</option>
+              {(VEHICLE_CLASS_OPTIONS[form.type] ?? []).map(o => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+        )}
+        <div className={form.type === 'boat' ? 'col-span-2' : ''}>
           <label className={LABEL}>Region</label>
           <select className={SELECT} value={form.region} onChange={e => set('region', e.target.value)}>
             {REGIONS.map(r => <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>)}
