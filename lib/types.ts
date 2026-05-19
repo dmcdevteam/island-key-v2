@@ -67,6 +67,26 @@ export interface Guest {
   created_at: string;
 }
 
+export interface GuestAdmin {
+  id: string;
+  first_name: string | null;
+  property_id: string | null;
+  property_name: string | null;
+  property_slug: string | null;
+  tier: string | null;
+  region: string | null;
+  check_in: string | null;
+  check_out: string | null;
+  group_type: string | null;
+  group_size: number | null;
+  adults: number | null;
+  children: number | null;
+  whatsapp_number: string | null;
+  whatsapp_opted_in: boolean;
+  user_agent: string | null;
+  created_at: string;
+}
+
 export interface Activity {
   id: string;
   title: string;

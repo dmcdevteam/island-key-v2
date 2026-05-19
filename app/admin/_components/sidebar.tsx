@@ -74,7 +74,8 @@ function GroupLabel({ label }: { label: string }) {
 
 function NavContent({ onNavClick }: { onNavClick?: () => void }) {
   const pathname = usePathname()
-  const [counts, setCounts] = useState<NavCounts>(EMPTY_COUNTS)
+  const [counts, setCounts]               = useState<NavCounts>(EMPTY_COUNTS)
+  const [arrivingToday, setArrivingToday] = useState(0)
 
   useEffect(() => {
     async function fetchCounts() {
@@ -86,8 +87,19 @@ function NavContent({ onNavClick }: { onNavClick?: () => void }) {
         }
       } catch {}
     }
+    async function fetchArrivingToday() {
+      try {
+        const today = new Date().toISOString().slice(0, 10)
+        const res = await fetch(`/api/admin/guests?check_in_from=${today}&check_in_to=${today}`)
+        if (res.ok) {
+          const data = await res.json()
+          setArrivingToday(Array.isArray(data) ? data.length : 0)
+        }
+      } catch {}
+    }
     fetchCounts()
-    const interval = setInterval(fetchCounts, 60_000)
+    fetchArrivingToday()
+    const interval = setInterval(() => { fetchCounts(); fetchArrivingToday() }, 60_000)
     return () => clearInterval(interval)
   }, [])
 
@@ -171,6 +183,9 @@ function NavContent({ onNavClick }: { onNavClick?: () => void }) {
 
         {/* Properties — standalone */}
         <NavLink href="/admin/properties" label="Properties" />
+
+        {/* Guests — standalone */}
+        <NavLink href="/admin/guests" label="Guests" badge={arrivingToday} />
 
         {/* Rentals group */}
         <SubGroup label="Rentals" items={RENTALS_SUBNAV} badgeMap={{
