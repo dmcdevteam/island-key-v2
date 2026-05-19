@@ -1,12 +1,5 @@
-import { AdminShell } from '../_components/sidebar'
-import { RentalsSection } from './_components/rentals-section'
+import { redirect } from 'next/navigation'
 
 export default function RentalsPage() {
-  return (
-    <AdminShell>
-      <div className="p-8">
-        <RentalsSection />
-      </div>
-    </AdminShell>
-  )
+  redirect('/admin/rentals/cars')
 }
