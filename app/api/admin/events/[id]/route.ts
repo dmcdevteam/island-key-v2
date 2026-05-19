@@ -88,7 +88,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
         const ts = `${Date.now()}-${Math.random().toString(36).slice(2)}`
         const prefix = `${params.id}/`
 
-        async function uploadCrop(buf: Buffer, suffix: string): Promise<string> {
+        const uploadCrop = async (buf: Buffer, suffix: string): Promise<string> => {
           const path = `${prefix}${ts}-${suffix}.webp`
           const { data, error } = await supabase.storage
             .from('event-images')
