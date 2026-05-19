@@ -56,7 +56,8 @@ function formatMonthLabel(yearMonth: string) {
 function EventCard({ ev, onClick }: { ev: EventInstance; onClick: () => void }) {
   const evCats = ev.categories?.length ? ev.categories : ev.category ? [ev.category] : []
   const catColor = CATEGORY_COLORS[evCats[0] ?? 'other'] ?? '#5A5A5A'
-  const coverImage = ev.images?.[0] ?? null
+  const coverWide = ev.image_wide ?? null
+  const coverRaw  = ev.images?.[0] ?? null
   const timeStr = ev.all_day
     ? 'All day'
     : new Date(ev.start_date).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false })
@@ -68,19 +69,23 @@ function EventCard({ ev, onClick }: { ev: EventInstance; onClick: () => void }) 
     >
       {/* Cover image — 16:9 */}
       <div className="w-full overflow-hidden relative" style={{ aspectRatio: '16/9' }}>
-        {coverImage ? (
+        {coverWide ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={coverImage} alt={ev.title} className="w-full h-full object-cover"
-            style={ev.focal_x != null && ev.focal_y != null
-              ? { objectPosition: `${Math.round(ev.focal_x * 100)}% ${Math.round(ev.focal_y * 100)}%` }
-              : undefined} />
+          <img src={coverWide} alt={ev.title} className="w-full h-full object-cover"
+            style={{ objectPosition: ev.focal_x != null && ev.focal_y != null
+              ? `${ev.focal_x * 100}% ${ev.focal_y * 100}%`
+              : 'center' }} />
+        ) : coverRaw ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={coverRaw} alt={ev.title} className="w-full h-full object-contain"
+            style={{ background: '#FDFCFA' }} />
         ) : (
           <div className="w-full h-full flex items-center justify-center" style={{ background: catColor }}>
             <span className="text-xs font-bold text-white/80 uppercase tracking-widest">{ev.category ?? 'event'}</span>
           </div>
         )}
         <div className="absolute top-2 right-2 z-10">
-          <HeartButton item={{ id: ev.id, type: 'event', slug: ev.slug, title: ev.title, image: coverImage, price: ev.price_label }} />
+          <HeartButton item={{ id: ev.id, type: 'event', slug: ev.slug, title: ev.title, image: coverWide ?? coverRaw, price: ev.price_label }} />
         </div>
       </div>
       {/* Details */}

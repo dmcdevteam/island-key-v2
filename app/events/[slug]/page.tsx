@@ -87,9 +87,17 @@ export default function EventDetailPage() {
     )
   }
 
-  const images = event.images ?? []
+  const rawImages = event.images ?? []
   const evCats = event.categories?.length ? event.categories : event.category ? [event.category] : []
   const catColor = CATEGORY_COLORS[evCats[0] ?? 'other'] ?? '#5A5A5A'
+
+  // Build ordered display slots: image_wide (Sharp crop) first, else raw images[0] with contain
+  type ImgSlot = { url: string; contain: boolean }
+  const displaySlots: ImgSlot[] = event.image_wide
+    ? [{ url: event.image_wide, contain: false }, ...rawImages.slice(1).map(url => ({ url, contain: false }))]
+    : rawImages.length > 0
+      ? [{ url: rawImages[0], contain: true }, ...rawImages.slice(1).map(url => ({ url, contain: false }))]
+      : []
   const startDate = new Date(event.start_date)
   const dateLabel = startDate.toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
   const timeLabel = event.all_day ? 'All day' : startDate.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' })
@@ -97,27 +105,29 @@ export default function EventDetailPage() {
   return (
     <div className="min-h-screen bg-cream flex flex-col pb-[90px]">
       {/* Hero image(s) */}
-      {images.length > 0 ? (
+      {displaySlots.length > 0 ? (
         <div className="relative">
           <div className="overflow-x-auto flex snap-x snap-mandatory no-scrollbar"
             onScroll={e => {
               const el = e.currentTarget
               setImgIndex(Math.round(el.scrollLeft / el.clientWidth))
             }}>
-            {images.map((url, i) => (
+            {displaySlots.map(({ url, contain }, i) => (
               // eslint-disable-next-line @next/next/no-img-element
-              <img key={i} src={url} alt={event.title} className="min-w-full object-cover snap-start flex-shrink-0"
+              <img key={i} src={url} alt={event.title}
+                className={`min-w-full snap-start flex-shrink-0 ${contain ? 'object-contain' : 'object-cover'}`}
                 style={{
                   aspectRatio: '16/9',
-                  ...(i === 0 && event.focal_x != null && event.focal_y != null
-                    ? { objectPosition: `${Math.round(event.focal_x * 100)}% ${Math.round(event.focal_y * 100)}%` }
+                  ...(contain ? { background: '#FDFCFA' } : {}),
+                  ...(!contain && i === 0 && event.focal_x != null && event.focal_y != null
+                    ? { objectPosition: `${event.focal_x * 100}% ${event.focal_y * 100}%` }
                     : {}),
                 }} />
             ))}
           </div>
-          {images.length > 1 && (
+          {displaySlots.length > 1 && (
             <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1">
-              {images.map((_, i) => (
+              {displaySlots.map((_, i) => (
                 <div key={i} className={`w-1.5 h-1.5 rounded-full transition-colors ${i === imgIndex ? 'bg-white' : 'bg-white/40'}`} />
               ))}
             </div>
