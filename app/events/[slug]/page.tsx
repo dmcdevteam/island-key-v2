@@ -88,7 +88,8 @@ export default function EventDetailPage() {
   }
 
   const images = event.images ?? []
-  const catColor = CATEGORY_COLORS[event.category ?? 'other'] ?? '#5A5A5A'
+  const evCats = event.categories?.length ? event.categories : event.category ? [event.category] : []
+  const catColor = CATEGORY_COLORS[evCats[0] ?? 'other'] ?? '#5A5A5A'
   const startDate = new Date(event.start_date)
   const dateLabel = startDate.toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
   const timeLabel = event.all_day ? 'All day' : startDate.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' })
@@ -105,7 +106,13 @@ export default function EventDetailPage() {
             }}>
             {images.map((url, i) => (
               // eslint-disable-next-line @next/next/no-img-element
-              <img key={i} src={url} alt={event.title} className="min-w-full object-cover snap-start flex-shrink-0" style={{ aspectRatio: '16/9' }} />
+              <img key={i} src={url} alt={event.title} className="min-w-full object-cover snap-start flex-shrink-0"
+                style={{
+                  aspectRatio: '16/9',
+                  ...(i === 0 && event.focal_x != null && event.focal_y != null
+                    ? { objectPosition: `${Math.round(event.focal_x * 100)}% ${Math.round(event.focal_y * 100)}%` }
+                    : {}),
+                }} />
             ))}
           </div>
           {images.length > 1 && (
@@ -119,9 +126,9 @@ export default function EventDetailPage() {
       ) : (
         <div className="w-full relative flex items-end" style={{ aspectRatio: '16/9', background: `linear-gradient(160deg, ${catColor}dd, #1B2D4F)` }}>
           <div className="absolute inset-0 flex flex-col justify-end p-5">
-            {event.category && (
+            {evCats[0] && (
               <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded text-white/90 w-fit mb-2"
-                style={{ background: 'rgba(255,255,255,0.15)' }}>{event.category}</span>
+                style={{ background: 'rgba(255,255,255,0.15)' }}>{evCats[0]}</span>
             )}
             <h2 className="font-display text-xl text-white leading-snug drop-shadow">{event.title}</h2>
           </div>
@@ -137,10 +144,10 @@ export default function EventDetailPage() {
 
         {/* Category + meta */}
         <div className="flex items-center gap-2 flex-wrap">
-          {event.category && (
-            <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded text-white"
-              style={{ background: catColor }}>{event.category}</span>
-          )}
+          {evCats.map(c => (
+            <span key={c} className="text-[10px] font-bold uppercase px-2 py-0.5 rounded text-white"
+              style={{ background: CATEGORY_COLORS[c] ?? '#5A5A5A' }}>{c}</span>
+          ))}
           <span className="text-xs text-tx-light">{dateLabel}</span>
           <span className="text-xs text-tx-light">· {timeLabel}</span>
         </div>

@@ -32,11 +32,16 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void 
 
 type FormState = Omit<EventFull, 'id' | 'created_at'>
 
+function localNow() {
+  const d = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 function emptyForm(): FormState {
-  const now = new Date().toISOString().slice(0, 16)
   return {
     title: '', slug: '', description: null, short_description: null,
-    category: null, start_date: now, end_date: null,
+    category: null, categories: [], start_date: localNow(), end_date: null,
     all_day: false, recurring: false, recurring_pattern: null,
     location_name: null, location_address: null, location_lat: null, location_lng: null,
     price_from: null, price_label: null, is_free: true, booking_url: null,
@@ -63,6 +68,7 @@ function EventForm({ event, onSave, onClose }: { event: EventFull | null; onSave
   const [form, setForm] = useState<FormState>(() => event ? {
     title: event.title, slug: event.slug, description: event.description,
     short_description: event.short_description, category: event.category,
+    categories: event.categories?.length ? event.categories : (event.category ? [event.category] : []),
     start_date: event.start_date, end_date: event.end_date,
     all_day: event.all_day, recurring: event.recurring, recurring_pattern: event.recurring_pattern,
     location_name: event.location_name, location_address: event.location_address,
@@ -208,14 +214,26 @@ function EventForm({ event, onSave, onClose }: { event: EventFull | null; onSave
                 <label className={LABEL}>Full Description</label>
                 <textarea className={`${INPUT} resize-y`} rows={4} value={form.description ?? ''} onChange={e => set('description', e.target.value || null)} />
               </div>
-              <div>
-                <label className={LABEL}>Category</label>
-                <select className={SELECT} value={form.category ?? ''} onChange={e => set('category', e.target.value || null)}>
-                  <option value="">— None —</option>
-                  {['festival','music','food','sport','cultural','market','nightlife','family','other'].map(c => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
+              <div className="col-span-2">
+                <label className={LABEL}>Categories</label>
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {(['festival','music','food','sport','cultural','market','nightlife','family','other'] as const).map(c => {
+                    const active = (form.categories ?? []).includes(c)
+                    return (
+                      <button key={c} type="button"
+                        onClick={() => {
+                          const cats = form.categories ?? []
+                          set('categories', active ? cats.filter(x => x !== c) : [...cats, c])
+                        }}
+                        className={`px-2.5 py-1 rounded text-[11px] font-semibold border transition-colors ${
+                          active ? 'border-transparent text-white' : 'bg-white text-tx-mid border-border hover:border-navy'
+                        }`}
+                        style={active ? { background: CATEGORY_COLORS[c] } : undefined}>
+                        {c}
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
               <div>
                 <label className={LABEL}>Region</label>
@@ -238,13 +256,13 @@ function EventForm({ event, onSave, onClose }: { event: EventFull | null; onSave
                 <label className={LABEL}>Start Date & Time *</label>
                 <input type={form.all_day ? 'date' : 'datetime-local'} className={INPUT}
                   value={form.start_date?.slice(0, form.all_day ? 10 : 16) ?? ''}
-                  onChange={e => set('start_date', e.target.value ? new Date(e.target.value).toISOString() : '')} />
+                  onChange={e => set('start_date', e.target.value)} />
               </div>
               <div>
                 <label className={LABEL}>End Date & Time</label>
                 <input type={form.all_day ? 'date' : 'datetime-local'} className={INPUT}
                   value={form.end_date?.slice(0, form.all_day ? 10 : 16) ?? ''}
-                  onChange={e => set('end_date', e.target.value ? new Date(e.target.value).toISOString() : null)} />
+                  onChange={e => set('end_date', e.target.value || null)} />
               </div>
               <div className="flex items-center gap-4">
                 <label className="flex items-center gap-2 cursor-pointer">
@@ -489,6 +507,30 @@ function CalendarView({ events, onEdit }: { events: EventFull[]; onEdit: (ev: Ev
   )
 }
 
+type EventStatus = 'live' | 'upcoming' | 'expired' | 'inactive'
+
+function eventStatus(ev: EventFull): EventStatus {
+  if (!ev.is_active) return 'inactive'
+  const now = new Date()
+  const end = ev.end_date ? new Date(ev.end_date) : null
+  const start = new Date(ev.start_date)
+  if (end && end < now) return 'expired'
+  if (start > now) return 'upcoming'
+  return 'live'
+}
+
+const STATUS_STYLES: Record<EventStatus, string> = {
+  live:     'bg-teal/10 text-teal',
+  upcoming: 'bg-navy/10 text-navy',
+  expired:  'bg-red-50 text-red-400',
+  inactive: 'bg-gray-100 text-gray-400',
+}
+
+function StatusBadge({ ev }: { ev: EventFull }) {
+  const s = eventStatus(ev)
+  return <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${STATUS_STYLES[s]}`}>{s}</span>
+}
+
 export function EventsSection() {
   const [events, setEvents] = useState<EventFull[]>([])
   const [loading, setLoading] = useState(true)
@@ -498,6 +540,7 @@ export function EventsSection() {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [toast, setToast] = useState('')
   const [confirmDelete, setConfirmDelete] = useState<string[] | null>(null)
+  const [statusFilter, setStatusFilter] = useState<'all' | EventStatus>('all')
 
   function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 3000) }
 
@@ -512,14 +555,15 @@ export function EventsSection() {
   useEffect(() => { load() }, [])
 
   async function handleSave(data: Partial<FormState>) {
+    const payload = { ...data, category: (data.categories ?? [])[0] ?? null }
     if (editEvent) {
       const res = await fetch(`/api/admin/events/${editEvent.id}`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
       })
       if (!res.ok) { const j = await res.json(); throw new Error(j.error) }
     } else {
       const res = await fetch('/api/admin/events', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
       })
       if (!res.ok) { const j = await res.json(); throw new Error(j.error) }
     }
@@ -551,11 +595,13 @@ export function EventsSection() {
     load()
   }
 
+  const displayEvents = statusFilter === 'all' ? events : events.filter(ev => eventStatus(ev) === statusFilter)
+
   function toggleSelect(id: string) {
     setSelected(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next })
   }
   function toggleAll() {
-    setSelected(prev => prev.size === events.length ? new Set() : new Set(events.map(e => e.id)))
+    setSelected(prev => prev.size === displayEvents.length ? new Set() : new Set(displayEvents.map(e => e.id)))
   }
 
   return (
@@ -563,7 +609,7 @@ export function EventsSection() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="font-display text-2xl text-navy">Events</h1>
-          <p className="text-sm text-tx-light mt-0.5">{events.length} event{events.length !== 1 ? 's' : ''}</p>
+          <p className="text-sm text-tx-light mt-0.5">{displayEvents.length}{statusFilter !== 'all' ? ` ${statusFilter}` : ''} event{displayEvents.length !== 1 ? 's' : ''}</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex border border-border rounded-sm overflow-hidden">
@@ -580,6 +626,23 @@ export function EventsSection() {
             className="px-4 py-2 bg-navy text-white text-sm font-semibold rounded-sm hover:bg-navy-light transition-colors">+ New Event</button>
         </div>
       </div>
+
+      {/* Status filter chips */}
+      {!loading && (
+        <div className="flex gap-1.5 mb-4 flex-wrap">
+          {(['all', 'live', 'upcoming', 'expired', 'inactive'] as const).map(s => {
+            const count = s === 'all' ? events.length : events.filter(ev => eventStatus(ev) === s).length
+            return (
+              <button key={s} onClick={() => setStatusFilter(s)}
+                className={`px-2.5 py-1 text-[11px] font-semibold rounded-sm border transition-colors ${
+                  statusFilter === s ? 'bg-navy text-white border-navy' : 'text-tx-mid border-border hover:border-navy'
+                }`}>
+                {s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)} ({count})
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       {selected.size > 0 && (
         <div className="mb-4 flex items-center gap-3 px-4 py-2.5 bg-navy/5 border border-navy/20 rounded-sm">
@@ -602,9 +665,10 @@ export function EventsSection() {
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="border-b border-border">
-                <th className="pb-2 pr-3 text-left w-8"><input type="checkbox" checked={selected.size === events.length && events.length > 0} onChange={toggleAll} className="rounded" /></th>
+                <th className="pb-2 pr-3 text-left w-8"><input type="checkbox" checked={selected.size === displayEvents.length && displayEvents.length > 0} onChange={toggleAll} className="rounded" /></th>
                 <th className="pb-2 pr-4 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Title</th>
-                <th className="pb-2 pr-4 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Category</th>
+                <th className="pb-2 pr-4 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Status</th>
+                <th className="pb-2 pr-4 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Categories</th>
                 <th className="pb-2 pr-4 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Date</th>
                 <th className="pb-2 pr-4 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Location</th>
                 <th className="pb-2 pr-4 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Price</th>
@@ -614,40 +678,48 @@ export function EventsSection() {
               </tr>
             </thead>
             <tbody>
-              {events.map(ev => (
-                <tr key={ev.id} className="border-b border-border-light hover:bg-sand/40 transition-colors">
-                  <td className="py-2.5 pr-3"><input type="checkbox" checked={selected.has(ev.id)} onChange={() => toggleSelect(ev.id)} className="rounded" /></td>
-                  <td className="py-2.5 pr-4">
-                    <span className="font-medium text-navy">{ev.title}</span>
-                    {ev.recurring && <span className="ml-1.5 text-[9px] font-bold text-teal bg-teal/10 px-1 py-0.5 rounded">RECURRING</span>}
-                  </td>
-                  <td className="py-2.5 pr-4">
-                    {ev.category && (
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded text-white"
-                        style={{ background: CATEGORY_COLORS[ev.category] ?? '#5A5A5A' }}>
-                        {ev.category}
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-2.5 pr-4 text-xs text-tx-mid">
-                    {new Date(ev.start_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })}
-                    {!ev.all_day && <span className="ml-1 text-tx-light">{new Date(ev.start_date).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' })}</span>}
-                  </td>
-                  <td className="py-2.5 pr-4 text-xs text-tx-light">{ev.location_name ?? '—'}</td>
-                  <td className="py-2.5 pr-4 text-xs">{ev.is_free ? <span className="text-teal font-semibold">Free</span> : ev.price_label ?? '—'}</td>
-                  <td className="py-2.5 pr-4"><Toggle checked={ev.is_featured} onChange={() => handleToggle(ev, 'is_featured')} /></td>
-                  <td className="py-2.5 pr-4"><Toggle checked={ev.is_active} onChange={() => handleToggle(ev, 'is_active')} /></td>
-                  <td className="py-2.5">
-                    <div className="flex gap-1">
-                      <button onClick={() => { setEditEvent(ev); setShowForm(true) }}
-                        className="px-2 py-1 text-[11px] text-tx-mid border border-border rounded-sm hover:border-navy hover:text-navy transition-colors">Edit</button>
-                      <button onClick={() => setConfirmDelete([ev.id])}
-                        className="px-2 py-1 text-[11px] text-red-400 border border-border rounded-sm hover:border-red-300 hover:text-red-500 transition-colors">Delete</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {events.length === 0 && <tr><td colSpan={9} className="py-12 text-center text-tx-light text-sm">No events yet</td></tr>}
+              {displayEvents.map(ev => {
+                const status = eventStatus(ev)
+                return (
+                  <tr key={ev.id} className={`border-b border-border-light hover:bg-sand/40 transition-colors ${status === 'expired' ? 'opacity-60' : ''}`}>
+                    <td className="py-2.5 pr-3"><input type="checkbox" checked={selected.has(ev.id)} onChange={() => toggleSelect(ev.id)} className="rounded" /></td>
+                    <td className="py-2.5 pr-4">
+                      <span className="font-medium text-navy">{ev.title}</span>
+                      {ev.recurring && <span className="ml-1.5 text-[9px] font-bold text-teal bg-teal/10 px-1 py-0.5 rounded">RECURRING</span>}
+                    </td>
+                    <td className="py-2.5 pr-4"><StatusBadge ev={ev} /></td>
+                    <td className="py-2.5 pr-4">
+                      <div className="flex flex-wrap gap-0.5">
+                        {(ev.categories?.length ? ev.categories : ev.category ? [ev.category] : []).map(c => (
+                          <span key={c} className="text-[9px] font-bold px-1.5 py-0.5 rounded text-white"
+                            style={{ background: CATEGORY_COLORS[c] ?? '#5A5A5A' }}>
+                            {c}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="py-2.5 pr-4 text-xs text-tx-mid">
+                      {new Date(ev.start_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })}
+                      {!ev.all_day && <span className="ml-1 text-tx-light">{new Date(ev.start_date).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' })}</span>}
+                    </td>
+                    <td className="py-2.5 pr-4 text-xs text-tx-light">{ev.location_name ?? '—'}</td>
+                    <td className="py-2.5 pr-4 text-xs">{ev.is_free ? <span className="text-teal font-semibold">Free</span> : ev.price_label ?? '—'}</td>
+                    <td className="py-2.5 pr-4"><Toggle checked={ev.is_featured} onChange={() => handleToggle(ev, 'is_featured')} /></td>
+                    <td className="py-2.5 pr-4"><Toggle checked={ev.is_active} onChange={() => handleToggle(ev, 'is_active')} /></td>
+                    <td className="py-2.5">
+                      <div className="flex gap-1">
+                        <button onClick={() => { setEditEvent(ev); setShowForm(true) }}
+                          className="px-2 py-1 text-[11px] text-tx-mid border border-border rounded-sm hover:border-navy hover:text-navy transition-colors">
+                          {status === 'expired' ? 'Update' : 'Edit'}
+                        </button>
+                        <button onClick={() => setConfirmDelete([ev.id])}
+                          className="px-2 py-1 text-[11px] text-red-400 border border-border rounded-sm hover:border-red-300 hover:text-red-500 transition-colors">Delete</button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+              {displayEvents.length === 0 && <tr><td colSpan={10} className="py-12 text-center text-tx-light text-sm">{statusFilter === 'all' ? 'No events yet' : `No ${statusFilter} events`}</td></tr>}
             </tbody>
           </table>
         </div>

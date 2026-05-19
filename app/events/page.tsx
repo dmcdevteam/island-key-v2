@@ -54,7 +54,8 @@ function formatMonthLabel(yearMonth: string) {
 }
 
 function EventCard({ ev, onClick }: { ev: EventInstance; onClick: () => void }) {
-  const catColor = CATEGORY_COLORS[ev.category ?? 'other'] ?? '#5A5A5A'
+  const evCats = ev.categories?.length ? ev.categories : ev.category ? [ev.category] : []
+  const catColor = CATEGORY_COLORS[evCats[0] ?? 'other'] ?? '#5A5A5A'
   const coverImage = ev.images?.[0] ?? null
   const timeStr = ev.all_day
     ? 'All day'
@@ -69,7 +70,10 @@ function EventCard({ ev, onClick }: { ev: EventInstance; onClick: () => void }) 
       <div className="w-full overflow-hidden relative" style={{ aspectRatio: '16/9' }}>
         {coverImage ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={coverImage} alt={ev.title} className="w-full h-full object-cover" />
+          <img src={coverImage} alt={ev.title} className="w-full h-full object-cover"
+            style={ev.focal_x != null && ev.focal_y != null
+              ? { objectPosition: `${Math.round(ev.focal_x * 100)}% ${Math.round(ev.focal_y * 100)}%` }
+              : undefined} />
         ) : (
           <div className="w-full h-full flex items-center justify-center" style={{ background: catColor }}>
             <span className="text-xs font-bold text-white/80 uppercase tracking-widest">{ev.category ?? 'event'}</span>
@@ -83,10 +87,10 @@ function EventCard({ ev, onClick }: { ev: EventInstance; onClick: () => void }) 
       <div className="p-3">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-[10px] font-semibold text-tx-light">{timeStr}</span>
-          {ev.category && (
-            <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded text-white"
-              style={{ background: catColor }}>{ev.category}</span>
-          )}
+          {evCats.map(c => (
+            <span key={c} className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded text-white"
+              style={{ background: CATEGORY_COLORS[c] ?? '#5A5A5A' }}>{c}</span>
+          ))}
         </div>
         <h3 className="text-sm font-semibold text-navy leading-snug mb-0.5">{ev.title}</h3>
         {ev.location_name && <p className="text-[11px] text-tx-light">📍 {ev.location_name}</p>}

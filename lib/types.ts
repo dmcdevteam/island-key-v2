@@ -380,6 +380,7 @@ export interface EventFull {
   description: string | null;
   short_description: string | null;
   category: string | null;
+  categories?: string[];
   start_date: string;
   end_date: string | null;
   all_day: boolean;
