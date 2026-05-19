@@ -5,14 +5,25 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { logoutAction } from '../login/actions'
 
-const navItems = [
+const PRE_RENTALS = [
   { href: '/admin/activities', label: 'Activities' },
   { href: '/admin/services',   label: 'Services' },
   { href: '/admin/bookings',   label: 'Bookings' },
   { href: '/admin/images',     label: 'Images' },
   { href: '/admin/providers',  label: 'Providers' },
   { href: '/admin/properties', label: 'Properties' },
-  { href: '/admin/rentals',    label: 'Rentals' },
+]
+
+const RENTALS_SUBNAV = [
+  { href: '/admin/rentals/cars',       label: 'Cars' },
+  { href: '/admin/rentals/atv',        label: 'ATVs & Motorbikes' },
+  { href: '/admin/rentals/bikes',      label: 'Bikes & E-Bikes' },
+  { href: '/admin/rentals/boats',      label: 'Boats' },
+  { href: '/admin/rentals/essentials', label: 'Vacation Essentials' },
+  { href: '/admin/rentals/settings',   label: 'Rental Settings' },
+]
+
+const POST_RENTALS = [
   { href: '/admin/transfers',           label: 'Transfers' },
   { href: '/admin/transfer-bookings',  label: 'Transfer Bookings' },
   { href: '/admin/transfer-pricing',   label: 'Transfer Pricing' },
@@ -27,6 +38,30 @@ const navItems = [
 
 function NavContent({ onNavClick }: { onNavClick?: () => void }) {
   const pathname = usePathname()
+
+  function NavLink({ href, label, sub = false }: { href: string; label: string; sub?: boolean }) {
+    const isActive = pathname === href || pathname.startsWith(href + '/')
+    return (
+      <Link
+        href={href}
+        onClick={onNavClick}
+        className={`flex items-center rounded transition-colors ${
+          sub ? 'pl-5 pr-3 py-1.5 text-[12px]' : 'px-3 py-2 text-[13px] font-medium'
+        } ${
+          isActive
+            ? sub
+              ? 'border-l-2 border-teal ml-[-1px] pl-[19px] text-white bg-white/10'
+              : 'bg-white/15 text-white'
+            : sub
+              ? 'text-white/45 hover:text-white hover:bg-white/10'
+              : 'text-white/55 hover:text-white hover:bg-white/10'
+        }`}
+      >
+        {label}
+      </Link>
+    )
+  }
+
   return (
     <>
       {/* Logo + Preview button */}
@@ -51,23 +86,17 @@ function NavContent({ onNavClick }: { onNavClick?: () => void }) {
 
       {/* Navigation */}
       <nav className="flex-1 px-2.5 py-3 space-y-0.5 overflow-y-auto">
-        {navItems.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={onNavClick}
-              className={`flex items-center px-3 py-2 rounded text-[13px] font-medium transition-colors ${
-                isActive
-                  ? 'bg-white/15 text-white'
-                  : 'text-white/55 hover:text-white hover:bg-white/10'
-              }`}
-            >
-              {item.label}
-            </Link>
-          )
-        })}
+        {PRE_RENTALS.map(item => <NavLink key={item.href} href={item.href} label={item.label} />)}
+
+        {/* Rentals group */}
+        <div className="pt-1 pb-0.5">
+          <p className="px-3 py-1 text-[10px] font-semibold text-white/30 uppercase tracking-widest">Rentals</p>
+          <div className="ml-1 border-l border-white/10 pl-0.5 space-y-0.5">
+            {RENTALS_SUBNAV.map(item => <NavLink key={item.href} href={item.href} label={item.label} sub />)}
+          </div>
+        </div>
+
+        {POST_RENTALS.map(item => <NavLink key={item.href} href={item.href} label={item.label} />)}
 
         <div className="border-t border-white/10 mt-2 pt-2">
           <Link
