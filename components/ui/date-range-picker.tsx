@@ -108,7 +108,9 @@ export default function DateRangePicker({
     if (maxDate && afterDay(day, maxDate))        return
 
     if (singleDate) {
-      setTmpStart(day)
+      // Auto-confirm: tapping a date IS the confirmation
+      onChange(day, null)
+      setOpen(false)
       return
     }
 
@@ -180,7 +182,7 @@ export default function DateRangePicker({
           <div className="absolute inset-0 bg-black/40" onClick={close} />
 
           {/* Sheet */}
-          <div className="relative bg-white rounded-t-2xl shadow-2xl w-full max-w-[480px] mx-auto pb-8 max-h-[90vh] overflow-y-auto">
+          <div className="relative bg-white rounded-t-2xl shadow-2xl w-full max-w-[480px] mx-auto pb-24 max-h-[90vh] overflow-y-auto">
             {/* Handle */}
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mt-3 mb-4" />
 
@@ -262,15 +264,17 @@ export default function DateRangePicker({
             <div className="flex items-center justify-between px-5 pt-5">
               <button
                 type="button"
-                onClick={() => { setTmpStart(null); setTmpEnd(null) }}
+                onClick={() => { setTmpStart(null); setTmpEnd(null); if (singleDate) onChange(null, null) }}
                 className="text-sm text-tx-light hover:text-navy"
               >Clear</button>
-              <button
-                type="button"
-                onClick={confirm}
-                disabled={!canConfirm}
-                className="px-6 py-2.5 bg-navy text-white text-sm font-semibold rounded-full disabled:opacity-40 transition-opacity"
-              >Confirm</button>
+              {!singleDate && (
+                <button
+                  type="button"
+                  onClick={confirm}
+                  disabled={!canConfirm}
+                  className="px-6 py-2.5 bg-navy text-white text-sm font-semibold rounded-full disabled:opacity-40 transition-opacity"
+                >Confirm</button>
+              )}
             </div>
           </div>
         </div>
