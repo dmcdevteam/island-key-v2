@@ -1,6 +1,6 @@
 import { BookingsSection } from './_components/bookings-section'
 
-export const metadata = { title: 'Bookings — Island Key Admin' }
+export const metadata = { title: 'All Enquiries — Island Key Admin' }
 
 export default function BookingsPage() {
   return (

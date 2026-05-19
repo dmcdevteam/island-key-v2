@@ -7,19 +7,20 @@ interface Props {
   provider: Provider | null
   onSave: (data: Partial<Provider>) => Promise<void>
   onClose: () => void
+  defaultType?: string
 }
 
 const INPUT = 'w-full px-3 py-2 border border-border rounded-sm text-sm text-tx bg-white outline-none focus:border-navy transition-colors'
 const LABEL = 'block text-[11px] font-bold text-tx-mid uppercase tracking-wide mb-1'
 const SELECT = `${INPUT} cursor-pointer`
 
-export function ProviderForm({ provider, onSave, onClose }: Props) {
+export function ProviderForm({ provider, onSave, onClose, defaultType }: Props) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
   const [form, setForm] = useState({
     name: provider?.name ?? '',
-    type: provider?.type ?? 'activity',
+    type: provider?.type ?? defaultType ?? 'activity',
     category: provider?.category ?? '',
     region: (provider?.region ?? 'chania') as string,
     contact_name: provider?.contact_name ?? '',
@@ -83,7 +84,7 @@ export function ProviderForm({ provider, onSave, onClose }: Props) {
             <div>
               <label className={LABEL}>Type *</label>
               <select className={SELECT} value={form.type} onChange={e => set('type', e.target.value)}>
-                {['activity', 'transfer', 'rental', 'multi'].map(t => (
+                {['activity', 'service', 'transfer', 'rental', 'multi'].map(t => (
                   <option key={t} value={t}>{t}</option>
                 ))}
               </select>

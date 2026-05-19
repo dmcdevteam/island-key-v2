@@ -44,6 +44,17 @@ const STATUS_TABS: { value: string; label: string }[] = [
   { value: 'completed', label: 'Completed' },
 ]
 
+const TYPE_CHIPS: { value: string; label: string }[] = [
+  { value: 'all',        label: 'All' },
+  { value: 'activity',   label: 'Activities' },
+  { value: 'transfer',   label: 'Transfers' },
+  { value: 'rental',     label: 'Cars' },
+  { value: 'bike_rental', label: 'Bikes' },
+  { value: 'boat_rental', label: 'Boats' },
+  { value: 'service',    label: 'Services' },
+  { value: 'essentials', label: 'Essentials' },
+]
+
 const ALL_STATUSES: BookingStatus[] = ['pending', 'confirmed', 'cancelled', 'completed', 'refunded']
 
 const STATUS_BADGE: Record<BookingStatus, { bg: string; text: string; label: string }> = {
@@ -381,26 +392,43 @@ function DetailPanel({ booking, onClose, onStatusChange, onSave, onDeleteRequest
 
 // ─── Main section ─────────────────────────────────────────────────────────────
 export function BookingsSection() {
-  const [bookings, setBookings]       = useState<BookingRow[]>([])
-  const [loading, setLoading]         = useState(true)
+  const [bookings, setBookings]         = useState<BookingRow[]>([])
+  const [loading, setLoading]           = useState(true)
   const [statusFilter, setStatusFilter] = useState('all')
-  const [search, setSearch]           = useState('')
-  const [dateFrom, setDateFrom]       = useState('')
-  const [dateTo, setDateTo]           = useState('')
-  const [selected, setSelected]       = useState<BookingRow | null>(null)
-  const [toast, setToast]             = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
-  const [confirmDel, setConfirmDel]   = useState<{ ids: string[]; code?: string } | null>(null)
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [typeFilter, setTypeFilter]     = useState('all')
+  const [typeCounts, setTypeCounts]     = useState<Record<string, number>>({})
+  const [search, setSearch]             = useState('')
+  const [dateFrom, setDateFrom]         = useState('')
+  const [dateTo, setDateTo]             = useState('')
+  const [selected, setSelected]         = useState<BookingRow | null>(null)
+  const [toast, setToast]               = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
+  const [confirmDel, setConfirmDel]     = useState<{ ids: string[]; code?: string } | null>(null)
+  const [selectedIds, setSelectedIds]   = useState<Set<string>>(new Set())
 
   const showToast = useCallback((msg: string, type: 'success' | 'error' = 'success') => {
     setToast({ msg, type })
     setTimeout(() => setToast(null), 3000)
   }, [])
 
+  // Load type counts from all bookings (unfiltered) for chip labels
+  useEffect(() => {
+    fetch('/api/admin/bookings')
+      .then(r => r.json())
+      .then((data: BookingRow[]) => {
+        const counts: Record<string, number> = {}
+        for (const b of Array.isArray(data) ? data : []) {
+          counts[b.item_type] = (counts[b.item_type] ?? 0) + 1
+        }
+        setTypeCounts(counts)
+      })
+      .catch(() => {})
+  }, [])
+
   const load = useCallback(async () => {
     setLoading(true)
     const params = new URLSearchParams()
     if (statusFilter !== 'all') params.set('status', statusFilter)
+    if (typeFilter !== 'all')   params.set('item_type', typeFilter)
     if (search)   params.set('search', search)
     if (dateFrom) params.set('from', dateFrom)
     if (dateTo)   params.set('to', dateTo)
@@ -409,7 +437,7 @@ export function BookingsSection() {
     setBookings(Array.isArray(data) ? data : [])
     setSelectedIds(new Set())
     setLoading(false)
-  }, [statusFilter, search, dateFrom, dateTo])
+  }, [statusFilter, typeFilter, search, dateFrom, dateTo])
 
   useEffect(() => { load() }, [load])
 
@@ -499,14 +527,39 @@ export function BookingsSection() {
         />
       )}
 
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-[22px] font-bold text-navy">Bookings</h1>
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          <h1 className="text-[22px] font-bold text-navy">All Enquiries</h1>
+          <p className="text-[13px] text-gray-500 mt-0.5">All customer enquiries across activities, transfers, rentals, services and essentials</p>
+        </div>
         <button
           onClick={load}
-          className="text-[12px] font-medium text-gray-500 hover:text-navy transition-colors px-3 py-1.5 border border-gray-200 rounded"
+          className="text-[12px] font-medium text-gray-500 hover:text-navy transition-colors px-3 py-1.5 border border-gray-200 rounded flex-shrink-0"
         >
           Refresh
         </button>
+      </div>
+
+      {/* Type filter chips */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        {TYPE_CHIPS.map(chip => {
+          const count = chip.value === 'all'
+            ? Object.values(typeCounts).reduce((a, b) => a + b, 0)
+            : (typeCounts[chip.value] ?? 0)
+          return (
+            <button
+              key={chip.value}
+              onClick={() => setTypeFilter(chip.value)}
+              className={`px-3 py-1.5 text-[12px] font-medium rounded-full border transition-colors ${
+                typeFilter === chip.value
+                  ? 'bg-navy text-white border-navy'
+                  : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+              }`}
+            >
+              {chip.label}{count > 0 ? ` (${count})` : ''}
+            </button>
+          )
+        })}
       </div>
 
       {/* Stats */}

@@ -18,7 +18,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void 
   )
 }
 
-export function ProvidersSection() {
+export function ProvidersSection({ typeFilter }: { typeFilter?: string }) {
   const [providers, setProviders] = useState<Provider[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -35,9 +35,10 @@ export function ProvidersSection() {
       setLoading(false)
       return
     }
-    setProviders(await res.json())
+    const all = await res.json()
+    setProviders(typeFilter ? all.filter((p: Provider) => p.type === typeFilter) : all)
     setLoading(false)
-  }, [])
+  }, [typeFilter])
 
   useEffect(() => { fetchProviders() }, [fetchProviders])
 
@@ -117,7 +118,9 @@ export function ProvidersSection() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
         <div>
-          <h1 className="font-display text-2xl text-navy">Providers</h1>
+          <h1 className="font-display text-2xl text-navy">
+            {typeFilter ? `${typeFilter.charAt(0).toUpperCase() + typeFilter.slice(1)} Providers` : 'Providers'}
+          </h1>
           <p className="text-sm text-tx-mid mt-0.5">{providers.length} total</p>
         </div>
         <button
@@ -209,6 +212,7 @@ export function ProvidersSection() {
           provider={editProvider}
           onSave={handleSave}
           onClose={() => { setShowForm(false); setEditProvider(null) }}
+          defaultType={typeFilter}
         />
       )}
     </div>

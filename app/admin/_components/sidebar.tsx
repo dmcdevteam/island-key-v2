@@ -5,13 +5,16 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { logoutAction } from '../login/actions'
 
-const PRE_RENTALS = [
-  { href: '/admin/activities', label: 'Activities' },
-  { href: '/admin/services',   label: 'Services' },
-  { href: '/admin/bookings',   label: 'Bookings' },
-  { href: '/admin/images',     label: 'Images' },
-  { href: '/admin/providers',  label: 'Providers' },
-  { href: '/admin/properties', label: 'Properties' },
+const ACTIVITIES_SUBNAV = [
+  { href: '/admin/activities',           label: 'Listings' },
+  { href: '/admin/activities/providers', label: 'Providers' },
+  { href: '/admin/activities/images',    label: 'Images' },
+]
+
+const SERVICES_SUBNAV = [
+  { href: '/admin/services',           label: 'Listings' },
+  { href: '/admin/services/providers', label: 'Providers' },
+  { href: '/admin/services/images',    label: 'Images' },
 ]
 
 const RENTALS_SUBNAV = [
@@ -23,29 +26,80 @@ const RENTALS_SUBNAV = [
   { href: '/admin/rentals/settings',   label: 'Rental Settings' },
 ]
 
-const POST_RENTALS = [
-  { href: '/admin/transfers',           label: 'Transfers' },
-  { href: '/admin/transfer-bookings',  label: 'Transfer Bookings' },
-  { href: '/admin/transfer-pricing',   label: 'Transfer Pricing' },
-  { href: '/admin/transfer-providers', label: 'Transfer Providers' },
-  { href: '/admin/change-requests', label: 'Change Requests' },
-  { href: '/admin/deals', label: 'Deals' },
-  { href: '/admin/events', label: 'Events' },
-  { href: '/admin/articles', label: 'Articles' },
-  { href: '/admin/info', label: 'Useful Info' },
-  { href: '/admin/settings', label: 'Settings' },
+const TRANSFERS_SUBNAV = [
+  { href: '/admin/transfer-bookings',  label: 'Bookings' },
+  { href: '/admin/transfer-pricing',   label: 'Pricing' },
+  { href: '/admin/transfer-providers', label: 'Providers' },
+  { href: '/admin/change-requests',    label: 'Change Requests' },
+  { href: '/admin/transfers/images',   label: 'Images' },
 ]
+
+const STANDALONE_LINKS = [
+  { href: '/admin/enquiries',  label: 'All Enquiries' },
+  { href: '/admin/deals',      label: 'Deals' },
+  { href: '/admin/events',     label: 'Events' },
+  { href: '/admin/articles',   label: 'Articles' },
+  { href: '/admin/info',       label: 'Useful Info' },
+  { href: '/admin/settings',   label: 'Settings' },
+]
+
+type NavCounts = {
+  activity: number; service: number; rental: number
+  bike_rental: number; boat_rental: number; transfer: number
+  essentials: number; total: number
+}
+
+const EMPTY_COUNTS: NavCounts = {
+  activity: 0, service: 0, rental: 0,
+  bike_rental: 0, boat_rental: 0, transfer: 0,
+  essentials: 0, total: 0,
+}
+
+function Badge({ count }: { count: number }) {
+  if (!count) return null
+  return (
+    <span className="ml-auto min-w-[18px] h-[18px] px-1 bg-[#1A8A7D] text-white text-[10px] font-bold rounded-full flex items-center justify-center flex-shrink-0">
+      {count > 9 ? '9+' : count}
+    </span>
+  )
+}
+
+function GroupLabel({ label }: { label: string }) {
+  return (
+    <p className="px-3 pt-4 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+      {label}
+    </p>
+  )
+}
 
 function NavContent({ onNavClick }: { onNavClick?: () => void }) {
   const pathname = usePathname()
+  const [counts, setCounts] = useState<NavCounts>(EMPTY_COUNTS)
 
-  function NavLink({ href, label, sub = false }: { href: string; label: string; sub?: boolean }) {
-    const isActive = pathname === href || pathname.startsWith(href + '/')
+  useEffect(() => {
+    async function fetchCounts() {
+      try {
+        const res = await fetch('/api/admin/enquiry-counts')
+        if (res.ok) {
+          const data = await res.json()
+          setCounts({ ...EMPTY_COUNTS, ...data.counts })
+        }
+      } catch {}
+    }
+    fetchCounts()
+    const interval = setInterval(fetchCounts, 60_000)
+    return () => clearInterval(interval)
+  }, [])
+
+  function NavLink({ href, label, sub = false, badge = 0, exact = false }: {
+    href: string; label: string; sub?: boolean; badge?: number; exact?: boolean
+  }) {
+    const isActive = exact ? pathname === href : (pathname === href || pathname.startsWith(href + '/'))
     return (
       <Link
         href={href}
         onClick={onNavClick}
-        className={`flex items-center rounded transition-colors ${
+        className={`flex items-center gap-1 rounded transition-colors ${
           sub ? 'pl-5 pr-3 py-1.5 text-[12px]' : 'px-3 py-2 text-[13px] font-medium'
         } ${
           isActive
@@ -57,8 +111,26 @@ function NavContent({ onNavClick }: { onNavClick?: () => void }) {
               : 'text-white/55 hover:text-white hover:bg-white/10'
         }`}
       >
-        {label}
+        <span>{label}</span>
+        <Badge count={badge} />
       </Link>
+    )
+  }
+
+  function SubGroup({ label, items, badgeMap = {} }: {
+    label: string
+    items: { href: string; label: string }[]
+    badgeMap?: Partial<Record<string, number>>
+  }) {
+    return (
+      <div className="pb-0.5">
+        <GroupLabel label={label} />
+        <div className="ml-1 border-l border-white/10 pl-0.5 space-y-0.5">
+          {items.map(item => (
+            <NavLink key={item.href} href={item.href} label={item.label} sub badge={badgeMap[item.href] ?? 0} />
+          ))}
+        </div>
+      </div>
     )
   }
 
@@ -75,7 +147,7 @@ function NavContent({ onNavClick }: { onNavClick?: () => void }) {
           onClick={() => {
             document.cookie = 'ik_access=1; path=/; max-age=7776000; SameSite=Lax';
             localStorage.setItem('ik_admin_preview', '1');
-            localStorage.removeItem('ik_session'); // fresh preview — start from gate
+            localStorage.removeItem('ik_session');
             window.open('/', '_blank');
           }}
           className="mt-3 w-full flex items-center justify-center gap-1.5 px-3 py-1.5 border border-white/25 rounded text-[12px] font-semibold text-white/70 hover:text-white hover:border-white/50 transition-colors"
@@ -86,30 +158,43 @@ function NavContent({ onNavClick }: { onNavClick?: () => void }) {
 
       {/* Navigation */}
       <nav className="flex-1 px-2.5 py-3 space-y-0.5 overflow-y-auto">
-        {PRE_RENTALS.map(item => <NavLink key={item.href} href={item.href} label={item.label} />)}
+
+        {/* Activities group */}
+        <SubGroup label="Activities" items={ACTIVITIES_SUBNAV} badgeMap={{
+          '/admin/activities': counts.activity,
+        }} />
+
+        {/* Services group */}
+        <SubGroup label="Services" items={SERVICES_SUBNAV} badgeMap={{
+          '/admin/services': counts.service,
+        }} />
+
+        {/* Properties — standalone */}
+        <NavLink href="/admin/properties" label="Properties" />
 
         {/* Rentals group */}
-        <div className="pt-1 pb-0.5">
-          <p className="px-3 py-1 text-[10px] font-semibold text-white/30 uppercase tracking-widest">Rentals</p>
-          <div className="ml-1 border-l border-white/10 pl-0.5 space-y-0.5">
-            {RENTALS_SUBNAV.map(item => <NavLink key={item.href} href={item.href} label={item.label} sub />)}
-          </div>
+        <SubGroup label="Rentals" items={RENTALS_SUBNAV} badgeMap={{
+          '/admin/rentals/cars':      counts.rental,
+          '/admin/rentals/bikes':     counts.bike_rental,
+          '/admin/rentals/boats':     counts.boat_rental,
+          '/admin/rentals/essentials': counts.essentials,
+        }} />
+
+        {/* Transfers group */}
+        <SubGroup label="Transfers" items={TRANSFERS_SUBNAV} badgeMap={{
+          '/admin/transfer-bookings': counts.transfer,
+        }} />
+
+        {/* Standalone links */}
+        <div className="pt-2 space-y-0.5">
+          {STANDALONE_LINKS.map(item => (
+            <NavLink key={item.href} href={item.href} label={item.label}
+              badge={item.href === '/admin/enquiries' ? counts.total : 0} />
+          ))}
         </div>
 
-        {POST_RENTALS.map(item => <NavLink key={item.href} href={item.href} label={item.label} />)}
-
         <div className="border-t border-white/10 mt-2 pt-2">
-          <Link
-            href="/admin/qr"
-            onClick={onNavClick}
-            className={`flex items-center px-3 py-2 rounded text-[13px] font-medium transition-colors ${
-              pathname.startsWith('/admin/qr')
-                ? 'bg-white/15 text-white'
-                : 'text-white/55 hover:text-white hover:bg-white/10'
-            }`}
-          >
-            QR Codes
-          </Link>
+          <NavLink href="/admin/qr" label="QR Codes" />
         </div>
       </nav>
 

@@ -1,11 +1,5 @@
-import { ProvidersSection } from './_components/providers-table'
-
-export const metadata = { title: 'Providers — Island Key Admin' }
+import { redirect } from 'next/navigation'
 
 export default function ProvidersPage() {
-  return (
-    <div className="p-8">
-      <ProvidersSection />
-    </div>
-  )
+  redirect('/admin/activities/providers')
 }
