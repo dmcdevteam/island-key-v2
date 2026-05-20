@@ -417,6 +417,7 @@ function BikeDetailContent() {
             onChange={(s, e) => { setStartDate(fromDate(s)); setEndDate(fromDate(e)) }}
             minDate={new Date()}
             placeholder="Pick-up → Return"
+            durationLabel="days"
           />
         </div>
 

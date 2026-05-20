@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import { setSession } from '@/lib/utils';
 import { AccommodationCard, SelectionChip, Button } from '@/components/ui/components';
-import type { Tier, Region, GroupType, QRParams } from '@/lib/types';
+import type { Tier, Region, GroupType } from '@/lib/types';
 
 const COUNTRY_CODES = [
   { flag: '🇬🇷', code: '30',  label: '+30' },
@@ -37,15 +37,19 @@ const REGION_LABELS: Record<Region, string> = {
 
 export default function OnboardPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const slugFromUrl    = searchParams.get('prop');
+  const tierFromUrl    = searchParams.get('tier') as Tier | null;
+  const regionFromUrl  = searchParams.get('region') as Region | null;
 
   const [isAdminPreview, setIsAdminPreview] = useState(false);
 
   // Property state (resolved from Supabase)
-  const [propertySlug, setPropertySlug] = useState('dimitris-city-break');
+  const [propertySlug, setPropertySlug] = useState('');
   const [propertyUuid, setPropertyUuid] = useState<string | null>(null);
   const [propertyName, setPropertyName] = useState('');
-  const [tier, setTier] = useState<Tier>('M');
-  const [region, setRegion] = useState<Region>('chania');
+  const [tier, setTier] = useState<Tier>(tierFromUrl ?? 'M');
+  const [region, setRegion] = useState<Region>(regionFromUrl ?? 'chania');
   const [propertyLoading, setPropertyLoading] = useState(true);
 
   // Form state
@@ -90,29 +94,22 @@ export default function OnboardPage() {
     router.push('/home');
   }
 
-  // Load QR params from sessionStorage, then fetch property from Supabase
+  // Load property from URL param only — never from stale localStorage cache
   useEffect(() => {
     async function loadProperty() {
-      let slug = 'dimitris-city-break';
-      try {
-        const raw = localStorage.getItem('ik_qr');
-        if (raw) {
-          const qr: QRParams & { property_name?: string } = JSON.parse(raw);
-          if (qr.prop) slug = qr.prop;
-          // Pre-fill name immediately if entry router already fetched it
-          if (qr.property_name) setPropertyName(qr.property_name);
-          if (qr.tier) setTier(qr.tier);
-          if (qr.region) setRegion(qr.region);
-        }
-      } catch {}
+      if (!slugFromUrl) {
+        // No QR param — leave accommodation blank for manual entry
+        setPropertyLoading(false);
+        return;
+      }
 
-      setPropertySlug(slug);
+      setPropertySlug(slugFromUrl);
 
       const supabase = createClient();
       const { data, error } = await supabase
         .from('properties')
         .select('id, name, tier, region')
-        .eq('slug', slug)
+        .eq('slug', slugFromUrl)
         .single();
 
       type PropRow = { id: string; name: string; tier: Tier; region: Region };
@@ -124,13 +121,13 @@ export default function OnboardPage() {
         setRegion(prop.region);
       } else {
         // Fallback name if fetch fails
-        setPropertyName(slug);
+        setPropertyName(slugFromUrl);
       }
       setPropertyLoading(false);
     }
 
     loadProperty();
-  }, []);
+  }, [slugFromUrl]);
 
   function handleChangeProperty() {
     const name = prompt('Enter your accommodation name:');
@@ -276,6 +273,7 @@ export default function OnboardPage() {
             <input
               type="date"
               value={checkIn}
+              min={new Date().toISOString().slice(0, 10)}
               onChange={(e) => {
                 const v = e.target.value;
                 setCheckIn(v);

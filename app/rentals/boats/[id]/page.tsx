@@ -304,6 +304,7 @@ function BoatDetailContent() {
             onChange={(s, e) => { setStartDate(fromDate(s)); setEndDate(fromDate(e)) }}
             minDate={new Date()}
             placeholder="Check-in → Check-out"
+            durationLabel="days"
           />
         </div>
 

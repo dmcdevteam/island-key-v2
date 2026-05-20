@@ -545,6 +545,7 @@ function SearchContent() {
                 setDropoffDate(fromDate(e))
               }}
               placeholder="Pick-up → Drop-off"
+              durationLabel="days"
             />
           </div>
 
@@ -622,52 +623,51 @@ function SearchContent() {
         </div>
       </div>
 
-      {isBike && <BikeHowItWorks />}
+      {(isBike || isCarAtv) && <HowItWorks category={category} />}
     </div>
   )
 }
 
-const HOW_IT_WORKS = [
-  {
-    n: 1,
-    title: 'Choose Your Location',
-    desc: 'Tell us where in Chania you want your bike delivered — or where you\'ll collect it.',
-  },
-  {
-    n: 2,
-    title: 'Pick Up or Delivery',
-    desc: 'We deliver directly to your villa or hotel. Or collect from our partner location — your choice.',
-  },
-  {
-    n: 3,
-    title: 'Select Your Dates',
-    desc: 'Choose your rental start and end dates. The longer you ride, the better the rate.',
-  },
-  {
-    n: 4,
-    title: 'We\'ll Sort the Rest',
-    desc: 'Confirm your enquiry and we\'ll be in touch within 2 hours to finalise details.',
-  },
-]
+const HOW_IT_WORKS_STEPS: Record<string, { n: number; title: string; desc: string }[]> = {
+  bike_ebike: [
+    { n: 1, title: 'Choose Your Location', desc: 'Tell us where you want your bike delivered — or where you\'ll collect it.' },
+    { n: 2, title: 'Pick Up or Delivery',  desc: 'We deliver to your villa or hotel. Or collect from our partner location.' },
+    { n: 3, title: 'Select Your Dates',    desc: 'Choose your rental start and end dates. The longer you ride, the better the rate.' },
+    { n: 4, title: 'We\'ll Sort the Rest', desc: 'Confirm your enquiry and we\'ll be in touch within 2 hours.' },
+  ],
+  car: [
+    { n: 1, title: 'Choose Location',      desc: 'Select a pick-up spot or enter a delivery address.' },
+    { n: 2, title: 'Select Dates',         desc: 'Pick your rental start and end dates.' },
+    { n: 3, title: 'Add Your Details',     desc: 'Share your flight number and any extras you need.' },
+    { n: 4, title: 'We\'ll Sort the Rest', desc: 'Confirm and we\'ll be in touch within 2 hours.' },
+  ],
+  atv_motorbike: [
+    { n: 1, title: 'Choose Location',      desc: 'Pick up from our location or tell us where to deliver.' },
+    { n: 2, title: 'Select Dates',         desc: 'Choose your rental period. Multi-day rates available.' },
+    { n: 3, title: 'Choose Your Ride',     desc: 'Let us know your preferred model or ask for a recommendation.' },
+    { n: 4, title: 'We\'ll Sort the Rest', desc: 'Confirm your enquiry and we\'ll get back to you within 2 hours.' },
+  ],
+}
 
-function BikeHowItWorks() {
+function HowItWorks({ category }: { category: string }) {
+  const steps = HOW_IT_WORKS_STEPS[category]
+  if (!steps) return null
   return (
     <div className="w-full max-w-[440px] mt-6">
-      <h2 className="font-display text-navy text-[20px] font-semibold mb-4">How It Works</h2>
-      <div className="grid grid-cols-2 gap-3">
-        {HOW_IT_WORKS.map(step => (
-          <div
-            key={step.n}
-            className="bg-white rounded-2xl border border-border-light p-5 shadow-sm flex flex-col items-center text-center"
-          >
+      <h2 className="font-display text-navy text-[20px] font-semibold mb-3">How It Works</h2>
+      <div className="space-y-2">
+        {steps.map(step => (
+          <div key={step.n} className="flex items-start gap-3 bg-white rounded-xl border border-border-light px-4 py-3 shadow-sm">
             <div
-              className="w-11 h-11 rounded-full flex items-center justify-center mb-3 flex-shrink-0"
+              className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
               style={{ background: '#1A8A7D' }}
             >
-              <span className="text-white font-bold text-base">{step.n}</span>
+              <span className="text-white font-bold text-[12px]">{step.n}</span>
             </div>
-            <p className="font-semibold text-navy text-[15px] leading-snug mb-1">{step.title}</p>
-            <p className="text-gray-400 text-[13px] leading-relaxed">{step.desc}</p>
+            <div>
+              <p className="font-semibold text-navy text-[14px] leading-snug">{step.title}</p>
+              <p className="text-gray-400 text-[12px] leading-relaxed mt-0.5">{step.desc}</p>
+            </div>
           </div>
         ))}
       </div>

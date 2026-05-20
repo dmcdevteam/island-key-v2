@@ -248,6 +248,7 @@ export default function CartPage() {
                 endDate={toDate(form.check_out)}
                 onChange={(s, e) => { setField('check_in', fromDate(s)); setField('check_out', fromDate(e)) }}
                 placeholder="Select check-in → check-out"
+                durationLabel="days"
               />
             </div>
 

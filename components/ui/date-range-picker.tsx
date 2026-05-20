@@ -2,13 +2,16 @@
 
 import { useState } from 'react'
 
-const DAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-]
-const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-const DAYS_SHORT   = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+// Mon–Sun two-letter abbreviations via Intl (locale-correct order)
+const DAYS = Array.from({ length: 7 }, (_, i) =>
+  new Intl.DateTimeFormat('en-GB', { weekday: 'short' })
+    .format(new Date(2025, 0, 6 + i))  // Jan 6 2025 = Monday
+    .slice(0, 2)
+)
+// Full month names
+const MONTHS = Array.from({ length: 12 }, (_, i) =>
+  new Intl.DateTimeFormat('en-GB', { month: 'long' }).format(new Date(2025, i, 1))
+)
 
 // ─── Exported helpers for call-sites that store dates as YYYY-MM-DD strings ──
 
@@ -37,9 +40,8 @@ function beforeDay(a: Date, b: Date)  { return ds(a) < ds(b) }
 function afterDay(a: Date, b: Date)   { return ds(a) > ds(b) }
 function between(d: Date, s: Date, e: Date) { return ds(d) > ds(s) && ds(d) < ds(e) }
 
-function fmt(d: Date) {
-  return `${DAYS_SHORT[d.getDay()]} ${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`
-}
+const fmtDate = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+function fmt(d: Date) { return fmtDate.format(d) }
 
 function calCells(year: number, month: number): (Date | null)[] {
   const first  = new Date(year, month, 1)
@@ -56,13 +58,14 @@ function calCells(year: number, month: number): (Date | null)[] {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export interface DateRangePickerProps {
-  startDate:   Date | null
-  endDate:     Date | null
-  onChange:    (start: Date | null, end: Date | null) => void
-  minDate?:    Date
-  maxDate?:    Date
-  placeholder?: string
-  singleDate?: boolean
+  startDate:     Date | null
+  endDate:       Date | null
+  onChange:      (start: Date | null, end: Date | null) => void
+  minDate?:      Date
+  maxDate?:      Date
+  placeholder?:  string
+  singleDate?:   boolean
+  durationLabel?: 'nights' | 'days'
 }
 
 export default function DateRangePicker({
@@ -71,8 +74,9 @@ export default function DateRangePicker({
   onChange,
   minDate,
   maxDate,
-  placeholder = 'Select dates',
-  singleDate  = false,
+  placeholder   = 'Select dates',
+  singleDate    = false,
+  durationLabel = 'nights',
 }: DateRangePickerProps) {
   const today = new Date()
   const min   = minDate ?? today
@@ -147,16 +151,18 @@ export default function DateRangePicker({
     }
     if (!startDate) return null
     if (!endDate)   return `${fmt(startDate)} → Select end date`
-    const nights = Math.round((ds(endDate) - ds(startDate)) / 86400000)
-    return `${fmt(startDate)} → ${fmt(endDate)}  ·  ${nights} night${nights !== 1 ? 's' : ''}`
+    const count = Math.round((ds(endDate) - ds(startDate)) / 86400000)
+    const unit  = durationLabel === 'nights' ? 'night' : 'day'
+    return `${fmt(startDate)} → ${fmt(endDate)}  ·  ${count} ${unit}${count !== 1 ? 's' : ''}`
   })()
 
   const headerText = (() => {
     if (singleDate) return tmpStart ? fmt(tmpStart) : 'Select date'
     if (!tmpStart)  return 'Select start date'
     if (!tmpEnd)    return `${fmt(tmpStart)} → Select end`
-    const nights = Math.round((ds(tmpEnd) - ds(tmpStart)) / 86400000)
-    return `${fmt(tmpStart)} → ${fmt(tmpEnd)} (${nights} night${nights !== 1 ? 's' : ''})`
+    const count = Math.round((ds(tmpEnd) - ds(tmpStart)) / 86400000)
+    const unit  = durationLabel === 'nights' ? 'night' : 'day'
+    return `${fmt(tmpStart)} → ${fmt(tmpEnd)} (${count} ${unit}${count !== 1 ? 's' : ''})`
   })()
 
   const cells = open ? calCells(viewYear, viewMonth) : []
