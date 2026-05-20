@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import { setSession } from '@/lib/utils';
@@ -35,7 +35,7 @@ const REGION_LABELS: Record<Region, string> = {
   lasithi: 'Lasithi, Crete 🇬🇷',
 };
 
-export default function OnboardPage() {
+function OnboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const slugFromUrl    = searchParams.get('prop');
@@ -468,4 +468,12 @@ export default function OnboardPage() {
       )}
     </div>
   );
+}
+
+export default function OnboardPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-cream" />}>
+      <OnboardContent />
+    </Suspense>
+  )
 }
