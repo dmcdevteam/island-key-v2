@@ -8,7 +8,6 @@ export async function GET() {
   const { data, error } = await supabase
     .from('rentals')
     .select('*')
-    .eq('type', 'car')
     .order('sort_order')
     .order('created_at', { ascending: false })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -21,7 +20,7 @@ export async function POST(request: Request) {
   const supabase = createServerClient()
   const { data, error } = await supabase
     .from('rentals')
-    .insert({ ...body, type: 'car' })
+    .insert(body)
     .select()
     .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

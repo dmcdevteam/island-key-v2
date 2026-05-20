@@ -113,7 +113,10 @@ export default function TransfersSearchPage() {
     } catch { /* leave text as typed */ }
   }
 
-  const canSearch = !!(date && from && to);
+  // Diagnostic: log state whenever any dependency changes
+  // Remove once the disabled-button issue is confirmed resolved
+  console.log('[TransfersSearch] fields:', { date, from: from?.name ?? null, to: to?.name ?? null })
+  const canSearch = date !== '' && from !== null && to !== null;
 
   async function handleSearch() {
     if (!canSearch || searching || !from || !to) return;

@@ -18,12 +18,16 @@ const SERVICES_SUBNAV = [
 ]
 
 const RENTALS_SUBNAV = [
-  { href: '/admin/rentals/cars',       label: 'Cars' },
-  { href: '/admin/rentals/atv',        label: 'ATVs & Motorbikes' },
-  { href: '/admin/rentals/bikes',      label: 'Bikes & E-Bikes' },
-  { href: '/admin/rentals/boats',      label: 'Boats' },
-  { href: '/admin/rentals/essentials', label: 'Vacation Essentials' },
-  { href: '/admin/rentals/settings',   label: 'Rental Settings' },
+  { href: '/admin/rentals/cars',            label: 'Cars' },
+  { href: '/admin/rentals/cars/providers',  label: 'Car Providers' },
+  { href: '/admin/rentals/atv',             label: 'ATVs & Motorbikes' },
+  { href: '/admin/rentals/atv/providers',   label: 'ATV Providers' },
+  { href: '/admin/rentals/bikes',           label: 'Bikes & E-Bikes' },
+  { href: '/admin/rentals/bikes/providers', label: 'Bike Providers' },
+  { href: '/admin/rentals/boats',           label: 'Boats' },
+  { href: '/admin/rentals/boats/providers', label: 'Boat Providers' },
+  { href: '/admin/rentals/essentials',      label: 'Vacation Essentials' },
+  { href: '/admin/rentals/settings',        label: 'Rental Settings' },
 ]
 
 const TRANSFERS_SUBNAV = [
