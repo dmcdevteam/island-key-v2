@@ -14,7 +14,7 @@ export interface SuitabilityResult {
 
 // Categories that map to SEA rules
 const SEA_CATEGORIES = new Set([
-  'on_water', 'water', 'boat', 'sailing', 'snorkelling', 'diving',
+  'on_water', 'water', 'boat', 'boat_trips', 'sailing', 'snorkelling', 'diving',
   'kayak', 'surf', 'catamaran', 'sea', 'swimming',
 ])
 

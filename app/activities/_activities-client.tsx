@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { BottomNav } from '@/components/ui/bottom-nav';
 import { CategoryChip, ActivityCard } from '@/components/ui/components';
 import { ProfileAvatar } from '@/app/_components/profile-avatar';
@@ -19,8 +19,10 @@ const REGIONS = [
 
 export default function ActivitiesClient({ initialActivities }: { initialActivities: Activity[] }) {
   const router = useRouter();
+  const sp     = useSearchParams();
   const session = getSession();
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const urlCategory = sp.get('category');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(urlCategory ?? null);
   const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
   const [activeRegion] = useState(session?.region ?? 'all');
   const [weather, setWeather] = useState<WeatherData | null>(null);
@@ -67,6 +69,14 @@ export default function ActivitiesClient({ initialActivities }: { initialActivit
         </div>
         <p className="text-xs text-tx-light mt-0.5">Curated by locals, vetted for quality</p>
       </div>
+
+      {/* Boat trips banner */}
+      {selectedCategory === 'boat_trips' && (
+        <div className="mx-5 mb-3 px-4 py-3 rounded-xl bg-teal/10 border border-teal/20">
+          <p className="text-sm font-semibold text-teal">Boat trip experiences</p>
+          <p className="text-xs text-teal/80 mt-0.5">Organised tours and daily cruises in Crete</p>
+        </div>
+      )}
 
       {/* Category chips (single-select) */}
       <div className="flex gap-1.5 px-5 overflow-x-auto no-scrollbar mb-2 flex-shrink-0">

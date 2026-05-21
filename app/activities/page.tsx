@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { createServerClient } from '@/lib/supabase'
 import ActivitiesClient from './_activities-client'
 
@@ -12,5 +13,9 @@ export default async function ActivitiesPage() {
     .order('sort_order')
     .order('title')
 
-  return <ActivitiesClient initialActivities={data ?? []} />
+  return (
+    <Suspense fallback={null}>
+      <ActivitiesClient initialActivities={data ?? []} />
+    </Suspense>
+  )
 }

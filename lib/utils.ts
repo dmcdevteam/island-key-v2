@@ -62,6 +62,7 @@ export const CATEGORY_LABELS: Record<string, string> = {
   history_art: 'History & Art',
   slow_down:   'Slow Down',
   in_the_air:  'In the Air',
+  boat_trips:  'Boat Trips',
 };
 
 export const MOOD_LABELS: Record<string, string> = {

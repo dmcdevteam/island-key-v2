@@ -429,7 +429,7 @@ function SearchContent() {
                     }`}
                   >⛵ Boat Rentals</button>
                   <button
-                    onClick={() => { setBoatTab('experiences'); router.push('/activities?boat=true') }}
+                    onClick={() => { setBoatTab('experiences'); router.push('/activities?category=boat_trips') }}
                     className="py-2 rounded-lg text-sm font-semibold text-tx-mid"
                   >🤿 Daily Experiences</button>
                 </div>

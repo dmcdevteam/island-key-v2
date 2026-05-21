@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import type { Activity, Provider } from '@/lib/types'
-import { CATEGORY_LABELS } from '@/lib/utils'
+import { CATEGORY_LABELS, MOOD_LABELS } from '@/lib/utils'
 import { FocalPointPicker, type FocalPoint } from '@/components/admin/FocalPointPicker'
 import { ImageUploadGuide } from '@/components/admin/ImageUploadGuide'
 
@@ -120,6 +120,7 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
     is_featured:         activity?.is_featured ?? false,
     is_active:           activity?.is_active ?? true,
     is_boat_activity:    activity?.is_boat_activity ?? false,
+    mood_tags:           activity?.mood_tags ?? ([] as string[]),
   })
 
   function set(field: string, value: unknown) {
@@ -147,6 +148,15 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
       form.secondary_categories.includes(cat)
         ? form.secondary_categories.filter(c => c !== cat)
         : [...form.secondary_categories, cat]
+    )
+  }
+
+  function toggleMoodTag(mood: string) {
+    set(
+      'mood_tags',
+      form.mood_tags.includes(mood)
+        ? form.mood_tags.filter(m => m !== mood)
+        : [...form.mood_tags, mood]
     )
   }
 
@@ -461,6 +471,7 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
         is_featured:         form.is_featured,
         is_active:           form.is_active,
         is_boat_activity:    form.is_boat_activity,
+        mood_tags:           form.mood_tags.length > 0 ? form.mood_tags : [],
       }
       await onSave(payload)
     } catch (err) {
@@ -577,6 +588,26 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
                         {label}
                       </button>
                     ))}
+                </div>
+              </div>
+              <div className="col-span-2">
+                <label className={LABEL}>Mood Tags</label>
+                <p className="text-[11px] text-tx-light mb-2">Select all moods that apply to this activity</p>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(MOOD_LABELS).map(([key, label]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => toggleMoodTag(key)}
+                      className={`px-3 py-1.5 rounded-sm text-xs font-semibold border transition-colors ${
+                        form.mood_tags.includes(key)
+                          ? 'bg-navy text-white border-navy'
+                          : 'bg-white text-tx-mid border-border hover:border-navy/40'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>

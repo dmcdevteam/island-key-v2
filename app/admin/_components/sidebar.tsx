@@ -39,12 +39,13 @@ const TRANSFERS_SUBNAV = [
 ]
 
 const STANDALONE_LINKS = [
-  { href: '/admin/enquiries',  label: 'All Enquiries' },
-  { href: '/admin/deals',      label: 'Deals' },
-  { href: '/admin/events',     label: 'Events' },
-  { href: '/admin/articles',   label: 'Articles' },
-  { href: '/admin/info',       label: 'Useful Info' },
-  { href: '/admin/settings',   label: 'Settings' },
+  { href: '/admin/enquiries',      label: 'All Enquiries' },
+  { href: '/admin/deals',          label: 'Deals' },
+  { href: '/admin/notifications',  label: 'Notifications' },
+  { href: '/admin/events',         label: 'Events' },
+  { href: '/admin/articles',       label: 'Articles' },
+  { href: '/admin/info',           label: 'Useful Info' },
+  { href: '/admin/settings',       label: 'Settings' },
 ]
 
 type NavCounts = {
