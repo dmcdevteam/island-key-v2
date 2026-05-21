@@ -76,6 +76,41 @@ function GroupLabel({ label }: { label: string }) {
   )
 }
 
+function WeatherAlertButton() {
+  const [status, setStatus] = useState<'idle' | 'loading' | 'sent' | 'skipped' | 'error'>('idle')
+
+  async function handleClick() {
+    setStatus('loading')
+    try {
+      const res = await fetch('/api/admin/weather-alert-test', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) { setStatus('error'); return }
+      setStatus(data.sent ? 'sent' : 'skipped')
+    } catch {
+      setStatus('error')
+    }
+    setTimeout(() => setStatus('idle'), 4000)
+  }
+
+  const label =
+    status === 'loading' ? 'Sending…' :
+    status === 'sent'    ? 'Alert sent ✓' :
+    status === 'skipped' ? 'No alert needed ✓' :
+    status === 'error'   ? 'Error — check logs' :
+    '⛅ Test Weather Alert'
+
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      disabled={status === 'loading'}
+      className="w-full text-left px-3 py-2 text-[12px] font-medium text-white/30 hover:text-white/60 hover:bg-white/5 rounded transition-colors disabled:opacity-50"
+    >
+      {label}
+    </button>
+  )
+}
+
 function NavContent({ onNavClick }: { onNavClick?: () => void }) {
   const pathname = usePathname()
   const [counts, setCounts]               = useState<NavCounts>(EMPTY_COUNTS)
@@ -219,6 +254,7 @@ function NavContent({ onNavClick }: { onNavClick?: () => void }) {
 
       {/* Footer: live app link + logout */}
       <div className="px-2.5 pb-4 pt-2 border-t border-white/10 flex-shrink-0 space-y-0.5">
+        <WeatherAlertButton />
         <a
           href="https://app.islandkey.gr"
           target="_blank"
