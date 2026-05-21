@@ -177,7 +177,7 @@ function ResultsContent() {
   function getReturnPrice(slug: VehicleSlug): number {
     const outbound = getPrice(slug);
     if (returnPricing.mode === 'discount') {
-      return Math.round(outbound * returnPricing.discount_percent / 100);
+      return Math.round(outbound * (1 - returnPricing.discount_percent / 100));
     }
     return outbound;
   }

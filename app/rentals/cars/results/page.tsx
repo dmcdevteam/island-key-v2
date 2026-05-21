@@ -61,7 +61,7 @@ type FilterState = {
 
 const CTA_LABELS: Record<string, string> = {
   car:          'Reserve This Car →',
-  atv_motorbike: 'Reserve This Vehicle →',
+  atv_motorbike: 'Check Availability →',
   bike_ebike:   'Reserve This Bike →',
   boat:         'Reserve This Boat →',
 }

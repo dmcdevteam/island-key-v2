@@ -26,12 +26,12 @@ export async function GET(request: Request) {
   let query = supabase
     .from('rentals')
     .select(COLS)
-    .eq('type', type)
     .eq('is_active', true)
     .order('sort_order', { ascending: true })
     .order('price_per_day', { ascending: true })
 
   if (id)           query = query.eq('id', id)
+  else              query = query.eq('type', type)
   if (car_class)    query = query.eq('car_class', car_class)
   if (zero_deposit === 'true') query = query.eq('zero_deposit', true)
   if (transmission) query = query.eq('transmission', transmission)
