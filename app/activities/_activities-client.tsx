@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { BottomNav } from '@/components/ui/bottom-nav';
 import { CategoryChip, ActivityCard } from '@/components/ui/components';
 import { ProfileAvatar } from '@/app/_components/profile-avatar';
 import { CATEGORY_LABELS, MOOD_LABELS, getSession } from '@/lib/utils';
+import { getActivitySuitability, type WeatherData } from '@/lib/weather-suitability';
 import type { Activity } from '@/lib/types';
 
 const REGIONS = [
@@ -22,6 +23,14 @@ export default function ActivitiesClient({ initialActivities }: { initialActivit
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
   const [activeRegion] = useState(session?.region ?? 'all');
+  const [weather, setWeather] = useState<WeatherData | null>(null);
+
+  useEffect(() => {
+    fetch('/api/weather/forecast')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data && !data.error) setWeather(data) })
+      .catch(() => { /* fail silently — no dots shown */ })
+  }, []);
 
   function toggleMood(mood: string) {
     setSelectedMoods(prev =>
@@ -99,24 +108,30 @@ export default function ActivitiesClient({ initialActivities }: { initialActivit
       {/* List */}
       <div className="flex-1 overflow-y-auto px-5">
         <div className="flex flex-col gap-2.5">
-          {filtered.map((activity, i) => (
-            <ActivityCard
-              key={activity.id}
-              title={activity.title}
-              description={activity.description}
-              category={activity.category}
-              priceFrom={activity.price_from ?? 0}
-              duration={activity.duration ?? ''}
-              imageUrl={activity.images?.[0] ?? null}
-              focalPoint={activity.focal_x != null && activity.focal_y != null ? { x: activity.focal_x, y: activity.focal_y } : null}
-              externalRating={activity.external_rating}
-              externalRatingCount={activity.external_rating_count}
-              externalRatingSource={activity.external_rating_source}
-              heartItem={{ id: activity.id, type: 'activity', slug: activity.slug, title: activity.title, image: activity.images?.[0] ?? null, price: activity.price_from ? `€${activity.price_from}pp` : null }}
-              priority={i < 2}
-              onClick={() => router.push(`/activities/${activity.slug}`)}
-            />
-          ))}
+          {filtered.map((activity, i) => {
+            const suitability = weather
+              ? getActivitySuitability(activity.category, weather, activity.is_boat_activity)
+              : null
+            return (
+              <ActivityCard
+                key={activity.id}
+                title={activity.title}
+                description={activity.description}
+                category={activity.category}
+                priceFrom={activity.price_from ?? 0}
+                duration={activity.duration ?? ''}
+                imageUrl={activity.images?.[0] ?? null}
+                focalPoint={activity.focal_x != null && activity.focal_y != null ? { x: activity.focal_x, y: activity.focal_y } : null}
+                externalRating={activity.external_rating}
+                externalRatingCount={activity.external_rating_count}
+                externalRatingSource={activity.external_rating_source}
+                heartItem={{ id: activity.id, type: 'activity', slug: activity.slug, title: activity.title, image: activity.images?.[0] ?? null, price: activity.price_from ? `€${activity.price_from}pp` : null }}
+                priority={i < 2}
+                suitability={suitability}
+                onClick={() => router.push(`/activities/${activity.slug}`)}
+              />
+            )
+          })}
           {filtered.length === 0 && (
             <p className="text-center text-tx-light text-sm mt-12">No activities in this category yet.</p>
           )}

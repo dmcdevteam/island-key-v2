@@ -8,6 +8,7 @@ import { useFavourites } from '@/app/_components/favourites-provider';
 import type { FavouriteToggleItem } from '@/app/_components/favourites-provider';
 import { FocalImage } from '@/components/FocalImage';
 import type { FocalPoint } from '@/components/FocalImage';
+import { WeatherDot } from '@/components/ui/weather-dot';
 
 // ─── HEART BUTTON ───
 export function HeartButton({ item, className }: { item: FavouriteToggleItem; className?: string }) {
@@ -164,13 +165,14 @@ interface ActivityCardProps {
   externalRatingSource?: string | null;
   heartItem?: FavouriteToggleItem;
   priority?: boolean;
+  suitability?: { status: 'good' | 'check' | 'affected'; reason: string | null } | null;
   // kept for legacy call sites that still pass these — unused when imageUrl is present
   icon?: string;
   bgGradient?: string;
   onClick?: () => void;
 }
 
-export function ActivityCard({ title, description, category, priceFrom, duration, imageUrl, focalPoint, externalRating, externalRatingCount, externalRatingSource, heartItem, priority, onClick }: ActivityCardProps) {
+export function ActivityCard({ title, description, category, priceFrom, duration, imageUrl, focalPoint, externalRating, externalRatingCount, externalRatingSource, heartItem, priority, suitability, onClick }: ActivityCardProps) {
   const icon = CATEGORY_ICONS[category] ?? '🌟';
   return (
     <div
@@ -191,6 +193,11 @@ export function ActivityCard({ title, description, category, priceFrom, duration
           <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
             <span style={{ fontSize: 28 }}>{icon}</span>
             <span style={{ fontSize: 10, fontWeight: 700, color: '#F5F0E8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{CATEGORY_LABELS[category] ?? category}</span>
+          </div>
+        )}
+        {suitability && suitability.status !== 'good' && (
+          <div className="absolute top-2 left-2 z-10">
+            <WeatherDot status={suitability.status} reason={suitability.reason} />
           </div>
         )}
         {heartItem && (

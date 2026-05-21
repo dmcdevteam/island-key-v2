@@ -8,6 +8,7 @@ import DateRangePicker, { toDate, fromDate } from '@/components/ui/date-range-pi
 import { createClient } from '@/lib/supabase';
 import { FocalImage } from '@/components/FocalImage';
 import type { FocalPoint } from '@/components/FocalImage';
+import { getActivitySuitability, type WeatherData } from '@/lib/weather-suitability';
 import type { Activity } from '@/lib/types';
 
 const CATEGORY_GRADIENTS: Record<string, string> = {
@@ -158,6 +159,14 @@ export default function ActivityDetailPage({ initialActivity }: { initialActivit
   const [enquiryError, setEnquiryError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState(false);
   const [mapImgError, setMapImgError] = useState(false);
+  const [weather, setWeather] = useState<WeatherData | null>(null);
+
+  useEffect(() => {
+    fetch('/api/weather/forecast')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data && !data.error) setWeather(data) })
+      .catch(() => { /* fail silently */ })
+  }, []);
 
   // Read session client-side only (localStorage unavailable during SSR)
   useEffect(() => {
@@ -333,6 +342,19 @@ export default function ActivityDetailPage({ initialActivity }: { initialActivit
           </span>
         </div>
       )}
+
+      {/* Weather notice bar */}
+      {(() => {
+        if (!weather || !activity) return null
+        const s = getActivitySuitability(activity.category, weather, activity.is_boat_activity)
+        if (s.status === 'good') return null
+        const isRed = s.status === 'affected'
+        return (
+          <div className={`px-4 py-2.5 text-[12px] font-medium ${isRed ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600'}`}>
+            {isRed ? '🔴' : '⚠️'} {s.reason} — {isRed ? 'we recommend checking availability' : 'conditions may affect this activity'}
+          </div>
+        )
+      })()}
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto px-5 pt-4 pb-[100px]">
