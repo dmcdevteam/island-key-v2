@@ -287,12 +287,15 @@ export async function runWeatherAlert(): Promise<WeatherAlertResult> {
   let bookings: AffectedBooking[] = []
 
   if (affectedActivityIds.length > 0) {
+    const twoDaysOut = new Date(Date.now() + 2 * 86400_000).toISOString().slice(0, 10)
+
     const { data: rawBookings } = await supabase
       .from('bookings')
       .select('id, confirmation_code, booking_date, pax, guest_id, guest_name, item_title')
       .eq('item_type', 'activity')
       .in('status', ['pending', 'confirmed'])
       .gte('booking_date', todayIso)
+      .lte('booking_date', twoDaysOut)
       .in('item_id', affectedActivityIds)
       .order('booking_date', { ascending: true })
       .limit(20)
