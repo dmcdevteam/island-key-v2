@@ -352,7 +352,7 @@ export async function runWeatherAlert(force = false): Promise<WeatherAlertResult
 
   const { error } = await resend.emails.send({
     from:    'bookings@islandkey.gr',
-    to:      'bookings@islandkey.gr',
+    to:      'dmcdevteam@gmail.com',
     subject,
     html,
   })
