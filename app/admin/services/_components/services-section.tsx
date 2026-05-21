@@ -181,6 +181,7 @@ function ServiceForm({ service, onSave, onClose }: ServiceFormProps) {
               >
                 <option value="in_house">In-House</option>
                 <option value="reservations">Reservations</option>
+                <option value="localize">Localize</option>
               </select>
             </div>
             <div>
@@ -488,7 +489,7 @@ function ServicesTab() {
 interface SubcatFormState {
   label: string
   subcategory: string
-  category: 'in_house' | 'reservations'
+  category: 'in_house' | 'reservations' | 'localize'
   tagline: string
   sort_order: number
 }
@@ -638,11 +639,12 @@ function SubcategoriesTab() {
               <label className={LABEL}>Category *</label>
               <select
                 value={addForm.category}
-                onChange={e => setAddForm(f => ({ ...f, category: e.target.value as 'in_house' | 'reservations' }))}
+                onChange={e => setAddForm(f => ({ ...f, category: e.target.value as 'in_house' | 'reservations' | 'localize' }))}
                 className={SELECT}
               >
                 <option value="in_house">In-House</option>
                 <option value="reservations">Reservations</option>
+                <option value="localize">Localize</option>
               </select>
             </div>
             <div>

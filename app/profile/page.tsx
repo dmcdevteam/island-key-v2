@@ -1,14 +1,107 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { BottomNav } from '@/components/ui/bottom-nav'
-import { getSession } from '@/lib/utils'
+import { getSession, setSession } from '@/lib/utils'
 import { useFavourites } from '@/app/_components/favourites-provider'
 import { VEHICLE_LABELS, type VehicleSlug } from '@/lib/transfers'
 import type { GuestSession } from '@/lib/types'
 import { useEssentialsCart } from '@/lib/essentials-cart'
+
+type Suggestion = { place_id: string; description: string; types: string[] }
+type PlaceResult = { display_name: string; formatted_address: string; place_id: string; lat: number; lng: number }
+
+function AccommodationInput({
+  initialValue,
+  onSelect,
+}: {
+  initialValue: string
+  onSelect: (p: PlaceResult) => void
+}) {
+  const [text, setText] = useState(initialValue)
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([])
+  const [open, setOpen] = useState(false)
+  const [confirmed, setConfirmed] = useState<PlaceResult | null>(null)
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  async function fetchSuggestions(input: string) {
+    if (input.length < 2) { setSuggestions([]); return }
+    try {
+      const res = await fetch(`/api/places/autocomplete?input=${encodeURIComponent(input)}`)
+      const data = await res.json()
+      setSuggestions(Array.isArray(data) ? data : [])
+    } catch { setSuggestions([]) }
+  }
+
+  function handleChange(v: string) {
+    setText(v)
+    setConfirmed(null)
+    if (timer.current) clearTimeout(timer.current)
+    timer.current = setTimeout(() => {
+      fetchSuggestions(v).then(() => setOpen(true))
+    }, 300)
+  }
+
+  async function selectSuggestion(s: Suggestion) {
+    setOpen(false)
+    setSuggestions([])
+    setText(s.description)
+    try {
+      const res = await fetch(`/api/places/details?place_id=${encodeURIComponent(s.place_id)}`)
+      const data = await res.json()
+      if (!data.error) {
+        const result: PlaceResult = {
+          display_name: data.name || s.description,
+          formatted_address: data.formatted_address || s.description,
+          place_id: data.place_id,
+          lat: data.lat,
+          lng: data.lng,
+        }
+        setText(result.display_name)
+        setConfirmed(result)
+        onSelect(result)
+      }
+    } catch { /* keep typed text */ }
+  }
+
+  return (
+    <div className="relative">
+      <input
+        value={text}
+        onChange={e => handleChange(e.target.value)}
+        onFocus={() => suggestions.length > 0 && setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        placeholder="Search for your accommodation…"
+        autoComplete="off"
+        className="w-full px-3 py-2.5 border border-border-light rounded-xl text-sm text-navy bg-white outline-none focus:border-navy/40 transition-colors"
+      />
+      {open && suggestions.length > 0 && (
+        <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-border-light rounded-xl shadow-xl z-50 overflow-hidden">
+          {suggestions.map(s => (
+            <button
+              key={s.place_id}
+              onMouseDown={() => selectSuggestion(s)}
+              className="w-full text-left px-4 py-2.5 text-sm text-navy hover:bg-gray-50 border-b border-gray-50 last:border-0 flex items-start gap-2"
+            >
+              <span className="text-gray-400 flex-shrink-0 mt-px">
+                {s.types.includes('lodging') ? '🏨' : '📍'}
+              </span>
+              <span className="truncate">{s.description}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {confirmed && (
+        <p className="text-[11px] text-teal mt-1.5 flex items-center gap-1">
+          <span>📍</span>
+          <span>{confirmed.formatted_address}</span>
+        </p>
+      )}
+    </div>
+  )
+}
 
 const ITEM_TYPE_LABELS: Record<string, string> = {
   activity: 'Activity',
@@ -55,17 +148,19 @@ function formatPickup(iso: string) {
 
 export default function ProfilePage() {
   const router = useRouter()
-  const [session, setSession] = useState<GuestSession | null>(null)
+  const [session, setSessionState] = useState<GuestSession | null>(null)
   const { favourites, sessionId } = useFavourites()
   const { items: cartItems, cartCount, removeItem: removeCartItem } = useEssentialsCart()
   const [bookings, setBookings] = useState<BookingRow[]>([])
   const [bookingsLoading, setBookingsLoading] = useState(false)
   const [detailsOpen, setDetailsOpen] = useState(false)
+  const [stayOpen, setStayOpen] = useState(false)
+  const [staySaving, setStaySaving] = useState(false)
 
   useEffect(() => {
     const s = getSession()
     if (!s) { router.replace('/splash'); return }
-    setSession(s)
+    setSessionState(s)
 
     if (s.guest_id) {
       setBookingsLoading(true)
@@ -80,6 +175,35 @@ export default function ProfilePage() {
   if (!session) return null
 
   const initial = session.first_name?.charAt(0).toUpperCase() ?? '?'
+
+  async function handleAccommodationSelect(p: PlaceResult) {
+    if (!session) return
+    setStaySaving(true)
+    const updated: GuestSession = {
+      ...session,
+      accommodation_name: p.display_name,
+      accommodation_address: p.formatted_address,
+      lat: p.lat,
+      lng: p.lng,
+      place_id: p.place_id,
+    }
+    setSession(updated)        // persist to localStorage
+    setSessionState(updated)   // update React state
+    if (session.guest_id) {
+      await fetch(`/api/guests/${session.guest_id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          accommodation_name: p.display_name,
+          accommodation_address: p.formatted_address,
+          lat: p.lat,
+          lng: p.lng,
+          place_id: p.place_id,
+        }),
+      }).catch(() => {})
+    }
+    setStaySaving(false)
+  }
 
   function navigateToItem(fav: typeof favourites[0]) {
     const routes: Record<string, string> = {
@@ -152,6 +276,33 @@ export default function ProfilePage() {
               <span className="text-[13px] font-semibold text-navy capitalize">{session.region}</span>
             </div>
           </div>
+        </div>
+
+        {/* Section 1b — Change My Stay */}
+        <div className="mx-5 mb-4 bg-white border border-border-light rounded-sm overflow-hidden">
+          <button
+            onClick={() => setStayOpen(o => !o)}
+            className="w-full px-4 py-3 flex items-center justify-between border-b border-border-light"
+          >
+            <h2 className="text-[11px] font-bold text-tx-mid uppercase tracking-wide">Change My Stay</h2>
+            <span className="text-tx-light text-sm">{stayOpen ? '▲' : '▼'}</span>
+          </button>
+          {stayOpen && (
+            <div className="px-4 py-3 space-y-2">
+              <p className="text-[11px] text-tx-light">Search your accommodation to update your location for transfers and deliveries.</p>
+              <AccommodationInput
+                initialValue={session.accommodation_name ?? session.property_name ?? ''}
+                onSelect={handleAccommodationSelect}
+              />
+              {staySaving && <p className="text-[11px] text-teal">Saving…</p>}
+              {session.accommodation_address && !staySaving && (
+                <p className="text-[11px] text-tx-light flex items-center gap-1">
+                  <span>📍</span>
+                  <span>{session.accommodation_address}</span>
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Section 2 — Saved items */}

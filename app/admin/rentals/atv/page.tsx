@@ -309,25 +309,126 @@ function ATVListingForm({ initial, onClose, onSaved }: { initial: any | null; on
   )
 }
 
+// ── ATV Extras Tab ────────────────────────────────────────────────────────────
+
+function ATVExtrasTab({ extras, onSaved }: { extras: any[]; onSaved: () => void }) {
+  const EMPTY = { name: '', description: '', price: '', sort_order: '0', is_active: true }
+  const [editing, setEditing] = useState<any | null>(null)
+  const [form, setForm] = useState(EMPTY)
+  const [saving, setSaving] = useState(false)
+
+  function openNew() { setForm(EMPTY); setEditing('new') }
+  function openEdit(e: any) {
+    setForm({ name: e.name, description: e.description ?? '', price: e.price != null ? String(e.price) : '', sort_order: String(e.sort_order), is_active: e.is_active })
+    setEditing(e)
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    const payload = { ...form, description: form.description || null, price: form.price ? Number(form.price) : null, sort_order: Number(form.sort_order) }
+    if (editing === 'new') {
+      await fetch('/api/admin/atv-extras', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+    } else {
+      await fetch(`/api/admin/atv-extras/${editing.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+    }
+    setSaving(false); setEditing(null); onSaved()
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm('Delete this ATV extra?')) return
+    await fetch(`/api/admin/atv-extras/${id}`, { method: 'DELETE' })
+    onSaved()
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="font-display text-xl text-navy">ATV Extras</h2>
+        <button onClick={openNew} className="px-4 py-2 bg-navy text-white text-sm font-semibold rounded-sm hover:bg-navy-light">+ Add Extra</button>
+      </div>
+      <div className="bg-white border border-border rounded-sm overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-sand border-b border-border">
+            <tr>
+              <th className="px-4 py-2 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Name</th>
+              <th className="px-4 py-2 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Price</th>
+              <th className="px-4 py-2 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Sort</th>
+              <th className="px-4 py-2 text-left text-[11px] font-bold text-tx-mid uppercase tracking-wide">Active</th>
+              <th className="px-4 py-2" />
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {extras.map(extra => (
+              <tr key={extra.id} className="hover:bg-sand/30">
+                <td className="px-4 py-3 font-medium text-navy">{extra.name}</td>
+                <td className="px-4 py-3 text-tx-mid">{extra.price != null ? `€${Number(extra.price).toFixed(2)}` : '—'}</td>
+                <td className="px-4 py-3 text-tx-mid">{extra.sort_order}</td>
+                <td className="px-4 py-3">
+                  <Toggle checked={extra.is_active} onChange={async () => {
+                    await fetch(`/api/admin/atv-extras/${extra.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_active: !extra.is_active }) })
+                    onSaved()
+                  }} />
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <button onClick={() => openEdit(extra)} className="text-xs text-teal hover:underline mr-3">Edit</button>
+                  <button onClick={() => handleDelete(extra.id)} className="text-xs text-red-500 hover:underline">Delete</button>
+                </td>
+              </tr>
+            ))}
+            {extras.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-tx-light text-sm">No ATV extras yet</td></tr>}
+          </tbody>
+        </table>
+      </div>
+      {editing !== null && (
+        <Drawer title={editing === 'new' ? 'Add ATV Extra' : 'Edit ATV Extra'} onClose={() => setEditing(null)} onSave={handleSave} saving={saving}>
+          <div>
+            <label className={LABEL}>Name *</label>
+            <input className={INPUT} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Helmet (additional)" />
+          </div>
+          <div>
+            <label className={LABEL}>Description</label>
+            <input className={INPUT} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Optional description" />
+          </div>
+          <div>
+            <label className={LABEL}>Price (€)</label>
+            <input className={INPUT} type="number" min="0" step="0.01" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))} placeholder="10.00" />
+          </div>
+          <div>
+            <label className={LABEL}>Sort Order</label>
+            <input className={INPUT} type="number" value={form.sort_order} onChange={e => setForm(f => ({ ...f, sort_order: e.target.value }))} />
+          </div>
+          <div className="flex items-center justify-between">
+            <label className={LABEL}>Active</label>
+            <Toggle checked={form.is_active} onChange={() => setForm(f => ({ ...f, is_active: !f.is_active }))} />
+          </div>
+        </Drawer>
+      )}
+    </div>
+  )
+}
+
 // ── ATVs Page ─────────────────────────────────────────────────────────────────
 
-const TABS = ['Listings', 'Pickup Locations', 'Enquiries']
+const TABS = ['Listings', 'Pickup Locations', 'ATV Extras', 'Enquiries']
 
 export default function ATVPage() {
   const [tab, setTab] = useState(0)
   const [vehicles, setVehicles] = useState<any[]>([])
   const [locations, setLocations] = useState<any[]>([])
+  const [atvExtras, setAtvExtras] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [vehicleForm, setVehicleForm] = useState<any | null | 'new'>(null)
 
   const fetchAll = useCallback(async () => {
     setLoading(true)
-    const [cl, pl] = await Promise.all([
+    const [cl, pl, ae] = await Promise.all([
       fetch('/api/admin/car-listings').then(r => r.json()),
       fetch('/api/admin/rental-pickup-locations').then(r => r.json()),
+      fetch('/api/admin/atv-extras').then(r => r.json()),
     ])
     setVehicles(Array.isArray(cl) ? cl.filter((c: any) => c.type === 'atv_motorbike') : [])
     setLocations(Array.isArray(pl) ? pl.filter((l: any) => (l.vehicle_categories ?? []).includes('atv_motorbike')) : [])
+    setAtvExtras(Array.isArray(ae) ? ae : [])
     setLoading(false)
   }, [])
 
@@ -406,8 +507,13 @@ export default function ATVPage() {
           <PickupLocationsTab locations={locations} onSaved={fetchAll} />
         )}
 
-        {/* Enquiries */}
+        {/* ATV Extras */}
         {!loading && tab === 2 && (
+          <ATVExtrasTab extras={atvExtras} onSaved={fetchAll} />
+        )}
+
+        {/* Enquiries */}
+        {!loading && tab === 3 && (
           <EnquiriesTab itemType="rental" title="ATV & Motorbike Enquiries" />
         )}
 

@@ -19,7 +19,6 @@ export default function ServiceListingsPage() {
 
   const [services,    setServices]    = useState<Service[]>([])
   const [subcatMeta,  setSubcatMeta]  = useState<ServiceSubcategory | null>(null)
-  const [activeType,  setActiveType]  = useState<string | null>(null)
   const [loading,     setLoading]     = useState(true)
 
   useEffect(() => {
@@ -35,16 +34,9 @@ export default function ServiceListingsPage() {
     }).catch(() => setLoading(false))
   }, [subcategoryDb])
 
-  // Derive distinct service_type values from fetched services
-  const serviceTypes = Array.from(
-    new Set(services.map(s => s.service_type).filter((t): t is string => !!t))
-  )
-
-  const filtered = activeType
-    ? services.filter(s => s.service_type === activeType)
-    : services
-
-  const parentPath = categoryParam === 'in-house' ? '/services/in-house' : '/services/reservations'
+  const parentPath = categoryParam === 'in-house' ? '/services/in-house'
+    : categoryParam === 'reservations' ? '/services/reservations'
+    : `/services/${categoryParam}`
 
   return (
     <div className="min-h-screen bg-cream flex flex-col pb-[90px]">
@@ -63,35 +55,6 @@ export default function ServiceListingsPage() {
         </div>
       </div>
 
-      {/* Service type filter chips */}
-      {serviceTypes.length > 0 && (
-        <div className="flex gap-1.5 px-4 pt-3 pb-2 overflow-x-auto no-scrollbar flex-shrink-0">
-          <button
-            onClick={() => setActiveType(null)}
-            className={`px-4 py-2 rounded-full text-[13px] font-semibold transition-all border-[1.5px] flex-shrink-0 ${
-              activeType === null
-                ? 'bg-navy text-white border-navy'
-                : 'bg-white text-tx-mid border-border hover:border-navy/30'
-            }`}
-          >
-            All
-          </button>
-          {serviceTypes.map(t => (
-            <button
-              key={t}
-              onClick={() => setActiveType(prev => prev === t ? null : t)}
-              className={`px-4 py-2 rounded-full text-[13px] font-semibold transition-all border-[1.5px] flex-shrink-0 ${
-                activeType === t
-                  ? 'bg-navy text-white border-navy'
-                  : 'bg-white text-tx-mid border-border hover:border-navy/30'
-              }`}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
-      )}
-
       {/* Service cards */}
       <div className="flex-1 overflow-y-auto px-4 pt-3">
         {loading && (
@@ -100,13 +63,13 @@ export default function ServiceListingsPage() {
           </div>
         )}
 
-        {!loading && filtered.length === 0 && (
+        {!loading && services.length === 0 && (
           <p className="text-sm text-tx-light text-center mt-12">No services in this category yet.</p>
         )}
 
-        {!loading && filtered.length > 0 && (
+        {!loading && services.length > 0 && (
           <div className="flex flex-col gap-4">
-            {filtered.map(s => (
+            {services.map(s => (
               <div
                 key={s.id}
                 className="bg-white rounded-sm border border-border-light overflow-hidden"

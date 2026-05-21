@@ -130,6 +130,24 @@ export default function ServicesPage() {
           <div className="absolute bottom-4 right-4 text-white text-xl">→</div>
         </button>
 
+        <button
+          onClick={() => router.push('/services/localize')}
+          className="relative w-full rounded-2xl overflow-hidden h-[200px] text-left active:scale-[0.98] transition-transform shadow-sm block"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800"
+            alt="Localize"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+          <div className="absolute bottom-0 left-0 right-0 p-4">
+            <p className="font-display text-[22px] font-semibold text-white leading-tight">Localize</p>
+            <p className="text-[13px] text-white/75 mt-1">Shuffle with locals — classes, groups and community experiences</p>
+          </div>
+          <div className="absolute bottom-4 right-4 text-white text-xl">→</div>
+        </button>
+
         {/* Mood results — only shown when a mood is active */}
         {activeMood && (
           <div className="pt-2">

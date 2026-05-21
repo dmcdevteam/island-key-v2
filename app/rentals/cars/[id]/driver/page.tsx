@@ -65,14 +65,28 @@ function DriverContent() {
   const [errors, setErrors] = useState<Partial<DriverForm>>({})
 
   useEffect(() => {
-    Promise.all([
-      fetch(`/api/rentals/cars?id=${id}`).then(r => r.json()),
-      fetch('/api/rentals/car-extras').then(r => r.json()),
-    ]).then(([vData, eData]) => {
-      setVehicle(vData.rental ?? null)
-      setExtras(Array.isArray(eData.extras) ? eData.extras : [])
-      setLoading(false)
-    }).catch(() => setLoading(false))
+    fetch(`/api/rentals/cars?id=${id}`)
+      .then(r => r.json())
+      .then(async (vData) => {
+        const v = vData.rental ?? null
+        setVehicle(v)
+        if (v?.type === 'car') {
+          const eData = await fetch('/api/rentals/car-extras').then(r => r.json())
+          setExtras(Array.isArray(eData.extras) ? eData.extras : [])
+        } else if (v?.type === 'atv_motorbike') {
+          const eData = await fetch('/api/rentals/atv-extras').then(r => r.json())
+          const mapped: CarRentalExtra[] = (Array.isArray(eData.extras) ? eData.extras : []).map((e: any) => ({
+            id: e.id, name: e.name, description: e.description ?? null,
+            price: e.price ?? 0, price_type: 'per_rental' as const,
+            is_insurance: false, insurance_description: null,
+            is_free: false, is_active: e.is_active, sort_order: e.sort_order,
+            created_at: e.created_at ?? '',
+          }))
+          setExtras(mapped)
+        }
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
   }, [id])
 
   function setField(k: keyof DriverForm, v: string) {
@@ -164,13 +178,14 @@ function DriverContent() {
     </div>
   )
 
+  const isAtv = vehicle.type === 'atv_motorbike'
   const features = vehicle?.features ?? null
   const standardExtras = extras.filter(e => {
     if (e.is_insurance) return false
     if (features?.free_driver && e.name === 'Additional Driver') return false
     return true
   })
-  const insuranceExtra  = extras.find(e => e.is_insurance)
+  const insuranceExtra = isAtv ? undefined : extras.find(e => e.is_insurance)
 
   return (
     <div className="min-h-screen bg-cream flex flex-col pb-[140px]">
@@ -252,49 +267,51 @@ function DriverContent() {
         </div>
 
         {/* Extras */}
-        <div className="bg-white rounded-2xl border border-border-light p-5 shadow-sm">
-          <h2 className="font-display text-lg text-navy mb-1">Personalise Your Ride</h2>
-          <p className="text-sm text-tx-light mb-4">Enhance your journey with these optional extras.</p>
+        {(standardExtras.length > 0 || insuranceExtra) && (
+          <div className="bg-white rounded-2xl border border-border-light p-5 shadow-sm">
+            <h2 className="font-display text-lg text-navy mb-1">Personalise Your Ride</h2>
+            <p className="text-sm text-tx-light mb-4">Enhance your journey with these optional extras.</p>
 
-          <div className="space-y-3">
-            {standardExtras.map(extra => (
-              <div key={extra.id} className="flex items-center justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-navy">{extra.name}</p>
-                  <p className={`text-[11px] ${extra.is_free ? 'text-teal font-semibold' : 'text-tx-light'}`}>
-                    {extra.is_free ? 'Free' : (extra.price_type === 'per_day'
-                      ? `€${extra.price}/day (€${(extra.price * days).toFixed(2)} total)`
-                      : `€${extra.price}/rental`)}
-                  </p>
-                </div>
-                <Toggle checked={selectedExtras.has(extra.id)} onChange={() => toggleExtra(extra.id)} />
-              </div>
-            ))}
-          </div>
-
-          {insuranceExtra && (
-            <>
-              <div className="border-t border-border-light my-4" />
-              <div>
-                <p className="text-[11px] font-bold text-tx-mid uppercase tracking-widest mb-1">Upgrade your insurance plan</p>
-                <p className="text-[11px] text-tx-light mb-3">Optional — standard insurance is included</p>
-                <div className="flex items-start justify-between gap-3">
+            <div className="space-y-3">
+              {standardExtras.map(extra => (
+                <div key={extra.id} className="flex items-center justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-teal text-base">🛡</span>
-                      <p className="text-sm font-semibold text-navy">{insuranceExtra.name}</p>
-                    </div>
-                    {insuranceExtra.insurance_description && (
-                      <p className="text-[11px] text-tx-light leading-relaxed mb-1">{insuranceExtra.insurance_description}</p>
-                    )}
-                    <p className="text-[11px] text-tx-mid font-semibold">€{insuranceExtra.price}/rental</p>
+                    <p className="text-sm font-semibold text-navy">{extra.name}</p>
+                    <p className={`text-[11px] ${extra.is_free ? 'text-teal font-semibold' : 'text-tx-light'}`}>
+                      {extra.is_free ? 'Free' : (extra.price_type === 'per_day'
+                        ? `€${extra.price}/day (€${(extra.price * days).toFixed(2)} total)`
+                        : `€${extra.price}/rental`)}
+                    </p>
                   </div>
-                  <Toggle checked={selectedExtras.has(insuranceExtra.id)} onChange={() => toggleExtra(insuranceExtra.id)} />
+                  <Toggle checked={selectedExtras.has(extra.id)} onChange={() => toggleExtra(extra.id)} />
                 </div>
-              </div>
-            </>
-          )}
-        </div>
+              ))}
+            </div>
+
+            {insuranceExtra && (
+              <>
+                <div className="border-t border-border-light my-4" />
+                <div>
+                  <p className="text-[11px] font-bold text-tx-mid uppercase tracking-widest mb-1">Upgrade your insurance plan</p>
+                  <p className="text-[11px] text-tx-light mb-3">Optional — standard insurance is included</p>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-teal text-base">🛡</span>
+                        <p className="text-sm font-semibold text-navy">{insuranceExtra.name}</p>
+                      </div>
+                      {insuranceExtra.insurance_description && (
+                        <p className="text-[11px] text-tx-light leading-relaxed mb-1">{insuranceExtra.insurance_description}</p>
+                      )}
+                      <p className="text-[11px] text-tx-mid font-semibold">€{insuranceExtra.price}/rental</p>
+                    </div>
+                    <Toggle checked={selectedExtras.has(insuranceExtra.id)} onChange={() => toggleExtra(insuranceExtra.id)} />
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Sticky price summary bar */}

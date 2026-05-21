@@ -649,7 +649,7 @@ export interface Service {
   slug: string
   short_description: string | null
   description: string | null
-  category: 'in_house' | 'reservations'
+  category: 'in_house' | 'reservations' | 'localize'
   subcategory: string
   service_type: string | null
   price_from: number | null
@@ -679,7 +679,7 @@ export interface ServiceSubcategory {
   subcategory: string
   label: string
   tagline: string | null
-  category: 'in_house' | 'reservations'
+  category: 'in_house' | 'reservations' | 'localize'
   image_url: string | null
   image_wide: string | null
   sort_order: number
@@ -698,6 +698,12 @@ export interface GuestSession {
   group_type: GroupType;
   whatsapp_opted_in: boolean;
   whatsapp_number: string | null;
+  // Accommodation location (set via Places autocomplete on profile page)
+  accommodation_name?: string | null;
+  accommodation_address?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  place_id?: string | null;
 }
 
 // ─── QR params decoded from URL ───
