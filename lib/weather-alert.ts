@@ -302,9 +302,9 @@ export async function runWeatherAlert(): Promise<WeatherAlertResult> {
 
     if (rawBookings && rawBookings.length > 0) {
       // Fetch WhatsApp numbers from guests
-      const guestIds = [...new Set(
+      const guestIds = Array.from(new Set(
         rawBookings.map((b: { guest_id: string | null }) => b.guest_id).filter(Boolean)
-      )] as string[]
+      )) as string[]
 
       const whatsappMap: Record<string, string | null> = {}
 
