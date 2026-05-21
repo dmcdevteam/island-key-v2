@@ -82,7 +82,7 @@ function WeatherAlertButton() {
   async function handleClick() {
     setStatus('loading')
     try {
-      const res = await fetch('/api/admin/weather-alert-test', { method: 'POST' })
+      const res = await fetch('/api/admin/weather-alert-test?force=true', { method: 'POST' })
       const data = await res.json()
       if (!res.ok) { setStatus('error'); return }
       setStatus(data.sent ? 'sent' : 'skipped')

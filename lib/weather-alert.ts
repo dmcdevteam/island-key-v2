@@ -224,7 +224,7 @@ function buildEmailHtml(
 
 // ─── Main export ────────────────────────────────────────────────────────────
 
-export async function runWeatherAlert(): Promise<WeatherAlertResult> {
+export async function runWeatherAlert(force = false): Promise<WeatherAlertResult> {
   const resend    = new Resend(process.env.RESEND_API_KEY)
   const supabase  = createServerClient()
   const todayIso  = new Date().toISOString().slice(0, 10)
@@ -242,7 +242,7 @@ export async function runWeatherAlert(): Promise<WeatherAlertResult> {
   const hasRed   = sea.status === 'affected' || outdoor.status === 'affected' || general.status === 'affected'
   const windAlert = today.wind_speed > 25
 
-  if (!hasRed && !(windAlert)) {
+  if (!force && !hasRed && !(windAlert)) {
     // Check if any amber + sea booking exists for wind alert condition
     const hasAmber = sea.status === 'check' || outdoor.status === 'check' || general.status === 'check'
     if (!hasAmber) {
@@ -329,8 +329,8 @@ export async function runWeatherAlert(): Promise<WeatherAlertResult> {
     }
   }
 
-  // 7 — Final send gate: if only amber with no bookings, skip
-  if (!hasRed && bookings.length === 0) {
+  // 7 — Final send gate: if only amber with no bookings, skip (unless forced)
+  if (!force && !hasRed && bookings.length === 0) {
     return { sent: false, reason: 'Amber conditions but no upcoming affected bookings', bookingCount: 0 }
   }
 
