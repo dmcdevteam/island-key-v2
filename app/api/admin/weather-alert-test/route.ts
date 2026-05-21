@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { isAdminAuthed } from '../../_lib/auth'
+import { isAdminAuthed } from '../_lib/auth'
 import { runWeatherAlert } from '@/lib/weather-alert'
 
 export const dynamic = 'force-dynamic'
