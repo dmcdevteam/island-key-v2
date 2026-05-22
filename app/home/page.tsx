@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { getSession } from '@/lib/utils';
 import { BottomNav } from '@/components/ui/bottom-nav';
 import { SectionHeader, ActivityMiniCard, ArticleCard } from '@/components/ui/components';
-import { ProfileAvatar } from '@/app/_components/profile-avatar';
+import { GlobalSearch } from '@/components/ui/global-search';
 import { createClient } from '@/lib/supabase';
 import type { GuestSession, Activity, DealFull, ArticleFull, EventFull } from '@/lib/types';
 
@@ -132,6 +132,29 @@ const EVENT_ICONS: Record<string, string> = {
   cultural: '🏛️', nightlife: '🌙', family: '👨‍👩‍👧', other: '📅',
 };
 
+function DealCountdown({ validUntil }: { validUntil: string | null }) {
+  const [timeLeft, setTimeLeft] = useState('')
+  useEffect(() => {
+    function calc() {
+      if (!validUntil) { setTimeLeft(''); return }
+      const diff = new Date(validUntil).getTime() - Date.now()
+      if (diff <= 0) { setTimeLeft('Expired'); return }
+      const h = Math.floor(diff / 3600000)
+      const m = Math.floor((diff % 3600000) / 60000)
+      const s = Math.floor((diff % 60000) / 1000)
+      if (h >= 48) {
+        setTimeLeft(`${Math.floor(h / 24)}d ${h % 24}h`)
+      } else {
+        setTimeLeft(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`)
+      }
+    }
+    calc()
+    const interval = setInterval(calc, 1000)
+    return () => clearInterval(interval)
+  }, [validUntil])
+  return <>{timeLeft}</>
+}
+
 function formatEventWhen(startDate: string): string {
   const today = new Date().toISOString().slice(0, 10);
   const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
@@ -161,11 +184,24 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [, setTick] = useState(0);
   const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
     const s = getSession();
     if (!s) { router.replace('/splash'); return; }
     setSession(s);
+    if (s.guest_id) {
+      const params = new URLSearchParams({ guest_id: s.guest_id });
+      if (s.property_id) params.set('property_id', s.property_id);
+      fetch(`/api/notifications?${params}`)
+        .then(r => r.json())
+        .then(data => {
+          const notifs = Array.isArray(data.notifications) ? data.notifications : [];
+          setUnreadCount(notifs.filter((n: any) => !n.is_read).length);
+        })
+        .catch(() => {});
+    }
   }, [router]);
 
   useEffect(() => {
@@ -272,7 +308,27 @@ export default function HomePage() {
             Hello, <span className="font-semibold">{session.first_name}</span> 👋
           </h1>
         </div>
-        <ProfileAvatar />
+        <Link href="/notifications" className="relative inline-flex active:scale-90 transition-transform">
+          <span className="text-[22px] opacity-70">🔔</span>
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-0.5 bg-teal text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
+        </Link>
+      </div>
+
+      {/* Search bar */}
+      <div className="px-5 pb-3">
+        <button
+          onClick={() => setSearchOpen(true)}
+          className="w-full flex items-center gap-3 bg-white border border-border-light rounded-2xl px-4 py-3 shadow-sm text-left"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+          </svg>
+          <span className="text-[15px] font-normal italic text-[#9CA3AF] flex-1">What are you looking for today?</span>
+        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto">
@@ -351,74 +407,54 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* What's happening today — hidden only when fetch completes with no results */}
-        {eventsStatus !== 'empty' && (
-          <>
-            <SectionHeader title="What&apos;s happening today" linkText="See all →" href="/events" />
-            {eventsStatus === 'loading' ? (
-              <div className="mx-5 mb-5 space-y-2">
-                {Array.from({ length: 2 }).map((_, i) => (
-                  <div key={i} className="h-[52px] rounded-sm bg-navy/5 animate-pulse" />
-                ))}
-              </div>
-            ) : (
-              <div className="mb-5">
-                {data.events.map(ev => (
-                  <div
-                    key={ev.id}
-                    onClick={() => router.push(`/events/${ev.slug}`)}
-                    className="mx-5 mb-2.5 flex gap-2.5 p-2.5 px-3 bg-white rounded-sm border border-border-light items-center cursor-pointer active:bg-sand"
-                  >
-                    <span className="text-lg">{EVENT_ICONS[ev.category ?? 'other'] ?? '📅'}</span>
-                    <div className="flex-1">
-                      <p className="text-xs font-semibold text-navy">{ev.title}</p>
-                      <p className="text-[10px] text-tx-light">
-                        {formatEventWhen(ev.start_date)}
-                        {ev.location_name ? ` · ${ev.location_name}` : ''}
-                        {ev.is_free ? ' · Free entry' : ''}
-                      </p>
-                    </div>
-                    <span className="text-[11px] text-teal">→</span>
+        {/* Deals banner — shown when active deals exist */}
+        {dealsStatus === 'data' && data.deals.length > 0 && (() => {
+          const deal = data.deals[0]
+          const img = deal.images?.[0] ?? null
+          return (
+            <button
+              onClick={() => router.push('/deals')}
+              className="mx-4 mb-5 w-[calc(100%-32px)] rounded-2xl overflow-hidden text-left active:scale-[0.98] transition-transform shadow-md block"
+            >
+              <div className="relative h-[160px]">
+                {img ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={img} alt={deal.title} className="absolute inset-0 w-full h-full object-cover" />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-br from-terra to-navy" />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                {(deal.savings_pct ?? 0) > 0 && (
+                  <div className="absolute top-3 right-3 bg-terra text-white text-[11px] font-bold px-2.5 py-1 rounded-full">
+                    -{deal.savings_pct}%
                   </div>
-                ))}
+                )}
+                <div className="absolute bottom-0 left-0 right-0 p-4">
+                  <p className="text-[10px] font-bold text-white/70 uppercase tracking-widest mb-0.5">⚡ Limited Deal</p>
+                  <p className="font-display text-[17px] font-semibold text-white leading-tight">{deal.title}</p>
+                  {(deal.original_price || deal.deal_price) && (
+                    <div className="flex items-center gap-2 mt-1.5">
+                      {deal.original_price && (
+                        <span className="text-[12px] text-white/50 line-through">€{deal.original_price}</span>
+                      )}
+                      {deal.deal_price && (
+                        <span className="text-[14px] font-bold text-white">€{deal.deal_price}</span>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
-          </>
-        )}
-
-        {/* Events hero card — always visible */}
-        <Link
-          href="/events"
-          className="mx-4 mb-5 block w-[calc(100%-32px)] text-left active:opacity-90 transition-opacity"
-          style={{ borderRadius: 16, overflow: 'hidden', position: 'relative', height: 160 }}
-        >
-          <img
-            src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=800"
-            alt="Events in Chania"
-            loading="eager"
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-          />
-          {/* Dark gradient overlay */}
-          <div
-            style={{
-              position: 'absolute', inset: 0,
-              background: 'linear-gradient(to bottom, transparent 20%, rgba(27,45,79,0.75) 100%)',
-            }}
-          />
-          {/* Text — bottom-left */}
-          <div style={{ position: 'absolute', bottom: 14, left: 16, right: 48 }}>
-            <p style={{ fontSize: 10, color: 'white', letterSpacing: '0.15em', fontWeight: 600, textTransform: 'uppercase', marginBottom: 2 }}>
-              Events &amp; Culture
-            </p>
-            <p className="font-display" style={{ fontSize: 18, color: 'white', fontWeight: 600, lineHeight: 1.2 }}>
-              See what&apos;s on in Chania
-            </p>
-          </div>
-          {/* Arrow — bottom-right */}
-          <div style={{ position: 'absolute', bottom: 14, right: 16, fontSize: 20, color: 'white' }}>
-            →
-          </div>
-        </Link>
+              {deal.valid_until && (
+                <div className="bg-terra/10 border-t border-terra/20 px-4 py-2.5 flex items-center justify-between">
+                  <span className="text-[11px] text-terra font-semibold">Expires in</span>
+                  <span className="text-[11px] font-bold text-terra font-mono">
+                    <DealCountdown validUntil={deal.valid_until} />
+                  </span>
+                </div>
+              )}
+            </button>
+          )
+        })()}
 
         {/* Recommended for you */}
         <SectionHeader title="Recommended for you" linkText="See all →" href="/activities" />
@@ -575,6 +611,73 @@ export default function HomePage() {
           </div>
         </Link>
 
+        {/* What's happening today — hidden only when fetch completes with no results */}
+        {eventsStatus !== 'empty' && (
+          <>
+            <SectionHeader title="What&apos;s happening today" linkText="See all →" href="/events" />
+            {eventsStatus === 'loading' ? (
+              <div className="mx-5 mb-5 space-y-2">
+                {Array.from({ length: 2 }).map((_, i) => (
+                  <div key={i} className="h-[52px] rounded-sm bg-navy/5 animate-pulse" />
+                ))}
+              </div>
+            ) : (
+              <div className="mb-5">
+                {data.events.map(ev => (
+                  <div
+                    key={ev.id}
+                    onClick={() => router.push(`/events/${ev.slug}`)}
+                    className="mx-5 mb-2.5 flex gap-2.5 p-2.5 px-3 bg-white rounded-sm border border-border-light items-center cursor-pointer active:bg-sand"
+                  >
+                    <span className="text-lg">{EVENT_ICONS[ev.category ?? 'other'] ?? '📅'}</span>
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-navy">{ev.title}</p>
+                      <p className="text-[10px] text-tx-light">
+                        {formatEventWhen(ev.start_date)}
+                        {ev.location_name ? ` · ${ev.location_name}` : ''}
+                        {ev.is_free ? ' · Free entry' : ''}
+                      </p>
+                    </div>
+                    <span className="text-[11px] text-teal">→</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Events hero card — always visible */}
+        <Link
+          href="/events"
+          className="mx-4 mb-5 block w-[calc(100%-32px)] text-left active:opacity-90 transition-opacity"
+          style={{ borderRadius: 16, overflow: 'hidden', position: 'relative', height: 160 }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=800"
+            alt="Events in Chania"
+            loading="lazy"
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
+          <div
+            style={{
+              position: 'absolute', inset: 0,
+              background: 'linear-gradient(to bottom, transparent 20%, rgba(27,45,79,0.75) 100%)',
+            }}
+          />
+          <div style={{ position: 'absolute', bottom: 14, left: 16, right: 48 }}>
+            <p style={{ fontSize: 10, color: 'white', letterSpacing: '0.15em', fontWeight: 600, textTransform: 'uppercase', marginBottom: 2 }}>
+              Events &amp; Culture
+            </p>
+            <p className="font-display" style={{ fontSize: 18, color: 'white', fontWeight: 600, lineHeight: 1.2 }}>
+              See what&apos;s on in Chania
+            </p>
+          </div>
+          <div style={{ position: 'absolute', bottom: 14, right: 16, fontSize: 20, color: 'white' }}>
+            →
+          </div>
+        </Link>
+
         {/* Local Insights */}
         <SectionHeader title="Local Insights" linkText="Read more →" href="/insights" />
         {loading ? (
@@ -608,57 +711,10 @@ export default function HomePage() {
 
       </div>
 
-      {/* Deals floating button — visible only when active deals exist */}
-      {dealsStatus === 'data' && data.deals.length > 0 && (
-        <div style={{
-          position: 'fixed',
-          bottom: 90,
-          right: 16,
-          zIndex: 45,
-        }}>
-          <button
-            onClick={() => router.push('/deals')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              background: '#D4854A',
-              borderRadius: 24,
-              padding: '10px 16px',
-              border: 'none',
-              boxShadow: '0 4px 16px rgba(212,133,74,0.40)',
-              cursor: 'pointer',
-              position: 'relative',
-            }}
-          >
-            <span style={{ fontSize: 16 }}>⚡</span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>Deals</span>
-            {data.deals.length > 1 && (
-              <span style={{
-                position: 'absolute',
-                top: -6,
-                right: -6,
-                width: 20,
-                height: 20,
-                borderRadius: '50%',
-                background: '#1B2D4F',
-                color: 'white',
-                fontSize: 11,
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-                {data.deals.length}
-              </span>
-            )}
-          </button>
-        </div>
-      )}
-
       {/* Prefetch hint — loads /activities in background while user reads Home */}
       <Link href="/activities" prefetch={true} className="hidden" aria-hidden="true" tabIndex={-1} />
 
+      {searchOpen && <GlobalSearch onClose={() => setSearchOpen(false)} />}
       <BottomNav />
     </div>
   );

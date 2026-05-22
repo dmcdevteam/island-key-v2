@@ -40,7 +40,7 @@ function emptyForm(): FormState {
     title: '', slug: '', description: null, short_description: null,
     provider_id: null, property_id: null, category: null,
     discount_type: null, discount_value: null, discount_label: null,
-    original_price: null, deal_price: null, currency: 'EUR',
+    savings_pct: null, original_price: null, deal_price: null, currency: 'EUR',
     code: null, terms: null,
     valid_from: new Date().toISOString().slice(0, 16),
     valid_until: null, max_redemptions: null,
@@ -70,8 +70,9 @@ function DealForm({ deal, providers, properties, onSave, onClose }: DealFormProp
     short_description: deal.short_description, provider_id: deal.provider_id,
     property_id: deal.property_id, category: deal.category,
     discount_type: deal.discount_type, discount_value: deal.discount_value,
-    discount_label: deal.discount_label, original_price: deal.original_price,
-    deal_price: deal.deal_price, currency: deal.currency, code: deal.code,
+    discount_label: deal.discount_label, savings_pct: deal.savings_pct ?? null,
+    original_price: deal.original_price, deal_price: deal.deal_price,
+    currency: deal.currency, code: deal.code,
     terms: deal.terms, valid_from: deal.valid_from, valid_until: deal.valid_until,
     max_redemptions: deal.max_redemptions, region: deal.region,
     tier_visibility: deal.tier_visibility, images: deal.images,
@@ -136,6 +137,7 @@ function DealForm({ deal, providers, properties, onSave, onClose }: DealFormProp
         ...form,
         images: images.length ? images : null,
         discount_value: form.discount_value ? Number(form.discount_value) : null,
+        savings_pct: form.savings_pct ? Number(form.savings_pct) : null,
         original_price: form.original_price ? Number(form.original_price) : null,
         deal_price: form.deal_price ? Number(form.deal_price) : null,
         max_redemptions: form.max_redemptions ? Number(form.max_redemptions) : null,
@@ -252,6 +254,10 @@ function DealForm({ deal, providers, properties, onSave, onClose }: DealFormProp
               <div>
                 <label className={LABEL}>Deal Price</label>
                 <input type="number" step="0.01" className={INPUT} value={form.deal_price ?? ''} onChange={e => set('deal_price', e.target.value ? Number(e.target.value) : null)} />
+              </div>
+              <div>
+                <label className={LABEL}>Savings % <span className="font-normal normal-case text-tx-light">(banner badge)</span></label>
+                <input type="number" min="0" max="100" className={INPUT} value={form.savings_pct ?? ''} onChange={e => set('savings_pct', e.target.value ? Number(e.target.value) : null)} placeholder="e.g. 20" />
               </div>
               <div>
                 <label className={LABEL}>Currency</label>

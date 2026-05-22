@@ -355,6 +355,7 @@ export interface DealFull {
   discount_type: string | null;
   discount_value: number | null;
   discount_label: string | null;
+  savings_pct: number | null;
   original_price: number | null;
   deal_price: number | null;
   currency: string;
