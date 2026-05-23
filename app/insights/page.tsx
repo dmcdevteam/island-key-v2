@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { BottomNav } from '@/components/ui/bottom-nav'
 import { CategoryChip, HeartButton } from '@/components/ui/components'
 import { FocalImage } from '@/components/FocalImage'
-import { ProfileAvatar } from '@/app/_components/profile-avatar'
 import type { ArticleFull } from '@/lib/types'
 
 const CATEGORIES = [
@@ -68,7 +67,6 @@ export default function InsightsPage() {
             <img src="/logo_icon_navy.png" alt="Island Key" style={{ height: 24, width: 'auto' }} />
             <h1 className="font-display text-xl font-medium text-navy">Local Insights</h1>
           </div>
-          <ProfileAvatar />
         </div>
         <p className="text-xs text-tx-light mt-0.5">Stories, guides & tips from the island</p>
       </div>

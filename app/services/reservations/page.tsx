@@ -29,7 +29,7 @@ export default function ReservationsSubcategoriesPage() {
         <div className="flex items-center gap-3">
           <button onClick={() => router.push('/services')} className="text-navy text-sm">←</button>
           <div>
-            <h1 className="font-display text-lg font-medium text-navy leading-tight">Reservations &amp; Access</h1>
+            <h1 className="font-display text-lg font-medium text-navy leading-tight">Restaurants, Access &amp; Event Planning</h1>
             <p className="text-[11px] text-tx-light">The best seats, tables and stages in Crete</p>
           </div>
         </div>

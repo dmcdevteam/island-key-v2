@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { BottomNav } from '@/components/ui/bottom-nav'
-import { ProfileAvatar } from '@/app/_components/profile-avatar'
+import { ServicesHeroBanner } from '@/components/ui/services-hero-banner'
 import type { Service } from '@/lib/types'
 
 const MOODS = [
@@ -57,7 +57,6 @@ export default function ServicesPage() {
             <img src="/logo_icon_navy.png" alt="Island Key" style={{ height: 24, width: 'auto' }} />
             <h1 className="font-display text-xl font-medium text-navy">Services</h1>
           </div>
-          <ProfileAvatar />
         </div>
         <p className="text-xs text-tx-light mt-0.5">In-house professionals and curated access — delivered to your villa</p>
       </div>
@@ -92,8 +91,11 @@ export default function ServicesPage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-5 space-y-3">
-        {/* Two main category cards */}
+      {/* Hero banner */}
+      <ServicesHeroBanner />
+
+      <div className="flex-1 overflow-y-auto px-5 space-y-3 pt-4">
+        {/* Three category cards */}
         <button
           onClick={() => router.push('/services/in-house')}
           className="relative w-full rounded-2xl overflow-hidden h-[200px] text-left active:scale-[0.98] transition-transform shadow-sm block"
@@ -119,12 +121,12 @@ export default function ServicesPage() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800"
-            alt="Reservations & Access"
+            alt="Restaurants, Access & Event Planning"
             className="absolute inset-0 w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-4">
-            <p className="font-display text-[22px] font-semibold text-white leading-tight">Reservations &amp; Access</p>
+            <p className="font-display text-[22px] font-semibold text-white leading-tight">Restaurants, Access &amp; Event Planning</p>
             <p className="text-[13px] text-white/75 mt-1">The best seats, tables and stages in Crete</p>
           </div>
           <div className="absolute bottom-4 right-4 text-white text-xl">→</div>

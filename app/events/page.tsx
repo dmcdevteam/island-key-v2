@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { BottomNav } from '@/components/ui/bottom-nav'
 import { HeartButton } from '@/components/ui/components'
-import { ProfileAvatar } from '@/app/_components/profile-avatar'
 import type { EventFull } from '@/lib/types'
 import { clsx } from 'clsx'
 
@@ -185,7 +184,6 @@ export default function EventsPage() {
             <img src="/logo_icon_navy.png" alt="Island Key" style={{ height: 24, width: 'auto' }} />
             <h1 className="font-display text-xl font-medium text-navy">What&apos;s Happening</h1>
           </div>
-          <ProfileAvatar />
         </div>
         <p className="text-xs text-tx-light mt-0.5">Curated events across Crete</p>
       </div>

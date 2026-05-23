@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { getSession } from '@/lib/utils'
 import { useEssentialsCart } from '@/lib/essentials-cart'
-import { GlobalSearch } from '@/components/ui/global-search'
 
 // ── Element 1: Confirmed bookings pill ────────────────────────────────────────
 
@@ -117,32 +116,10 @@ function PendingCartCard({ pillShowing }: { pillShowing: boolean }) {
   )
 }
 
-// ── Element 3: Global search trigger ─────────────────────────────────────────
-
-function SearchTrigger({ onOpen }: { onOpen: () => void }) {
-  const pathname = usePathname()
-  // Hide on admin pages
-  if (pathname.startsWith('/admin')) return null
-
-  return (
-    <button
-      onClick={onOpen}
-      aria-label="Search"
-      className="fixed top-3 right-4 z-[49] w-9 h-9 rounded-full bg-white/90 border border-border-light shadow-sm flex items-center justify-center text-navy hover:bg-white transition-colors active:scale-95"
-    >
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" strokeWidth="1.5"/>
-        <path d="M10 10L14 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-      </svg>
-    </button>
-  )
-}
-
 // ── Exported: renders both elements, coordinates positioning ──────────────────
 
 export function GlobalFloatingElements() {
   const [confirmedCount, setConfirmedCount] = useState(0)
-  const [searchOpen, setSearchOpen] = useState(false)
 
   useEffect(() => {
     try {
@@ -162,8 +139,6 @@ export function GlobalFloatingElements() {
     <>
       <ConfirmedBookingsPill count={confirmedCount} />
       <PendingCartCard pillShowing={confirmedCount > 0} />
-      <SearchTrigger onOpen={() => setSearchOpen(true)} />
-      {searchOpen && <GlobalSearch onClose={() => setSearchOpen(false)} />}
     </>
   )
 }

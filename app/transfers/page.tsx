@@ -2,7 +2,6 @@
 
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ProfileAvatar } from '@/app/_components/profile-avatar';
 import { generateTimeSlots } from '@/lib/transfers';
 import { BottomNav } from '@/components/ui/bottom-nav';
 import DateRangePicker, { toDate, fromDate } from '@/components/ui/date-range-picker';
@@ -193,7 +192,6 @@ export default function TransfersSearchPage() {
           <img src="/logo_icon_navy.png" alt="Island Key" style={{ height: 24, width: 'auto', filter: 'brightness(0) invert(1)' }} />
           <h1 className="font-display text-xl font-medium text-white">Transfers</h1>
         </div>
-        <ProfileAvatar />
       </div>
 
       {/* Card area */}
