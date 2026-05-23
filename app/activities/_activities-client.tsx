@@ -117,7 +117,7 @@ export default function ActivitiesClient({ initialActivities }: { initialActivit
       <div className="flex-1 overflow-y-auto px-5">
         <div className="flex flex-col gap-2.5">
           {filtered.map((activity, i) => {
-            const suitability = weather
+            const suitability = weather && activity.weather_driven !== false
               ? getActivitySuitability(activity.category, weather, activity.is_boat_activity)
               : null
             return (

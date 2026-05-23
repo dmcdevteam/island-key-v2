@@ -345,7 +345,7 @@ export default function ActivityDetailPage({ initialActivity }: { initialActivit
 
       {/* Weather notice bar */}
       {(() => {
-        if (!weather || !activity) return null
+        if (!weather || !activity || activity.weather_driven === false) return null
         const s = getActivitySuitability(activity.category, weather, activity.is_boat_activity)
         if (s.status === 'good') return null
         const isRed = s.status === 'affected'

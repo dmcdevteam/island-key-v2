@@ -121,6 +121,7 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
     is_featured:         activity?.is_featured ?? false,
     is_active:           activity?.is_active ?? true,
     is_boat_activity:    activity?.is_boat_activity ?? false,
+    weather_driven:      activity?.weather_driven ?? true,
     mood_tags:           activity?.mood_tags ?? ([] as string[]),
   })
 
@@ -472,6 +473,7 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
         is_featured:         form.is_featured,
         is_active:           form.is_active,
         is_boat_activity:    form.is_boat_activity,
+        weather_driven:      form.weather_driven,
         mood_tags:           form.mood_tags.length > 0 ? form.mood_tags : [],
         notify_guests:       notifyGuests,
       }
@@ -1026,6 +1028,15 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
                   <div>
                     <span className="text-sm text-tx font-medium">Boat Activity</span>
                     <p className="text-[11px] text-tx-light">Mark to include in Boat Rentals daily experiences</p>
+                  </div>
+                </label>
+              </div>
+              <div className="col-span-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={form.weather_driven} onChange={e => set('weather_driven', e.target.checked)} className="rounded" />
+                  <div>
+                    <span className="text-sm text-tx font-medium">Weather-Driven Activity</span>
+                    <p className="text-[11px] text-tx-light">Show weather alerts for this activity (disable for indoor experiences)</p>
                   </div>
                 </label>
               </div>

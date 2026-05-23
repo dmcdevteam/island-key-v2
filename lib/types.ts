@@ -128,6 +128,7 @@ export interface Activity {
   is_featured: boolean;
   is_active: boolean;
   is_boat_activity: boolean;
+  weather_driven: boolean;
   created_at: string;
   updated_at: string;
 }
