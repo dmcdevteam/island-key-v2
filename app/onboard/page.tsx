@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import { setSession } from '@/lib/utils';
 import { AccommodationCard, SelectionChip, Button } from '@/components/ui/components';
+import { AccommodationInput } from '@/components/ui/accommodation-input';
 import type { Tier, Region, GroupType } from '@/lib/types';
 
 const COUNTRY_CODES = [
@@ -68,6 +69,7 @@ function OnboardContent() {
   const [submitting, setSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showNudge, setShowNudge] = useState(false);
+  const [changeSheetOpen, setChangeSheetOpen] = useState(false);
 
   useEffect(() => {
     setIsAdminPreview(localStorage.getItem('ik_admin_preview') === '1');
@@ -130,8 +132,12 @@ function OnboardContent() {
   }, [slugFromUrl]);
 
   function handleChangeProperty() {
-    const name = prompt('Enter your accommodation name:');
-    if (name) setPropertyName(name);
+    setChangeSheetOpen(true);
+  }
+
+  function handleAccommodationSelect(p: { display_name: string; formatted_address: string; place_id: string; lat: number; lng: number }) {
+    setPropertyName(p.display_name);
+    setChangeSheetOpen(false);
   }
 
   async function handleSubmit() {
@@ -427,6 +433,30 @@ function OnboardContent() {
         {submitting ? 'Saving...' : "Let's go →"}
       </Button>
     </div>{/* end padded content area */}
+
+      {/* Accommodation change bottom sheet */}
+      {changeSheetOpen && (
+        <div className="fixed inset-0 z-[200] flex items-end bg-black/40" onClick={() => setChangeSheetOpen(false)}>
+          <div
+            className="bg-white rounded-t-2xl px-6 pt-6 pb-10 w-full shadow-xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="w-9 h-1 bg-border rounded-full mx-auto mb-5" />
+            <h2 className="font-display text-[18px] font-medium text-navy mb-1">Change accommodation</h2>
+            <p className="text-[12px] text-tx-light mb-4">Search for your villa, hotel or apartment.</p>
+            <AccommodationInput
+              initialValue={propertyName}
+              onSelect={handleAccommodationSelect}
+            />
+            <button
+              onClick={() => setChangeSheetOpen(false)}
+              className="mt-5 w-full py-3 text-[13px] text-tx-mid"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* WhatsApp success message */}
       {showSuccess && (
