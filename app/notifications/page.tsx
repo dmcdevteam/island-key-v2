@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getSession } from '@/lib/utils'
 import { BottomNav } from '@/components/ui/bottom-nav'
@@ -39,6 +39,7 @@ export default function NotificationsPage() {
   const session = getSession()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
+  const batchMarked = useRef(false)
 
   useEffect(() => {
     if (!session?.guest_id) { setLoading(false); return }
@@ -47,8 +48,27 @@ export default function NotificationsPage() {
     fetch(`/api/notifications?${params}`)
       .then(r => r.json())
       .then(data => {
-        setNotifications(Array.isArray(data.notifications) ? data.notifications : [])
+        const list: Notification[] = Array.isArray(data.notifications) ? data.notifications : []
+        setNotifications(list)
         setLoading(false)
+        // Batch mark all unread as read on first load
+        if (!batchMarked.current && session.guest_id) {
+          batchMarked.current = true
+          const unread = list.filter(n => !n.is_read)
+          if (unread.length > 0) {
+            Promise.all(
+              unread.map(n =>
+                fetch('/api/notifications/read', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ notification_id: n.id, guest_id: session.guest_id }),
+                }).catch(() => {})
+              )
+            ).then(() => {
+              setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
+            })
+          }
+        }
       })
       .catch(() => setLoading(false))
   }, [])

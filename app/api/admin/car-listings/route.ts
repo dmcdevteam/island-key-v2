@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
 import { isAdminAuthed } from '../_lib/auth'
+import { createNotificationFromContent } from '@/lib/create-notification'
 
 export async function GET() {
   if (!await isAdminAuthed()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -17,12 +18,20 @@ export async function GET() {
 export async function POST(request: Request) {
   if (!await isAdminAuthed()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const body = await request.json()
+  const { notify_guests, ...insertData } = body
   const supabase = createServerClient()
   const { data, error } = await supabase
     .from('rentals')
-    .insert(body)
+    .insert(insertData)
     .select()
     .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (notify_guests && data) {
+    await createNotificationFromContent({
+      title: data.name,
+      body: `New rental available: ${data.name}`,
+      type: 'offer',
+    })
+  }
   return NextResponse.json(data, { status: 201 })
 }

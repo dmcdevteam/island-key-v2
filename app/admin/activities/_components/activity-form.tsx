@@ -6,7 +6,7 @@ import { CATEGORY_LABELS, MOOD_LABELS } from '@/lib/utils'
 import { FocalPointPicker, type FocalPoint } from '@/components/admin/FocalPointPicker'
 import { ImageUploadGuide } from '@/components/admin/ImageUploadGuide'
 
-type FormData = Omit<Activity, 'id' | 'created_at' | 'updated_at'>
+type FormData = Omit<Activity, 'id' | 'created_at' | 'updated_at'> & { notify_guests?: boolean }
 
 interface Props {
   activity: Activity | null
@@ -83,6 +83,7 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
   const [folderSuccess, setFolderSuccess]     = useState('')
 
   const [imageItems, setImageItems] = useState<ImageItem[]>(() => initImages(activity))
+  const [notifyGuests, setNotifyGuests] = useState(false)
   const [focalPoint, setFocalPoint] = useState<FocalPoint | null>(
     activity?.focal_x != null && activity?.focal_y != null
       ? { x: activity.focal_x, y: activity.focal_y }
@@ -472,6 +473,7 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
         is_active:           form.is_active,
         is_boat_activity:    form.is_boat_activity,
         mood_tags:           form.mood_tags.length > 0 ? form.mood_tags : [],
+        notify_guests:       notifyGuests,
       }
       await onSave(payload)
     } catch (err) {
@@ -1027,6 +1029,17 @@ export function ActivityForm({ activity, providers, onSave, onClose }: Props) {
                   </div>
                 </label>
               </div>
+              {!activity && (
+                <div className="col-span-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={notifyGuests} onChange={e => setNotifyGuests(e.target.checked)} className="rounded" />
+                    <div>
+                      <span className="text-sm text-tx font-medium">Notify guests</span>
+                      <p className="text-[11px] text-tx-light">Send a push notification to all guests on publish</p>
+                    </div>
+                  </label>
+                </div>
+              )}
             </div>
           </section>
 

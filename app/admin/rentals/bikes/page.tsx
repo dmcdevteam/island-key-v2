@@ -84,6 +84,7 @@ function BikeListingForm({ initial, onClose, onSaved }: { initial: any | null; o
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [uploading, setUploading] = useState(false)
+  const [notifyGuests, setNotifyGuests] = useState(false)
   const wideRef = useRef<HTMLInputElement>(null)
   const squareRef = useRef<HTMLInputElement>(null)
 
@@ -119,6 +120,7 @@ function BikeListingForm({ initial, onClose, onSaved }: { initial: any | null; o
       bike_includes: form.bike_includes.length ? form.bike_includes : null,
       day_discounts: Object.keys(day_discounts).length ? day_discounts : null,
       bike_tcs: form.bike_tcs || null,
+      notify_guests: !initial && notifyGuests,
     }
     const url = initial ? `/api/admin/car-listings/${initial.id}` : '/api/admin/car-listings'
     const method = initial ? 'PUT' : 'POST'
@@ -295,6 +297,12 @@ function BikeListingForm({ initial, onClose, onSaved }: { initial: any | null; o
         <span className={LABEL}>Active</span>
         <Toggle checked={form.is_active} onChange={() => set('is_active', !form.is_active)} />
       </div>
+      {!initial && (
+        <div className="flex items-center justify-between">
+          <span className={LABEL}>Notify guests</span>
+          <Toggle checked={notifyGuests} onChange={() => setNotifyGuests(v => !v)} />
+        </div>
+      )}
       <div>
         <label className={LABEL}>Sort Order</label>
         <input className={INPUT} type="number" value={form.sort_order} onChange={e => set('sort_order', e.target.value)} />

@@ -59,6 +59,7 @@ interface DealFormProps {
 
 function DealForm({ deal, providers, properties, onSave, onClose }: DealFormProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [notifyGuests, setNotifyGuests] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [uploadingCount, setUploadingCount] = useState(0)
@@ -142,7 +143,8 @@ function DealForm({ deal, providers, properties, onSave, onClose }: DealFormProp
         deal_price: form.deal_price ? Number(form.deal_price) : null,
         max_redemptions: form.max_redemptions ? Number(form.max_redemptions) : null,
         sort_order: Number(form.sort_order) || 0,
-      })
+        notify_guests: notifyGuests,
+      } as any)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Save failed')
       setSaving(false)
@@ -312,6 +314,12 @@ function DealForm({ deal, providers, properties, onSave, onClose }: DealFormProp
                 <span className="text-sm">Active</span>
               </label>
             </div>
+            {!deal && (
+              <label className="flex items-center gap-2 cursor-pointer mt-1">
+                <input type="checkbox" checked={notifyGuests} onChange={e => setNotifyGuests(e.target.checked)} className="rounded" />
+                <span className="text-sm">Notify guests on publish</span>
+              </label>
+            )}
           </section>
 
           {/* Images */}

@@ -54,6 +54,7 @@ function emptyForm(): FormState {
 
 function EventForm({ event, onSave, onClose }: { event: EventFull | null; onSave: (d: Partial<FormState>) => Promise<void>; onClose: () => void }) {
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [notifyGuests, setNotifyGuests] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [uploadingCount, setUploadingCount] = useState(0)
@@ -171,13 +172,14 @@ function EventForm({ event, onSave, onClose }: { event: EventFull | null; onSave
     try {
       await onSave({
         ...form,
-        images:       images.length ? images : null,
-        focal_x:      focalPoint?.x ?? null,
-        focal_y:      focalPoint?.y ?? null,
-        price_from:   form.price_from ? Number(form.price_from) : null,
-        location_lat: form.location_lat ? Number(form.location_lat) : null,
-        location_lng: form.location_lng ? Number(form.location_lng) : null,
-        sort_order:   Number(form.sort_order) || 0,
+        images:        images.length ? images : null,
+        focal_x:       focalPoint?.x ?? null,
+        focal_y:       focalPoint?.y ?? null,
+        price_from:    form.price_from ? Number(form.price_from) : null,
+        location_lat:  form.location_lat ? Number(form.location_lat) : null,
+        location_lng:  form.location_lng ? Number(form.location_lng) : null,
+        sort_order:    Number(form.sort_order) || 0,
+        notify_guests: notifyGuests,
       } as any)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Save failed')
@@ -361,6 +363,12 @@ function EventForm({ event, onSave, onClose }: { event: EventFull | null; onSave
                 <span className="text-sm">Active</span>
               </label>
             </div>
+            {!event && (
+              <label className="flex items-center gap-2 cursor-pointer mt-1">
+                <input type="checkbox" checked={notifyGuests} onChange={e => setNotifyGuests(e.target.checked)} className="rounded" />
+                <span className="text-sm">Notify guests on publish</span>
+              </label>
+            )}
           </section>
 
           {/* Images */}

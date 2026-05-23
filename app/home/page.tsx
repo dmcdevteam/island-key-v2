@@ -311,7 +311,7 @@ export default function HomePage() {
         <Link href="/notifications" className="relative inline-flex active:scale-90 transition-transform">
           <span className="text-[22px] opacity-70">🔔</span>
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-0.5 bg-teal text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}

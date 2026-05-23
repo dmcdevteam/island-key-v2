@@ -87,6 +87,7 @@ interface ServiceFormProps {
 }
 
 function ServiceForm({ service, onSave, onClose }: ServiceFormProps) {
+  const [notifyGuests, setNotifyGuests] = useState(false)
   const [form, setForm] = useState<FormData>(() => service ? {
     title: service.title, slug: service.slug,
     short_description: service.short_description,
@@ -138,7 +139,7 @@ function ServiceForm({ service, onSave, onClose }: ServiceFormProps) {
     e.preventDefault()
     setSaving(true); setError('')
     try {
-      await onSave(form)
+      await onSave({ ...form, notify_guests: notifyGuests } as any)
     } catch (err) {
       setError((err as Error).message)
     } finally {
@@ -326,6 +327,12 @@ function ServiceForm({ service, onSave, onClose }: ServiceFormProps) {
               Featured
             </label>
           </div>
+          {!service && (
+            <label className="flex items-center gap-2 text-sm text-tx cursor-pointer">
+              <Toggle checked={notifyGuests} onChange={() => setNotifyGuests(v => !v)} />
+              <span>Notify guests on publish</span>
+            </label>
+          )}
 
           {/* Sort Order */}
           <div>
