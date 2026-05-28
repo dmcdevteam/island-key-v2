@@ -3,7 +3,7 @@ import { Resend } from 'resend'
 import { createServerClient } from '@/lib/supabase'
 
 const FROM           = 'bookings@islandkey.gr'
-const INTERNAL_EMAIL = 'dmcdevteam@gmail.com'
+const INTERNAL_EMAIL = 'islandkeygr@gmail.com'
 
 type BikeEnquiryBody = {
   vehicle_id:        string

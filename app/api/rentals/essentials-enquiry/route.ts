@@ -3,7 +3,7 @@ import { Resend } from 'resend'
 import { createServerClient } from '@/lib/supabase'
 
 const FROM           = 'bookings@islandkey.gr'
-const INTERNAL_EMAIL = process.env.ADMIN_EMAIL ?? 'dmcdevteam@gmail.com'
+const INTERNAL_EMAIL = process.env.ADMIN_EMAIL ?? 'islandkeygr@gmail.com'
 
 function refCode(): string {
   return 'IKE-' + Date.now().toString(36).toUpperCase()

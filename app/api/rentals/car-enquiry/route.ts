@@ -4,7 +4,7 @@ import { createServerClient } from '@/lib/supabase'
 import type { CarEnquiryPayload } from '@/lib/types'
 
 const FROM           = 'bookings@islandkey.gr'
-const INTERNAL_EMAIL = 'dmcdevteam@gmail.com'
+const INTERNAL_EMAIL = 'islandkeygr@gmail.com'
 
 function refCode(): string {
   return 'IK-' + Date.now().toString(36).toUpperCase()

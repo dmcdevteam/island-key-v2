@@ -64,7 +64,7 @@ export async function POST(request: Request) {
   // 2. Emails via Resend
   const resend  = new Resend(process.env.RESEND_API_KEY)
   const FROM    = 'bookings@islandkey.gr'
-  const SPYROS  = process.env.ADMIN_EMAIL ?? 'dmcdevteam@gmail.com'
+  const SPYROS  = process.env.ADMIN_EMAIL ?? 'islandkeygr@gmail.com'
 
   const detailRows = [
     `<b>Service:</b> ${service_title} (${subcategory_label})`,

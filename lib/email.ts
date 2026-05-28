@@ -164,7 +164,7 @@ export async function sendGuestConfirmation(data: {
   }
 }
 
-const INTERNAL_EMAIL = 'dmcdevteam@gmail.com';
+const INTERNAL_EMAIL = 'islandkeygr@gmail.com';
 
 export async function sendInternalNotification(
   bookingId: string,

@@ -12,7 +12,7 @@ export async function GET() {
   const resend = new Resend(apiKey);
   const { data, error } = await resend.emails.send({
     from: 'bookings@islandkey.gr',
-    to: 'dmcdevteam@gmail.com',
+    to: 'islandkeygr@gmail.com',
     subject: 'Island Key — Resend test',
     html: '<p>If you receive this, Resend is working correctly from <strong>bookings@islandkey.gr</strong>.</p>',
   });
