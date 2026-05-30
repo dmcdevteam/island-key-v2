@@ -30,7 +30,7 @@ export default function LocalizeSubcategoriesPage() {
         <div className="flex items-center gap-3">
           <button onClick={() => router.push('/services')} className="text-navy text-sm">←</button>
           <div>
-            <h1 className="font-display text-lg font-medium text-navy leading-tight">Localize</h1>
+            <h1 className="font-display text-lg font-medium text-navy leading-tight">Join the Locals</h1>
             <p className="text-[11px] text-tx-light">Shuffle with locals — classes, groups and community</p>
           </div>
         </div>

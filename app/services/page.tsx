@@ -139,13 +139,25 @@ export default function ServicesPage() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800"
-            alt="Localize"
+            alt="Join the Locals"
             className="absolute inset-0 w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-4">
-            <p className="font-display text-[22px] font-semibold text-white leading-tight">Localize</p>
+            <p className="font-display text-[22px] font-semibold text-white leading-tight">Join the Locals</p>
             <p className="text-[13px] text-white/75 mt-1">Shuffle with locals — classes, groups and community experiences</p>
+          </div>
+          <div className="absolute bottom-4 right-4 text-white text-xl">→</div>
+        </button>
+
+        <button
+          onClick={() => router.push('/rentals/essentials')}
+          className="relative w-full rounded-2xl overflow-hidden h-[200px] text-left active:scale-[0.98] transition-transform shadow-sm block"
+        >
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #D4854A 0%, #1B2D4F 100%)' }} />
+          <div className="absolute bottom-0 left-0 right-0 p-4">
+            <p className="font-display text-[22px] font-semibold text-white leading-tight">Vacation Essentials</p>
+            <p className="text-[13px] text-white/75 mt-1">Beach gear, baby equipment, camping supplies — delivered</p>
           </div>
           <div className="absolute bottom-4 right-4 text-white text-xl">→</div>
         </button>

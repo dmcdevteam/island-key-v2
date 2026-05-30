@@ -182,7 +182,7 @@ function ServiceForm({ service, onSave, onClose }: ServiceFormProps) {
               >
                 <option value="in_house">In-House</option>
                 <option value="reservations">Reservations</option>
-                <option value="localize">Localize</option>
+                <option value="localize">Join the Locals</option>
               </select>
             </div>
             <div>
@@ -651,7 +651,7 @@ function SubcategoriesTab() {
               >
                 <option value="in_house">In-House</option>
                 <option value="reservations">Reservations</option>
-                <option value="localize">Localize</option>
+                <option value="localize">Join the Locals</option>
               </select>
             </div>
             <div>

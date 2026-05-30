@@ -487,9 +487,9 @@ export default function HomePage() {
           <p className="px-5 mb-5 text-xs text-tx-light">No featured activities yet.</p>
         )}
 
-        {/* Explore all Experiences hero card */}
+        {/* Explore Crete hero card → /explore */}
         <Link
-          href="/activities"
+          href="/explore"
           className="mx-4 text-left active:scale-[0.98] transition-transform"
           style={{
             marginTop: 24,
@@ -507,8 +507,8 @@ export default function HomePage() {
           {/* Background photo */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800"
-            alt="Explore all Experiences"
+            src="https://images.unsplash.com/photo-1516483638261-f4dbaf036963?w=800&q=80"
+            alt="Explore Crete"
             loading="eager"
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
           />
@@ -525,7 +525,7 @@ export default function HomePage() {
             fontSize: 10, color: 'white', letterSpacing: '0.15em',
             fontWeight: 600, textTransform: 'uppercase', opacity: 0.85, margin: 0,
           }}>
-            Adventures &amp; Activities
+            Experiences &amp; Culture
           </p>
           {/* Bottom-left title */}
           <p className="font-display" style={{
@@ -533,7 +533,7 @@ export default function HomePage() {
             fontSize: 28, color: 'white', fontStyle: 'italic',
             lineHeight: 1.15, margin: 0,
           }}>
-            Explore all<br />Experiences
+            Explore<br />Crete
           </p>
           {/* Bottom-right arrow circle */}
           <div style={{
@@ -585,7 +585,7 @@ export default function HomePage() {
             fontSize: 10, color: 'white', letterSpacing: '0.15em',
             fontWeight: 600, textTransform: 'uppercase', opacity: 0.85, margin: 0,
           }}>
-            In-House &amp; Reservations
+            Services &amp; Essentials
           </p>
           {/* Bottom-left title */}
           <p className="font-display" style={{
@@ -593,7 +593,7 @@ export default function HomePage() {
             fontSize: 28, color: 'white', fontStyle: 'italic',
             lineHeight: 1.15, margin: 0,
           }}>
-            Explore<br />Services
+            Services &amp;<br />Essentials
           </p>
           {/* Subtitle */}
           <p style={{
