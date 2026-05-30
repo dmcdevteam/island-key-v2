@@ -96,6 +96,47 @@ async function fetchForecast(): Promise<{ today: TodayWeather; tomorrow: Tomorro
   }
 }
 
+// ─── Smart card briefing ─────────────────────────────────────────────────────
+
+interface ActivatingCard {
+  title: string
+  trigger_type: string
+}
+
+const TRIGGER_LABEL: Record<string, string> = {
+  weather_hot:   '☀️ Hot day (>30°C)',
+  weather_windy: '💨 Windy (>25 km/h)',
+  weather_rainy: '🌧️ Rainy (>60% rain)',
+  weather_clear: '✨ Clear day',
+}
+
+async function fetchActivatingSmartCards(
+  supabase: ReturnType<typeof createServerClient>,
+  today: TodayWeather,
+): Promise<ActivatingCard[]> {
+  const now = new Date().toISOString()
+  const { data } = await supabase
+    .from('smart_cards')
+    .select('title, trigger_type')
+    .eq('is_active', true)
+    .or(`valid_until.is.null,valid_until.gt.${now}`)
+    .or(`valid_from.is.null,valid_from.lte.${now}`)
+    .in('trigger_type', ['weather_hot', 'weather_windy', 'weather_rainy', 'weather_clear'])
+  if (!data) return []
+  return (data as ActivatingCard[]).filter(card => {
+    switch (card.trigger_type) {
+      case 'weather_hot':   return today.temperature > 30
+      case 'weather_windy': return today.wind_speed > 25
+      case 'weather_rainy': return today.precipitation_probability > 60
+      case 'weather_clear':
+        return today.temperature <= 30 &&
+               today.wind_speed <= 25 &&
+               today.precipitation_probability <= 40
+      default: return false
+    }
+  })
+}
+
 // ─── Email HTML builder ─────────────────────────────────────────────────────
 
 function statusEmoji(s: SuitabilityResult): string {
@@ -118,6 +159,7 @@ function buildEmailHtml(
   general: SuitabilityResult,
   bookings: AffectedBooking[],
   todayLabel: string,
+  activatingCards: ActivatingCard[],
 ): string {
   const statBox = (icon: string, value: string, label: string) =>
     `<td style="width:25%;text-align:center;padding:12px 6px;background:#F7F6F2;border-radius:8px;">
@@ -198,6 +240,22 @@ function buildEmailHtml(
       </table>
 
       ${bookingsSection}
+
+      ${activatingCards.length > 0 ? `
+      <!-- Smart Feed -->
+      <div style="margin-top:24px;">
+        <p style="font-size:11px;font-weight:700;text-transform:uppercase;color:#999;letter-spacing:.08em;margin:0 0 10px;">
+          Smart Feed — auto-activating today
+        </p>
+        ${activatingCards.map(c => `
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;font-size:13px;">
+          <span style="color:#1B2D4F;font-weight:600;">${c.title}</span>
+          <span style="color:#999;">${TRIGGER_LABEL[c.trigger_type] ?? c.trigger_type}</span>
+        </div>`).join('')}
+        <p style="margin-top:10px;font-size:12px;color:#777;">
+          These cards will appear on the guest home screen automatically.
+        </p>
+      </div>` : ''}
 
       <!-- Tomorrow -->
       <div style="margin-top:24px;padding:14px 16px;background:#F7F6F2;border-radius:8px;">
@@ -334,6 +392,9 @@ export async function runWeatherAlert(force = false): Promise<WeatherAlertResult
     return { sent: false, reason: 'Amber conditions but no upcoming affected bookings', bookingCount: 0 }
   }
 
+  // 7b — Fetch smart cards that activate today
+  const activatingCards = await fetchActivatingSmartCards(supabase, today)
+
   // 8 — Build subject
   const mostSevereReason =
     sea.status === 'affected'     ? sea.reason :
@@ -348,7 +409,7 @@ export async function runWeatherAlert(force = false): Promise<WeatherAlertResult
     : `🟡 Weather Check — Conditions worth monitoring in Chania`
 
   // 9 — Send email
-  const html = buildEmailHtml(today, tomorrow, sea, outdoor, general, bookings, todayLabel)
+  const html = buildEmailHtml(today, tomorrow, sea, outdoor, general, bookings, todayLabel, activatingCards)
 
   const { error } = await resend.emails.send({
     from:    'bookings@islandkey.gr',

@@ -10,6 +10,7 @@ import { SectionHeader, ActivityMiniCard, ArticleCard } from '@/components/ui/co
 import { GlobalSearch } from '@/components/ui/global-search';
 import { createClient } from '@/lib/supabase';
 import type { GuestSession, Activity, DealFull, ArticleFull, EventFull } from '@/lib/types';
+import { SmartFeed } from './_components/smart-feed';
 
 // ─── Weather ──────────────────────────────────────────────────────────────────
 const WEATHER_CACHE_KEY = 'ik_weather_v2'
@@ -399,6 +400,8 @@ export default function HomePage() {
             </div>
           )}
         </div>
+
+        <SmartFeed />
 
         {/* Error */}
         {error && (

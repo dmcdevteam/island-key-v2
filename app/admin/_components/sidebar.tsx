@@ -41,6 +41,7 @@ const TRANSFERS_SUBNAV = [
 const STANDALONE_LINKS = [
   { href: '/admin/enquiries',      label: 'All Enquiries' },
   { href: '/admin/deals',          label: 'Deals' },
+  { href: '/admin/smart-cards',    label: 'Smart Feed' },
   { href: '/admin/notifications',  label: 'Notifications' },
   { href: '/admin/events',         label: 'Events' },
   { href: '/admin/articles',       label: 'Articles' },

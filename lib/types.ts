@@ -342,6 +342,22 @@ export interface InfoPage {
   updated_at: string;
 }
 
+export interface SmartCard {
+  id: string
+  title: string
+  subtitle: string | null
+  image_url: string | null
+  cta_label: string
+  cta_url: string
+  trigger_type: 'manual' | 'weather_hot' | 'weather_windy' | 'weather_rainy' | 'weather_clear' | 'time_window'
+  is_active: boolean
+  valid_from: string | null
+  valid_until: string | null
+  sort_order: number
+  notify_guests: boolean
+  created_at: string
+}
+
 // ─── New full-schema types (2025 rebuild) ────────────────────────────────────
 
 export interface DealFull {
