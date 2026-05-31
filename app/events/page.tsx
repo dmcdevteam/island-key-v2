@@ -8,7 +8,7 @@ import type { EventFull } from '@/lib/types'
 import { clsx } from 'clsx'
 
 const CATEGORY_COLORS: Record<string, string> = {
-  festival: '#D4854A', music: '#1B2D4F', food: '#D4A843', sport: '#1A8A7D',
+  festival: '#D4854A', music: '#0D0D0D', food: '#D4A843', sport: '#1A8A7D',
   cultural: '#9B59B6', market: '#1A8A7D', nightlife: '#D94F4F', family: '#3498DB', other: '#5A5A5A',
 }
 
@@ -64,7 +64,7 @@ function EventCard({ ev, onClick }: { ev: EventInstance; onClick: () => void }) 
   return (
     <button
       onClick={onClick}
-      className="w-full mb-3 bg-white rounded-sm border border-border-light overflow-hidden active:scale-[0.98] transition-transform text-left"
+      className="w-full mb-3 bg-white rounded-2xl border border-border overflow-hidden active:scale-[0.98] transition-transform text-left"
     >
       {/* Cover image — 16:9 */}
       <div className="w-full overflow-hidden relative" style={{ aspectRatio: '16/9' }}>
@@ -96,12 +96,12 @@ function EventCard({ ev, onClick }: { ev: EventInstance; onClick: () => void }) 
               style={{ background: CATEGORY_COLORS[c] ?? '#5A5A5A' }}>{c}</span>
           ))}
         </div>
-        <h3 className="text-sm font-semibold text-navy leading-snug mb-0.5">{ev.title}</h3>
+        <h3 className="font-display text-[15px] font-light text-ink leading-snug mb-0.5">{ev.title}</h3>
         {ev.location_name && <p className="text-[11px] text-tx-light">📍 {ev.location_name}</p>}
         {!ev.is_free && ev.price_label && (
           <p className="text-[11px] text-tx-light mt-0.5">{ev.price_label}</p>
         )}
-        {ev.is_free && <p className="text-[11px] font-semibold text-teal mt-0.5">Free entry</p>}
+        {ev.is_free && <p className="text-[11px] font-semibold text-ink font-semibold mt-0.5">Free entry</p>}
       </div>
     </button>
   )
@@ -175,26 +175,21 @@ export default function EventsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-cream flex flex-col pb-[90px]">
+    <div className="min-h-screen bg-white flex flex-col pb-[90px]">
       {/* Header */}
-      <div className="px-5 pt-[52px] pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo_icon_navy.png" alt="Island Key" style={{ height: 24, width: 'auto' }} />
-            <h1 className="font-display text-xl font-medium text-navy">What&apos;s Happening</h1>
-          </div>
-        </div>
-        <p className="text-xs text-tx-light mt-0.5">Curated events across Crete</p>
+      <div className="px-5 pt-[52px] pb-5">
+        <p className="text-[11px] font-semibold text-tx-light uppercase tracking-[0.14em] mb-1">Island Key</p>
+        <h1 className="font-display text-[36px] font-light text-ink leading-none">What&apos;s Happening</h1>
+        <p className="text-[13px] text-tx-mid mt-1.5">Curated events across Crete</p>
       </div>
 
       {/* Tabs */}
-      <div className="flex mx-5 mb-3 bg-white rounded-sm border border-border-light overflow-hidden">
+      <div className="flex mx-5 mb-3 bg-mist rounded-2xl p-1">
         {(['upcoming', 'week', 'month'] as const).map(tab => (
           <button key={tab} onClick={() => setActiveTab(tab)}
             className={clsx(
-              'flex-1 py-2.5 text-[11px] font-semibold transition-all border-r border-border-light last:border-r-0',
-              activeTab === tab ? 'bg-navy text-white' : 'text-tx-light'
+              'flex-1 py-2 text-[11px] font-semibold transition-all rounded-xl',
+              activeTab === tab ? 'bg-ink text-white' : 'text-tx-mid'
             )}>
             {tab === 'upcoming' ? 'All Upcoming' : tab === 'week' ? 'This Week' : 'This Month'}
           </button>
@@ -210,13 +205,13 @@ export default function EventsPage() {
             return (
               <button key={day.date} onClick={() => setSelectedDate(day.date)}
                 className={clsx(
-                  'min-w-[52px] py-2.5 px-1.5 text-center rounded-sm border-[1.5px] flex-shrink-0 transition-all flex flex-col items-center',
-                  isSelected ? 'bg-navy border-navy' : has ? 'bg-white border-teal/40' : 'bg-white border-border-light'
+                  'min-w-[52px] py-2.5 px-1.5 text-center rounded-xl border flex-shrink-0 transition-all flex flex-col items-center',
+                  isSelected ? 'bg-ink border-ink' : has ? 'bg-white border-lime/50' : 'bg-white border-border'
                 )}>
                 <span className={clsx('text-[9px] font-bold uppercase mb-0.5', isSelected ? 'text-white/60' : 'text-tx-light')}>{day.dw}</span>
-                <span className={clsx('text-lg font-bold', isSelected ? 'text-white' : 'text-navy')}>{day.dn}</span>
+                <span className={clsx('text-lg font-bold', isSelected ? 'text-white' : 'text-ink')}>{day.dn}</span>
                 <div className={clsx('w-[5px] h-[5px] rounded-full mt-1',
-                  isSelected && has ? 'bg-white' : has ? 'bg-teal' : 'bg-transparent')} />
+                  isSelected && has ? 'bg-white' : has ? 'bg-lime' : 'bg-transparent')} />
               </button>
             )
           })}
@@ -228,7 +223,7 @@ export default function EventsPage() {
         {loading && (
           <div className="space-y-2">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="h-20 bg-navy/5 rounded-sm animate-pulse" />
+              <div key={i} className="h-20 rounded-2xl skeleton" />
             ))}
           </div>
         )}
@@ -250,7 +245,7 @@ export default function EventsPage() {
                   .sort(([a], [b]) => a.localeCompare(b))
                   .map(([dateStr, evs]) => (
                     <div key={dateStr} className="mb-1">
-                      <p className="text-xs font-semibold text-navy mb-1.5">{formatDayHeader(dateStr)}</p>
+                      <p className="text-xs font-semibold text-ink mb-1.5">{formatDayHeader(dateStr)}</p>
                       {evs.map((ev, i) => (
                         <EventCard key={`${ev.id}-${i}`} ev={ev} onClick={() => router.push(`/events/${ev.slug}`)} />
                       ))}
@@ -265,7 +260,7 @@ export default function EventsPage() {
         {!loading && activeTab !== 'upcoming' && (
           selectedDayEvents.length > 0 ? (
             <div>
-              <p className="text-xs font-semibold text-navy mb-3">{formatDayHeader(selectedDate)}</p>
+              <p className="text-xs font-semibold text-ink mb-3">{formatDayHeader(selectedDate)}</p>
               {selectedDayEvents.map((ev, i) => (
                 <EventCard key={`${ev.id}-${i}`} ev={ev} onClick={() => router.push(`/events/${ev.slug}`)} />
               ))}

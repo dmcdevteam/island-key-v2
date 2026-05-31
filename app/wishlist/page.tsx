@@ -25,22 +25,19 @@ export default function WishlistPage() {
   const { favourites, loading, toggleFavourite } = useFavourites()
 
   return (
-    <div className="min-h-screen bg-cream flex flex-col pb-[90px]">
+    <div className="min-h-screen bg-white flex flex-col pb-[90px]">
       {/* Header */}
-      <div className="px-5 pt-[52px] pb-3">
-        <div className="flex items-center gap-2">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo_icon_navy.png" alt="Island Key" style={{ height: 24, width: 'auto' }} />
-          <h1 className="font-display text-xl font-medium text-navy">Wishlist</h1>
-        </div>
-        <p className="text-xs text-tx-light mt-0.5">Your saved experiences and services</p>
+      <div className="px-5 pt-[52px] pb-5">
+        <p className="text-[11px] font-semibold text-tx-light uppercase tracking-[0.14em] mb-1">Island Key</p>
+        <h1 className="font-display text-[36px] font-light text-ink leading-none">Wishlist</h1>
+        <p className="text-[13px] text-tx-mid mt-1.5">Your saved experiences and services</p>
       </div>
 
       <div className="flex-1 px-5">
         {loading && (
           <div className="flex flex-col gap-3 pt-2">
             {[0, 1, 2].map(i => (
-              <div key={i} className="h-[88px] rounded-sm bg-navy/5 animate-pulse" />
+              <div key={i} className="h-[88px] rounded-sm skeleton animate-pulse" />
             ))}
           </div>
         )}
@@ -59,7 +56,7 @@ export default function WishlistPage() {
             {favourites.map(item => (
               <div
                 key={item.id}
-                className="flex gap-3 bg-white rounded-sm border border-border-light overflow-hidden active:scale-[0.99] transition-transform"
+                className="flex gap-3 bg-white rounded-2xl border border-border overflow-hidden active:scale-[0.99] transition-transform"
               >
                 <button
                   onClick={() => router.push(itemHref(item))}
@@ -73,17 +70,17 @@ export default function WishlistPage() {
                       className="w-[72px] h-[72px] object-cover rounded flex-shrink-0"
                     />
                   ) : (
-                    <div className="w-[72px] h-[72px] bg-navy/10 rounded flex-shrink-0 flex items-center justify-center">
+                    <div className="w-[72px] h-[72px] bg-mist rounded flex-shrink-0 flex items-center justify-center">
                       <span className="text-2xl">🛎️</span>
                     </div>
                   )}
                   <div className="flex-1 min-w-0 py-0.5">
                     {item.item_type && (
-                      <span className="text-[10px] font-bold uppercase text-teal tracking-wide">
+                      <span className="text-[10px] font-bold uppercase text-tx-light tracking-wide">
                         {TYPE_LABELS[item.item_type] ?? item.item_type}
                       </span>
                     )}
-                    <p className="font-display text-sm text-navy leading-tight mt-0.5 line-clamp-2">
+                    <p className="font-display text-sm text-ink leading-tight mt-0.5 line-clamp-2">
                       {item.item_title}
                     </p>
                     {item.item_price && (

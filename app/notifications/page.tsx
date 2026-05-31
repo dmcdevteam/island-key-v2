@@ -86,22 +86,22 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-cream flex flex-col pb-[90px]">
+    <div className="min-h-screen bg-white flex flex-col pb-[90px]">
       <div className="px-5 pt-[52px] pb-3 flex items-center gap-3">
         <button onClick={() => router.back()} className="text-sm text-tx-mid">← Back</button>
-        <h1 className="font-display text-xl font-medium text-navy">Notifications</h1>
+        <h1 className="font-display text-xl font-light text-ink">Notifications</h1>
       </div>
 
       {loading && (
         <div className="flex items-center justify-center py-16">
-          <div className="w-5 h-5 border-2 border-teal border-t-transparent rounded-full animate-spin" />
+          <div className="w-5 h-5 border-2 border-lime border-t-transparent rounded-full animate-spin" />
         </div>
       )}
 
       {!loading && notifications.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 text-center px-6">
           <p className="text-3xl mb-3">🔔</p>
-          <p className="text-sm font-semibold text-navy">No notifications yet</p>
+          <p className="text-sm font-semibold text-ink">No notifications yet</p>
           <p className="text-xs text-tx-light mt-1">We&rsquo;ll let you know about offers, events, and updates.</p>
         </div>
       )}
@@ -111,17 +111,17 @@ export default function NotificationsPage() {
           <button
             key={n.id}
             onClick={() => markRead(n.id)}
-            className="w-full flex items-start gap-3 bg-white rounded-2xl border border-border-light p-4 text-left shadow-sm active:scale-[0.99] transition-transform"
+            className="w-full flex items-start gap-3 bg-white rounded-2xl border border-border p-4 text-left active:scale-[0.99] transition-transform"
           >
             {/* Unread dot */}
             <div className="flex-shrink-0 flex flex-col items-center pt-0.5">
               <span className="text-xl leading-none">{TYPE_ICONS[n.type] ?? '🔔'}</span>
               {!n.is_read && (
-                <span className="w-1.5 h-1.5 rounded-full bg-teal mt-1.5" />
+                <span className="w-1.5 h-1.5 rounded-full bg-lime mt-1.5" />
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className={`text-sm leading-snug ${n.is_read ? 'text-navy font-medium' : 'text-navy font-bold'}`}>
+              <p className={`text-sm leading-snug ${n.is_read ? 'text-ink font-medium' : 'text-ink font-bold'}`}>
                 {n.title}
               </p>
               <p className="text-xs text-tx-light mt-0.5 leading-relaxed">{n.body}</p>

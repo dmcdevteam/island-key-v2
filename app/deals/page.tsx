@@ -8,7 +8,7 @@ import { getSession } from '@/lib/utils'
 import type { DealFull, GuestSession } from '@/lib/types'
 
 const CATEGORY_COLORS: Record<string, string> = {
-  dining: '#D4854A', activity: '#1A8A7D', retail: '#1B2D4F',
+  dining: '#D4854A', activity: '#1A8A7D', retail: '#0D0D0D',
   wellness: '#9B59B6', transport: '#5A5A5A', accommodation: '#D4A843', other: '#5A5A5A',
 }
 
@@ -66,7 +66,7 @@ function DealModal({ deal, session, onClose }: { deal: DealFull; session: GuestS
               ))}
             </div>
           ) : (
-            <div className="aspect-video bg-navy flex items-center justify-center">
+            <div className="aspect-video bg-ink flex items-center justify-center">
               <span className="text-4xl">{deal.category === 'dining' ? '🍽️' : deal.category === 'activity' ? '🌊' : '🎁'}</span>
             </div>
           )}
@@ -77,7 +77,7 @@ function DealModal({ deal, session, onClose }: { deal: DealFull; session: GuestS
             </span>
           )}
           {deal.discount_label && (
-            <span className="absolute top-3 right-3 text-[11px] font-bold px-2.5 py-1 rounded bg-teal text-white">
+            <span className="absolute top-3 right-3 text-[11px] font-bold px-2.5 py-1 rounded bg-lime text-ink">
               {deal.discount_label}
             </span>
           )}
@@ -85,7 +85,7 @@ function DealModal({ deal, session, onClose }: { deal: DealFull; session: GuestS
 
         <div className="px-5 py-5 space-y-4">
           <div>
-            <h2 className="font-display text-xl text-navy">{deal.title}</h2>
+            <h2 className="font-display text-xl font-light text-ink">{deal.title}</h2>
             {countdown && (
               <p className="text-xs font-semibold text-amber-600 mt-1">⏱ {countdown}</p>
             )}
@@ -113,10 +113,10 @@ function DealModal({ deal, session, onClose }: { deal: DealFull; session: GuestS
               <p className="text-xs font-bold text-tx-mid uppercase mb-1.5">Redemption Code</p>
               <button
                 onClick={copyCode}
-                className="w-full flex items-center justify-between px-4 py-3 bg-sand border border-border rounded-sm font-mono font-bold text-navy hover:border-navy transition-colors"
+                className="w-full flex items-center justify-between px-4 py-3 bg-mist border border-border rounded-2xl font-mono font-bold text-ink hover:border-ink transition-colors"
               >
                 <span>{deal.code}</span>
-                <span className="text-xs text-teal font-semibold">{copied ? 'Copied!' : 'Tap to copy'}</span>
+                <span className="text-xs text-ink font-semibold">{copied ? 'Copied!' : 'Tap to copy'}</span>
               </button>
             </div>
           )}
@@ -142,7 +142,7 @@ function DealModal({ deal, session, onClose }: { deal: DealFull; session: GuestS
           {/* CTA */}
           <button
             onClick={claimWhatsApp}
-            className="w-full py-3.5 bg-teal text-white font-bold rounded-sm flex items-center justify-center gap-2 text-sm active:scale-[0.98] transition-transform"
+            className="w-full py-3.5 bg-lime text-ink font-bold rounded-full flex items-center justify-center gap-2 text-sm active:scale-[0.98] transition-transform"
           >
             <span>💬</span> Claim via WhatsApp
           </button>
@@ -179,29 +179,24 @@ export default function DealsPage() {
   if (!session) return null
 
   return (
-    <div className="min-h-screen bg-cream flex flex-col pb-[90px]">
-      <div className="px-5 pt-[52px] pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo_icon_navy.png" alt="Island Key" style={{ height: 24, width: 'auto' }} />
-            <h1 className="font-display text-xl font-medium text-navy">Deals & Offers</h1>
-          </div>
-        </div>
-        <p className="text-xs text-tx-light mt-0.5">Exclusive to Island Key guests</p>
+    <div className="min-h-screen bg-white flex flex-col pb-[90px]">
+      <div className="px-5 pt-[52px] pb-5">
+        <p className="text-[11px] font-semibold text-tx-light uppercase tracking-[0.14em] mb-1">Island Key</p>
+        <h1 className="font-display text-[36px] font-light text-ink leading-none">Deals & Offers</h1>
+        <p className="text-[13px] text-tx-mid mt-1.5">Exclusive to Island Key guests</p>
       </div>
 
       <div className="flex-1 overflow-y-auto px-5">
         {loading && (
           <div className="flex flex-col gap-3">
-            {Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-36 rounded-sm bg-navy/5 animate-pulse" />)}
+            {Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-36 rounded-2xl skeleton" />)}
           </div>
         )}
 
         {!loading && deals.length === 0 && (
           <div className="mt-12 text-center">
             <p className="text-3xl mb-3">🎁</p>
-            <p className="text-sm font-semibold text-navy mb-1">Check back soon</p>
+            <p className="text-sm font-semibold text-ink mb-1">Check back soon</p>
             <p className="text-xs text-tx-light">New deals drop regularly — exclusive to Island Key guests.</p>
           </div>
         )}
@@ -214,7 +209,7 @@ export default function DealsPage() {
                 <button
                   key={deal.id}
                   onClick={() => setSelectedDeal(deal)}
-                  className="w-full text-left bg-white rounded-sm border border-border-light overflow-hidden active:scale-[0.98] transition-transform"
+                  className="w-full text-left bg-white rounded-2xl border border-border overflow-hidden active:scale-[0.98] transition-transform"
                 >
                   {/* Image */}
                   {deal.images?.[0] ? (
@@ -232,10 +227,10 @@ export default function DealsPage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="aspect-video bg-navy flex items-center justify-center relative">
+                    <div className="aspect-video bg-ink flex items-center justify-center relative">
                       <span className="text-3xl">{deal.category === 'dining' ? '🍽️' : '🎁'}</span>
                       {deal.discount_label && (
-                        <span className="absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded bg-teal text-white">
+                        <span className="absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded bg-lime text-ink">
                           {deal.discount_label}
                         </span>
                       )}
@@ -246,7 +241,7 @@ export default function DealsPage() {
                   )}
 
                   <div className="p-3.5">
-                    <h3 className="font-semibold text-sm text-navy mb-1">{deal.title}</h3>
+                    <h3 className="font-semibold text-sm text-ink mb-1">{deal.title}</h3>
                     {deal.short_description && (
                       <p className="text-xs text-tx-light mb-2 line-clamp-2">{deal.short_description}</p>
                     )}
@@ -260,7 +255,7 @@ export default function DealsPage() {
                           {deal.deal_price && <span className="text-sm font-bold text-terra">€{deal.deal_price}</span>}
                         </div>
                       ) : <span />}
-                      <span className="text-xs font-semibold text-teal">View Deal →</span>
+                      <span className="text-xs font-semibold text-ink">View Deal →</span>
                     </div>
                   </div>
                 </button>

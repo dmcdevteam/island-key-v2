@@ -10,7 +10,7 @@ import type { EventFull } from '@/lib/types'
 const SPYROS_WA = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '306974176759'
 
 const CATEGORY_COLORS: Record<string, string> = {
-  festival: '#D4854A', music: '#1B2D4F', food: '#D4A843', sport: '#1A8A7D',
+  festival: '#D4854A', music: '#0D0D0D', food: '#D4A843', sport: '#1A8A7D',
   cultural: '#9B59B6', market: '#1A8A7D', nightlife: '#D94F4F', family: '#3498DB', other: '#5A5A5A',
 }
 
@@ -67,10 +67,10 @@ export default function EventDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-cream flex flex-col pb-[90px]">
-        <div className="h-[250px] bg-navy/10 animate-pulse" />
+      <div className="min-h-screen bg-white flex flex-col pb-[90px]">
+        <div className="h-[250px] bg-mist animate-pulse" />
         <div className="px-5 py-5 space-y-3">
-          {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-4 bg-navy/5 rounded animate-pulse w-3/4" />)}
+          {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-4 bg-mist/60 rounded animate-pulse w-3/4" />)}
         </div>
         <BottomNav />
       </div>
@@ -79,9 +79,9 @@ export default function EventDetailPage() {
 
   if (!event) {
     return (
-      <div className="min-h-screen bg-cream flex flex-col items-center justify-center pb-[90px]">
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center pb-[90px]">
         <p className="text-tx-light text-sm">Event not found.</p>
-        <button onClick={() => router.back()} className="mt-4 text-teal text-sm font-semibold">← Go back</button>
+        <button onClick={() => router.back()} className="mt-4 text-ink font-semibold text-sm font-semibold">← Go back</button>
         <BottomNav />
       </div>
     )
@@ -103,7 +103,7 @@ export default function EventDetailPage() {
   const timeLabel = event.all_day ? 'All day' : startDate.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' })
 
   return (
-    <div className="min-h-screen bg-cream flex flex-col pb-[90px]">
+    <div className="min-h-screen bg-white flex flex-col pb-[90px]">
       {/* Hero image(s) */}
       {displaySlots.length > 0 ? (
         <div className="relative">
@@ -134,7 +134,7 @@ export default function EventDetailPage() {
           )}
         </div>
       ) : (
-        <div className="w-full relative flex items-end" style={{ aspectRatio: '16/9', background: `linear-gradient(160deg, ${catColor}dd, #1B2D4F)` }}>
+        <div className="w-full relative flex items-end" style={{ aspectRatio: '16/9', background: `linear-gradient(160deg, ${catColor}dd, #0D0D0D)` }}>
           <div className="absolute inset-0 flex flex-col justify-end p-5">
             {evCats[0] && (
               <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded text-white/90 w-fit mb-2"
@@ -149,7 +149,7 @@ export default function EventDetailPage() {
         {/* Back button */}
         <button
           onClick={() => window.history.length <= 1 ? router.push('/events') : router.back()}
-          className="text-[12px] font-semibold text-teal"
+          className="text-[12px] font-semibold text-ink font-semibold"
         >← Events</button>
 
         {/* Category + meta */}
@@ -162,7 +162,7 @@ export default function EventDetailPage() {
           <span className="text-xs text-tx-light">· {timeLabel}</span>
         </div>
 
-        <h1 className="font-display text-2xl text-navy">{event.title}</h1>
+        <h1 className="font-display text-[28px] font-light text-ink leading-tight">{event.title}</h1>
 
         {event.organiser && (
           <p className="text-xs text-tx-light">Organised by {event.organiser}</p>
@@ -173,7 +173,7 @@ export default function EventDetailPage() {
         )}
 
         {/* Practical info */}
-        <div className="bg-white border border-border-light rounded-sm p-4 space-y-2.5">
+        <div className="bg-mist border border-border rounded-2xl p-4 space-y-2.5">
           <h3 className="text-xs font-bold text-tx-mid uppercase tracking-wide">Practical Info</h3>
           <div className="text-sm text-tx-mid space-y-1.5">
             <p>📅 {dateLabel}</p>
@@ -181,7 +181,7 @@ export default function EventDetailPage() {
             {event.location_name && <p>📍 {event.location_name}</p>}
             {event.location_address && <p className="text-xs text-tx-light ml-5">{event.location_address}</p>}
             {event.is_free ? (
-              <p>🎟️ <span className="text-teal font-semibold">Free entry</span></p>
+              <p>🎟️ <span className="text-ink font-semibold font-semibold">Free entry</span></p>
             ) : event.price_label ? (
               <p>🎟️ {event.price_label}</p>
             ) : null}
@@ -192,12 +192,12 @@ export default function EventDetailPage() {
         <div className="flex flex-col gap-2">
           {event.booking_url && (
             <a href={event.booking_url} target="_blank" rel="noopener noreferrer"
-              className="w-full py-3.5 bg-navy text-white font-bold rounded-sm text-center text-sm">
+              className="w-full py-3.5 bg-ink text-white font-bold rounded-full text-center text-sm">
               Get Tickets ↗
             </a>
           )}
           <button onClick={() => setShowModal(true)}
-            className="w-full py-3.5 bg-teal text-white font-bold rounded-sm text-sm">
+            className="w-full py-3.5 bg-lime text-ink font-bold rounded-full text-sm">
             Check Availability
           </button>
         </div>
@@ -211,34 +211,34 @@ export default function EventDetailPage() {
           onClick={e => { if (e.target === e.currentTarget) setShowModal(false) }}>
           <div className="w-full max-w-[480px] mx-auto bg-white rounded-t-[18px] px-5 pt-5 pb-9 max-h-[85%] overflow-y-auto">
             <div className="w-9 h-1 bg-border rounded-full mx-auto mb-4" />
-            <h2 className="font-display text-lg font-medium text-navy mb-1">Check Availability</h2>
+            <h2 className="font-display text-lg font-light text-ink mb-1">Check Availability</h2>
             <p className="text-xs text-tx-light mb-4">We&apos;ll send your request to your Island Key curator via WhatsApp — they&apos;ll confirm within a few hours.</p>
-            <div className="flex justify-between items-start py-2.5 border-b border-border-light">
+            <div className="flex justify-between items-start py-2.5 border-b border-border">
               <span className="text-[13px] text-tx-mid">Event</span>
-              <span className="text-[13px] font-semibold text-navy text-right max-w-[60%]">{event.title}</span>
+              <span className="text-[13px] font-semibold text-ink text-right max-w-[60%]">{event.title}</span>
             </div>
-            <div className="flex justify-between items-center py-2.5 border-b border-border-light">
+            <div className="flex justify-between items-center py-2.5 border-b border-border">
               <span className="text-[13px] text-tx-mid">Your name</span>
               <input type="text" value={modalName} onChange={e => setModalName(e.target.value)}
                 placeholder="First name"
-                className="text-[13px] text-right text-navy bg-transparent outline-none placeholder:text-tx-light w-36" />
+                className="text-[13px] text-right text-ink bg-transparent outline-none placeholder:text-tx-light w-36" />
             </div>
-            <div className="flex justify-between items-center py-2.5 border-b border-border-light">
+            <div className="flex justify-between items-center py-2.5 border-b border-border">
               <span className="text-[13px] text-tx-mid">Email</span>
               <input type="email" value={modalEmail} onChange={e => setModalEmail(e.target.value)}
                 placeholder="your@email.com"
-                className="text-[13px] text-right text-navy bg-transparent outline-none placeholder:text-tx-light w-48" />
+                className="text-[13px] text-right text-ink bg-transparent outline-none placeholder:text-tx-light w-48" />
             </div>
-            <div className="py-2.5 border-b border-border-light">
+            <div className="py-2.5 border-b border-border">
               <p className="text-[13px] text-tx-mid mb-2">Anything to add?</p>
               <textarea value={modalNotes} onChange={e => setModalNotes(e.target.value)}
                 placeholder="Number of people, special requirements…"
                 rows={3}
-                className="w-full text-[13px] text-navy bg-sand rounded px-3 py-2 outline-none resize-none placeholder:text-tx-light" />
+                className="w-full text-[13px] text-ink bg-mist rounded-xl px-3 py-2 outline-none resize-none placeholder:text-tx-light" />
             </div>
             <div className="mt-4">
               <button onClick={sendEnquiry}
-                className="w-full py-3.5 bg-teal text-white rounded-sm font-semibold text-sm active:scale-[0.98]">
+                className="w-full py-3.5 bg-lime text-ink rounded-full font-semibold text-sm active:scale-[0.98]">
                 Check Availability
               </button>
             </div>
