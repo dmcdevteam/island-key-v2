@@ -184,81 +184,72 @@ export default function TransfersSearchPage() {
   }
 
   return (
-    <div className="min-h-screen bg-navy flex flex-col pb-[90px]">
+    <div className="min-h-screen bg-ink flex flex-col pb-[90px]">
       {/* Header */}
-      <div className="px-5 pt-[52px] pb-6 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo_icon_navy.png" alt="Island Key" style={{ height: 24, width: 'auto', filter: 'brightness(0) invert(1)' }} />
-          <h1 className="font-display text-xl font-medium text-white">Transfers</h1>
-        </div>
+      <div className="px-5 pt-[52px] pb-5">
+        <p className="text-[11px] font-semibold text-white/30 uppercase tracking-[0.14em] mb-1">Island Key</p>
+        <h1 className="font-display text-[36px] font-light text-white leading-none">Transfers</h1>
+        <p className="text-[13px] text-white/45 mt-1">Private rides across Crete</p>
       </div>
 
       {/* Card area */}
       <div className="flex-1 flex flex-col items-center justify-start px-5 pb-10">
-        <div className="w-full bg-white rounded-2xl shadow-2xl overflow-visible">
+        <div className="w-full bg-white rounded-2xl overflow-visible" style={{ boxShadow: '0 24px 64px rgba(0,0,0,0.35)' }}>
 
-          {/* From */}
+          {/* From / To */}
           <div className="relative">
             <div className="flex items-center gap-3 px-4 py-3.5">
-              <div className="w-3 h-3 rounded-full border-2 border-navy flex-shrink-0" />
+              <div className="w-3 h-3 rounded-full border-2 border-ink flex-shrink-0" />
               <input
                 value={fromText}
                 onChange={e => onFromChange(e.target.value)}
                 onFocus={() => fromSuggestions.length > 0 && setFromOpen(true)}
                 onBlur={() => setTimeout(() => setFromOpen(false), 150)}
                 placeholder="From — airport, port, address"
-                className="flex-1 text-sm text-navy placeholder-gray-400 outline-none bg-transparent"
+                className="flex-1 text-[14px] text-ink placeholder:text-tx-light outline-none bg-transparent"
                 autoComplete="off"
               />
             </div>
 
-            {/* From dropdown */}
             {fromOpen && fromSuggestions.length > 0 && (
-              <div className="absolute left-0 right-0 top-full bg-white border border-gray-100 rounded-b-xl shadow-xl z-50 overflow-hidden">
+              <div className="absolute left-0 right-0 top-full bg-white border border-border rounded-b-2xl shadow-xl z-50 overflow-hidden">
                 {fromSuggestions.map(s => (
                   <button
                     key={s.place_id}
                     onMouseDown={() => selectSuggestion(s, setFrom, setFromText, () => { setFromOpen(false); setFromSuggestions([]); })}
-                    className="w-full text-left px-4 py-2.5 text-sm text-navy hover:bg-gray-50 border-b border-gray-50 last:border-0 flex items-start gap-2"
+                    className="w-full text-left px-4 py-2.5 text-[13px] text-ink hover:bg-mist border-b border-border last:border-0 flex items-start gap-2"
                   >
-                    <span className="text-gray-400 flex-shrink-0 mt-px">
-                      {s.types.includes('airport') ? '✈' : '📍'}
-                    </span>
+                    <span className="text-tx-light flex-shrink-0 mt-px">{s.types.includes('airport') ? '✈' : '📍'}</span>
                     <span className="truncate">{s.description}</span>
                   </button>
                 ))}
               </div>
             )}
 
-            <div className="mx-4 border-t border-gray-100" />
+            <div className="mx-4 border-t border-border" />
 
-            {/* To */}
             <div className="flex items-center gap-3 px-4 py-3.5">
-              <div className="w-3 h-3 rounded-full bg-navy flex-shrink-0" />
+              <div className="w-3 h-3 rounded-full bg-ink flex-shrink-0" />
               <input
                 value={toText}
                 onChange={e => onToChange(e.target.value)}
                 onFocus={() => toSuggestions.length > 0 && setToOpen(true)}
                 onBlur={() => setTimeout(() => setToOpen(false), 150)}
                 placeholder="To — airport, port, address"
-                className="flex-1 text-sm text-navy placeholder-gray-400 outline-none bg-transparent"
+                className="flex-1 text-[14px] text-ink placeholder:text-tx-light outline-none bg-transparent"
                 autoComplete="off"
               />
             </div>
 
-            {/* To dropdown */}
             {toOpen && toSuggestions.length > 0 && (
-              <div className="absolute left-0 right-0 top-full bg-white border border-gray-100 rounded-b-xl shadow-xl z-50 overflow-hidden">
+              <div className="absolute left-0 right-0 top-full bg-white border border-border rounded-b-2xl shadow-xl z-50 overflow-hidden">
                 {toSuggestions.map(s => (
                   <button
                     key={s.place_id}
                     onMouseDown={() => selectSuggestion(s, setTo, setToText, () => { setToOpen(false); setToSuggestions([]); })}
-                    className="w-full text-left px-4 py-2.5 text-sm text-navy hover:bg-gray-50 border-b border-gray-50 last:border-0 flex items-start gap-2"
+                    className="w-full text-left px-4 py-2.5 text-[13px] text-ink hover:bg-mist border-b border-border last:border-0 flex items-start gap-2"
                   >
-                    <span className="text-gray-400 flex-shrink-0 mt-px">
-                      {s.types.includes('airport') ? '✈' : '📍'}
-                    </span>
+                    <span className="text-tx-light flex-shrink-0 mt-px">{s.types.includes('airport') ? '✈' : '📍'}</span>
                     <span className="truncate">{s.description}</span>
                   </button>
                 ))}
@@ -266,7 +257,7 @@ export default function TransfersSearchPage() {
             )}
           </div>
 
-          <div className="border-t border-gray-100" />
+          <div className="border-t border-border" />
 
           {/* Date & time */}
           <div className="px-4 py-3 space-y-2">
@@ -278,53 +269,40 @@ export default function TransfersSearchPage() {
               placeholder="Select date"
             />
             <div className="flex items-center gap-2 px-1">
-              <span className="text-xs text-gray-400 flex-shrink-0">Time</span>
-              <select
-                value={time}
-                onChange={e => setTime(e.target.value)}
-                className="flex-1 text-sm text-navy outline-none bg-transparent"
-              >
+              <span className="text-[12px] text-tx-light flex-shrink-0">Time</span>
+              <select value={time} onChange={e => setTime(e.target.value)}
+                className="flex-1 text-[14px] text-ink outline-none bg-transparent">
                 {slots.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
           </div>
 
-          <div className="border-t border-gray-100" />
+          <div className="border-t border-border" />
 
-          {/* Return trip toggle */}
+          {/* Return trip */}
           {!returnTrip ? (
-            <button
-              onClick={() => setReturnTrip(true)}
-              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-teal font-medium"
-            >
+            <button onClick={() => setReturnTrip(true)}
+              className="w-full flex items-center gap-2.5 px-4 py-3 text-[13px] font-semibold text-ink">
               <span className="text-base leading-none">↩</span>
               <span>+ Add return trip</span>
             </button>
           ) : (
             <div className="px-4 py-3">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-navy">Return trip</span>
-                <button
-                  onClick={() => { setReturnTrip(false); setRetDate(''); }}
-                  className="text-xs text-tx-light hover:text-navy"
-                >Remove ✕</button>
+                <span className="text-[12px] font-semibold text-ink">Return trip</span>
+                <button onClick={() => { setReturnTrip(false); setRetDate(''); }}
+                  className="text-[12px] text-tx-light">Remove ✕</button>
               </div>
               <div className="space-y-2">
                 <DateRangePicker
-                  singleDate
-                  startDate={toDate(retDate)}
-                  endDate={null}
-                  onChange={(s) => setRetDate(fromDate(s))}
-                  placeholder="Return date"
+                  singleDate startDate={toDate(retDate)} endDate={null}
+                  onChange={(s) => setRetDate(fromDate(s))} placeholder="Return date"
                   minDate={toDate(date) ?? undefined}
                 />
                 <div className="flex items-center gap-2 px-1">
-                  <span className="text-xs text-gray-400 flex-shrink-0">Return time</span>
-                  <select
-                    value={retTime}
-                    onChange={e => setRetTime(e.target.value)}
-                    className="flex-1 text-sm text-navy outline-none bg-transparent"
-                  >
+                  <span className="text-[12px] text-tx-light flex-shrink-0">Return time</span>
+                  <select value={retTime} onChange={e => setRetTime(e.target.value)}
+                    className="flex-1 text-[14px] text-ink outline-none bg-transparent">
                     {slots.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
@@ -332,53 +310,53 @@ export default function TransfersSearchPage() {
             </div>
           )}
 
-          <div className="border-t border-gray-100" />
+          <div className="border-t border-border" />
 
           {/* Pax & luggage */}
-          <div className="flex items-center divide-x divide-gray-100">
+          <div className="flex items-center divide-x divide-border">
             <div className="flex-1 flex items-center justify-between px-4 py-3">
-              <span className="text-xs text-gray-500">👤 Passengers</span>
+              <span className="text-[12px] text-tx-light">👤 Passengers</span>
               <div className="flex items-center gap-2">
-                <button onClick={() => setPax(p => Math.max(1, p - 1))} className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center text-navy text-base leading-none">−</button>
-                <span className="text-sm font-semibold text-navy w-4 text-center">{pax}</span>
-                <button onClick={() => setPax(p => Math.min(16, p + 1))} className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center text-navy text-base leading-none">+</button>
+                <button onClick={() => setPax(p => Math.max(1, p - 1))} className="w-7 h-7 rounded-full border border-border flex items-center justify-center text-ink text-base leading-none">−</button>
+                <span className="text-[13px] font-semibold text-ink w-4 text-center">{pax}</span>
+                <button onClick={() => setPax(p => Math.min(16, p + 1))} className="w-7 h-7 rounded-full border border-border flex items-center justify-center text-ink text-base leading-none">+</button>
               </div>
             </div>
             <div className="flex-1 flex items-center justify-between px-4 py-3">
-              <span className="text-xs text-gray-500">🧳 Luggage</span>
+              <span className="text-[12px] text-tx-light">🧳 Luggage</span>
               <div className="flex items-center gap-2">
-                <button onClick={() => setLuggage(l => Math.max(0, l - 1))} className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center text-navy text-base leading-none">−</button>
-                <span className="text-sm font-semibold text-navy w-4 text-center">{luggage}</span>
-                <button onClick={() => setLuggage(l => Math.min(20, l + 1))} className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center text-navy text-base leading-none">+</button>
+                <button onClick={() => setLuggage(l => Math.max(0, l - 1))} className="w-7 h-7 rounded-full border border-border flex items-center justify-center text-ink text-base leading-none">−</button>
+                <span className="text-[13px] font-semibold text-ink w-4 text-center">{luggage}</span>
+                <button onClick={() => setLuggage(l => Math.min(20, l + 1))} className="w-7 h-7 rounded-full border border-border flex items-center justify-center text-ink text-base leading-none">+</button>
               </div>
             </div>
           </div>
 
-          <div className="border-t border-gray-100" />
+          <div className="border-t border-border" />
 
           {/* Search button */}
           <div className="p-4">
             <button
               onClick={handleSearch}
               disabled={!canSearch || searching}
-              className="w-full py-3.5 rounded-xl bg-teal text-white font-semibold text-sm disabled:opacity-40 transition-opacity"
+              className="w-full py-4 rounded-full bg-lime text-ink font-bold text-[15px] disabled:opacity-40 transition-opacity active:scale-[0.98]"
             >
               {searching ? 'Searching…' : 'Search transfers →'}
             </button>
           </div>
         </div>
 
-        <p className="mt-5 text-white/40 text-xs text-center">
+        <p className="mt-6 text-white/35 text-[12px] text-center">
           Private transfers across Crete · Confirmed within 2 hours
         </p>
 
         <div className="mt-5 text-center">
-          <p className="text-white/40 text-[13px] mb-2">Need help planning your transfer?</p>
+          <p className="text-white/35 text-[12px] mb-2">Need help planning your transfer?</p>
           <a
             href="https://wa.me/306974176759?text=Hi%2C%20I%20need%20help%20booking%20a%20transfer%20in%20Crete"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-1.5 text-[13px] font-semibold text-white/70"
+            className="inline-flex items-center justify-center gap-1.5 text-[13px] font-semibold text-white/60"
           >
             <svg width="14" height="14" viewBox="0 0 32 32" fill="currentColor">
               <path d="M16 0C7.163 0 0 7.163 0 16c0 2.84.742 5.508 2.043 7.824L0 32l8.385-2.199A15.94 15.94 0 0016 32c8.837 0 16-7.163 16-16S24.837 0 16 0zm0 29.333a13.283 13.283 0 01-6.766-1.848l-.485-.288-5.016 1.315 1.339-4.884-.316-.501A13.261 13.261 0 012.667 16C2.667 8.636 8.636 2.667 16 2.667c7.364 0 13.333 5.969 13.333 13.333 0 7.364-5.969 13.333-13.333 13.333zm7.307-9.98c-.4-.2-2.368-1.168-2.735-1.3-.367-.132-.634-.2-.9.2-.267.4-1.033 1.3-1.267 1.568-.233.267-.467.3-.867.1-.4-.2-1.688-.623-3.217-1.984-1.189-1.06-1.99-2.37-2.224-2.77-.233-.4-.025-.617.175-.816.18-.178.4-.467.6-.7.2-.233.267-.4.4-.667.133-.267.067-.5-.033-.7-.1-.2-.9-2.168-1.233-2.968-.325-.78-.655-.674-.9-.686-.233-.012-.5-.015-.767-.015-.267 0-.7.1-1.067.5-.367.4-1.4 1.368-1.4 3.334s1.434 3.868 1.634 4.134c.2.267 2.82 4.305 6.831 6.036.955.413 1.7.659 2.282.844.958.305 1.83.262 2.519.159.768-.115 2.368-.967 2.702-1.901.333-.933.333-1.734.233-1.901-.1-.167-.367-.267-.767-.467z"/>
