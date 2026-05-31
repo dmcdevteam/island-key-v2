@@ -12,10 +12,10 @@ const CATEGORY_LABELS: Record<string, string> = {
 }
 
 const CATEGORY_BG: Record<string, string> = {
-  car:          'linear-gradient(135deg,#1B2D4F 0%,#2D4A7A 100%)',
-  atv_motorbike:'linear-gradient(135deg,#D4854A 0%,#B8612A 100%)',
-  bike_ebike:   'linear-gradient(135deg,#1A8A7D 0%,#0D6B60 100%)',
-  boat:         'linear-gradient(135deg,#2D4A7A 0%,#1A8A7D 100%)',
+  car:          'linear-gradient(160deg, #0D0D0D 0%, #1A1A0A 100%)',
+  atv_motorbike:'linear-gradient(160deg, #1A0D00 0%, #2A1800 100%)',
+  bike_ebike:   'linear-gradient(160deg, #0A1A10 0%, #122A18 100%)',
+  boat:         'linear-gradient(160deg, #0A0F1A 0%, #0D1E2A 100%)',
 }
 
 type Suggestion   = { place_id: string; description: string; types: string[] }
@@ -86,7 +86,7 @@ function PlacesInput({
 
   return (
     <div className="relative">
-      <div className="flex items-center gap-3 px-4 py-3.5 bg-white border border-border-light rounded-xl">
+      <div className="flex items-center gap-3 px-4 py-3.5 bg-white border border-border rounded-xl">
         <span style={{ color: '#D4854A', fontSize: 16, flexShrink: 0 }}>📍</span>
         <input
           value={text}
@@ -95,7 +95,7 @@ function PlacesInput({
           onBlur={() => setTimeout(() => setOpen(false), 150)}
           placeholder={placeholder}
           autoComplete="off"
-          className="flex-1 text-sm text-navy placeholder-gray-400 outline-none bg-transparent"
+          className="flex-1 text-sm text-ink placeholder:text-tx-light outline-none bg-transparent"
         />
         {text && (
           <button
@@ -105,12 +105,12 @@ function PlacesInput({
         )}
       </div>
       {open && suggestions.length > 0 && (
-        <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-border-light rounded-xl shadow-xl z-50 overflow-hidden">
+        <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-border rounded-xl shadow-xl z-50 overflow-hidden">
           {suggestions.map(s => (
             <button
               key={s.place_id}
               onMouseDown={() => selectSuggestion(s)}
-              className="w-full text-left px-4 py-2.5 text-sm text-navy hover:bg-gray-50 border-b border-gray-50 last:border-0 flex items-start gap-2"
+              className="w-full text-left px-4 py-2.5 text-sm text-ink hover:bg-mist border-b border-gray-50 last:border-0 flex items-start gap-2"
             >
               <span className="text-gray-400 flex-shrink-0 mt-px">
                 {s.types.includes('airport') ? '✈' : '📍'}
@@ -299,7 +299,7 @@ function SearchContent() {
                         className="w-full flex items-center gap-3 px-4 py-4 bg-white border-2 border-border rounded-xl text-left"
                       >
                         <span style={{ color: '#D4854A', fontSize: 16, flexShrink: 0 }}>📍</span>
-                        <span className={`flex-1 text-sm ${selectedLocationId && pickupType === 'location' ? 'text-navy font-medium' : 'text-gray-400'}`}>
+                        <span className={`flex-1 text-sm ${selectedLocationId && pickupType === 'location' ? 'text-ink font-medium' : 'text-tx-light'}`}>
                           {selectedLocationId && pickupType === 'location' ? selectedLocationName : 'Select pick-up location'}
                         </span>
                         <span className="text-gray-400 text-xs" style={{ transform: locDropdownOpen ? 'rotate(180deg)' : 'none', display: 'inline-block', transition: 'transform 0.15s' }}>▼</span>
@@ -319,11 +319,11 @@ function SearchContent() {
                                     key={loc.id}
                                     onClick={() => { handleDeliveryToggle(false); handleLocationSelect(loc); setLocDropdownOpen(false) }}
                                     className={`w-full flex items-center gap-3 px-4 py-3 text-left border-l-2 transition-colors ${
-                                      selected ? 'border-teal' : 'border-transparent hover:bg-gray-50'
+                                      selected ? 'border-lime' : 'border-transparent hover:bg-mist'
                                     }`}
                                   >
                                     <span style={{ fontSize: 14, flexShrink: 0 }}>📍</span>
-                                    <span className={`text-sm ${selected ? 'text-teal' : 'text-navy'}`}>{loc.name}</span>
+                                    <span className={`text-sm ${selected ? 'text-ink font-semibold' : 'text-ink'}`}>{loc.name}</span>
                                   </button>
                                 )
                               })}
@@ -334,7 +334,7 @@ function SearchContent() {
                           <div className="border-t border-gray-100" />
                           <button
                             onClick={() => { handleDeliveryToggle(true); setLocDropdownOpen(false) }}
-                            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50"
+                            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-mist"
                           >
                             <span style={{ fontSize: 14, flexShrink: 0 }}>🚚</span>
                             <span className="text-sm font-medium text-terra">Deliver to my accommodation</span>
@@ -364,15 +364,15 @@ function SearchContent() {
                       <div className="mt-3">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={`https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(selectedLocationAddress)}&zoom=14&size=600x200&markers=color:0x1B2D4F%7C${encodeURIComponent(selectedLocationAddress)}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`}
+                          src={`https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(selectedLocationAddress)}&zoom=14&size=600x200&markers=color:0x0D0D0D%7C${encodeURIComponent(selectedLocationAddress)}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`}
                           alt={selectedLocationName ?? 'Pickup location'}
-                          className="w-full rounded-xl border border-border-light"
+                          className="w-full rounded-xl border border-border"
                         />
                         <a
                           href={selectedLocationGMapsUrl || `https://maps.google.com/?q=${encodeURIComponent(selectedLocationAddress)}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-sm text-teal font-medium mt-2 inline-block"
+                          className="text-sm text-ink font-medium mt-2 inline-block"
                         >Open in Google Maps →</a>
                       </div>
                     )}
@@ -399,7 +399,7 @@ function SearchContent() {
                   <div className="mt-3">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={`https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(pickup.display_name)}&zoom=14&size=600x200&markers=color:0x1B2D4F%7C${encodeURIComponent(pickup.display_name)}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`}
+                      src={`https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(pickup.display_name)}&zoom=14&size=600x200&markers=color:0x0D0D0D%7C${encodeURIComponent(pickup.display_name)}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`}
                       className="w-full rounded-xl border border-border"
                       alt="Delivery location"
                     />
@@ -407,7 +407,7 @@ function SearchContent() {
                       href={`https://maps.google.com/?q=${encodeURIComponent(pickup.display_name)}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm text-teal font-medium mt-2 inline-block"
+                      className="text-sm text-ink font-medium mt-2 inline-block"
                     >Open in Google Maps →</a>
                   </div>
                 )}
@@ -425,7 +425,7 @@ function SearchContent() {
                   <button
                     onClick={() => setBoatTab('rentals')}
                     className={`py-2 rounded-lg text-sm font-semibold transition-colors ${
-                      boatTab === 'rentals' ? 'bg-navy text-white' : 'text-tx-mid'
+                      boatTab === 'rentals' ? 'bg-ink text-white' : 'text-tx-mid'
                     }`}
                   >⛵ Boat Rentals</button>
                   <button
@@ -447,8 +447,8 @@ function SearchContent() {
                       onClick={() => setBoatCity(boatCity === city ? null : city)}
                       className={`flex-1 py-2.5 rounded-xl border text-sm font-semibold transition-colors ${
                         boatCity === city
-                          ? 'bg-navy text-white border-navy'
-                          : 'bg-white text-tx-mid border-border-light hover:border-navy'
+                          ? 'bg-ink text-white border-ink'
+                          : 'bg-white text-tx-mid border-border hover:border-ink'
                       }`}
                     >{city}</button>
                   ))}
@@ -468,7 +468,7 @@ function SearchContent() {
                         ? portsWithCoords.reduce((s, p) => s + p.lng!, 0) / portsWithCoords.length
                         : 24.02
                       const markerStr = portsWithCoords
-                        .map(p => `markers=color:0x1B2D4F%7C${p.lat},${p.lng}`)
+                        .map(p => `markers=color:0x0D0D0D%7C${p.lat},${p.lng}`)
                         .join('&')
 
                       return (
@@ -478,7 +478,7 @@ function SearchContent() {
                             <img
                               src={`https://maps.googleapis.com/maps/api/staticmap?size=600x250&zoom=11&center=${avgLat},${avgLng}&${markerStr}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`}
                               alt={`Ports in ${boatCity}`}
-                              className="w-full rounded-xl my-3 border border-border-light"
+                              className="w-full rounded-xl my-3 border border-border"
                             />
                           )}
                           <div className="flex flex-wrap gap-2">
@@ -491,8 +491,8 @@ function SearchContent() {
                                 }}
                                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-colors ${
                                   selectedPortId === port.id
-                                    ? 'bg-navy text-white border-navy'
-                                    : 'bg-white text-tx-mid border-border-light hover:border-navy'
+                                    ? 'bg-ink text-white border-ink'
+                                    : 'bg-white text-tx-mid border-border hover:border-ink'
                                 }`}
                               >
                                 <span>📍</span>{port.name}
@@ -500,7 +500,7 @@ function SearchContent() {
                             ))}
                           </div>
                           {selectedPortName && (
-                            <p className="text-[12px] text-navy font-medium mt-2">Departing from: {selectedPortName}</p>
+                            <p className="text-[12px] text-ink font-medium mt-2">Departing from: {selectedPortName}</p>
                           )}
                         </>
                       )
@@ -518,13 +518,13 @@ function SearchContent() {
                   <button
                     onClick={() => setBoatSkipper(boatSkipper === 'with' ? null : 'with')}
                     className={`py-3 rounded-xl border text-sm font-semibold transition-colors ${
-                      boatSkipper === 'with' ? 'bg-navy text-white border-navy' : 'bg-white text-tx-mid border-border-light'
+                      boatSkipper === 'with' ? 'bg-ink text-white border-ink' : 'bg-white text-tx-mid border-border'
                     }`}
                   >⚓ With skipper</button>
                   <button
                     onClick={() => setBoatSkipper(boatSkipper === 'without' ? null : 'without')}
                     className={`py-3 rounded-xl border text-sm font-semibold transition-colors ${
-                      boatSkipper === 'without' ? 'bg-navy text-white border-navy' : 'bg-white text-tx-mid border-border-light'
+                      boatSkipper === 'without' ? 'bg-ink text-white border-ink' : 'bg-white text-tx-mid border-border'
                     }`}
                   >Without skipper</button>
                 </div>
@@ -555,20 +555,20 @@ function SearchContent() {
           <div className="px-4 py-3 grid grid-cols-2 gap-3">
             <div>
               <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1.5">Pick-up Time</label>
-              <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-xl">
+              <div className="flex items-center gap-2 px-3 py-2 bg-mist rounded-xl">
                 <span style={{ color: '#D4854A', fontSize: 14 }}>🕐</span>
                 <select value={pickupTime} onChange={e => setPickupTime(e.target.value)}
-                  className="flex-1 text-sm text-navy outline-none bg-transparent">
+                  className="flex-1 text-sm text-ink outline-none bg-transparent">
                   {TIME_SLOTS.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
             </div>
             <div>
               <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1.5">Drop-off Time</label>
-              <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-xl">
+              <div className="flex items-center gap-2 px-3 py-2 bg-mist rounded-xl">
                 <span style={{ color: '#D4854A', fontSize: 14 }}>🕐</span>
                 <select value={dropoffTime} onChange={e => setDropoffTime(e.target.value)}
-                  className="flex-1 text-sm text-navy outline-none bg-transparent">
+                  className="flex-1 text-sm text-ink outline-none bg-transparent">
                   {TIME_SLOTS.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
@@ -584,7 +584,7 @@ function SearchContent() {
                   <input
                     type="checkbox" checked={diffDropoff}
                     onChange={e => { setDiffDropoff(e.target.checked); if (!e.target.checked) setDropoff(null) }}
-                    className="rounded border-gray-300 text-navy"
+                    className="rounded border-gray-300 text-ink"
                   />
                   <span className="text-sm text-tx-mid font-medium">Different drop-off?</span>
                 </label>
@@ -607,7 +607,7 @@ function SearchContent() {
             <button
               onClick={handleSearch}
               disabled={!canSearch}
-              className="w-full py-3.5 rounded-xl bg-navy text-white font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-40 transition-opacity"
+              className="w-full py-3.5 rounded-full bg-lime text-ink font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-40 transition-opacity"
             >
               <span>🔍</span> Search
             </button>
@@ -654,19 +654,19 @@ function HowItWorks({ category }: { category: string }) {
   if (!steps) return null
   return (
     <div className="w-full max-w-[440px] mt-6">
-      <h2 className="font-display text-navy text-[20px] font-semibold mb-3">How It Works</h2>
+      <h2 className="font-display text-white text-[20px] font-light mb-3">How It Works</h2>
       <div className="space-y-2">
         {steps.map(step => (
-          <div key={step.n} className="flex items-start gap-3 bg-white rounded-xl border border-border-light px-4 py-3 shadow-sm">
+          <div key={step.n} className="flex items-start gap-3 bg-white/10 rounded-xl border border-white/10 px-4 py-3">
             <div
               className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
-              style={{ background: '#1A8A7D' }}
+              style={{ background: '#C8F135' }}
             >
-              <span className="text-white font-bold text-[12px]">{step.n}</span>
+              <span className="text-ink font-bold text-[12px]">{step.n}</span>
             </div>
             <div>
-              <p className="font-semibold text-navy text-[14px] leading-snug">{step.title}</p>
-              <p className="text-gray-400 text-[12px] leading-relaxed mt-0.5">{step.desc}</p>
+              <p className="font-semibold text-white text-[14px] leading-snug">{step.title}</p>
+              <p className="text-white/50 text-[12px] leading-relaxed mt-0.5">{step.desc}</p>
             </div>
           </div>
         ))}
@@ -677,7 +677,7 @@ function HowItWorks({ category }: { category: string }) {
 
 export default function RentalsSearchPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-navy" />}>
+    <Suspense fallback={<div className="min-h-screen bg-ink" />}>
       <SearchContent />
     </Suspense>
   )

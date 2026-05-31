@@ -127,7 +127,7 @@ function ResultsContent() {
     const directionsRenderer = new window.google.maps.DirectionsRenderer({
       map,
       suppressMarkers: true,
-      polylineOptions: { strokeColor: '#1A8A7D', strokeWeight: 4, strokeOpacity: 0.85 },
+      polylineOptions: { strokeColor: '#C8F135', strokeWeight: 4, strokeOpacity: 0.85 },
     });
 
     directionsService.route(
@@ -146,7 +146,7 @@ function ResultsContent() {
           map,
           icon: {
             path: window.google.maps.SymbolPath.CIRCLE,
-            scale: 8, fillColor: '#1A8A7D', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2,
+            scale: 8, fillColor: '#C8F135', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2,
           },
         });
         new window.google.maps.Marker({
@@ -154,7 +154,7 @@ function ResultsContent() {
           map,
           icon: {
             path: window.google.maps.SymbolPath.CIRCLE,
-            scale: 8, fillColor: '#1B2D4F', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2,
+            scale: 8, fillColor: '#0D0D0D', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2,
           },
         });
       },
@@ -214,26 +214,26 @@ function ResultsContent() {
   }
 
   return (
-    <div className="min-h-screen bg-cream flex flex-col pb-28">
+    <div className="min-h-screen bg-white flex flex-col pb-28">
       {/* Header */}
       <div className="px-5 pt-[52px] pb-3 flex items-center gap-3">
         <button onClick={() => router.back()} className="text-sm text-tx-mid">← Back</button>
-        <h1 className="font-display text-lg font-medium text-navy">Select vehicle</h1>
+        <h1 className="font-display text-lg font-light text-ink">Select vehicle</h1>
       </div>
 
       {/* Route timeline */}
-      <div className="mx-5 mb-4 bg-white rounded-2xl border border-border-light p-4 space-y-3">
+      <div className="mx-5 mb-4 bg-white rounded-2xl border border-border p-4 space-y-3">
         <div className="flex items-start gap-3">
           <div className="flex flex-col items-center gap-1 mt-1 flex-shrink-0">
-            <div className="w-2.5 h-2.5 rounded-full bg-teal" />
+            <div className="w-2.5 h-2.5 rounded-full bg-lime" />
             <div className="w-px h-6 bg-gray-200" />
-            <div className="w-2.5 h-2.5 rounded-full bg-navy" />
+            <div className="w-2.5 h-2.5 rounded-full bg-ink" />
           </div>
           <div className="flex-1 space-y-3">
             <div>
               <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold text-navy leading-tight">{fromName}</p>
-                <span className="text-xs font-semibold text-teal ml-2 flex-shrink-0">{time}</span>
+                <p className="text-sm font-semibold text-ink leading-tight">{fromName}</p>
+                <span className="text-xs font-semibold text-ink ml-2 flex-shrink-0">{time}</span>
               </div>
               {fromAddr && fromAddr !== fromName && (
                 <p className="text-xs text-tx-light mt-0.5 leading-tight">{fromAddr}</p>
@@ -246,7 +246,7 @@ function ResultsContent() {
             </div>
             <div>
               <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold text-navy leading-tight">{toName}</p>
+                <p className="text-sm font-semibold text-ink leading-tight">{toName}</p>
                 {estArrival && <span className="text-xs text-tx-light ml-2 flex-shrink-0">est. {estArrival}</span>}
               </div>
               {toAddr && toAddr !== toName && (
@@ -258,8 +258,8 @@ function ResultsContent() {
 
         {/* Return trip indicator */}
         {hasReturn && (
-          <div className="flex items-center justify-between border-t border-border-light pt-3">
-            <div className="flex items-center gap-2 text-xs text-teal font-medium">
+          <div className="flex items-center justify-between border-t border-border pt-3">
+            <div className="flex items-center gap-2 text-xs text-ink font-medium">
               <span>↩</span>
               <span>Return: {formatTransferDate(retDate)} · {retTime}</span>
             </div>
@@ -271,17 +271,17 @@ function ResultsContent() {
           <span>{formatTransferDate(date)} · {pax} passenger{Number(pax) !== 1 ? 's' : ''} · {luggage} bag{Number(luggage) !== 1 ? 's' : ''}</span>
           <button
             onClick={() => router.back()}
-            className="text-teal font-medium underline underline-offset-2"
+            className="text-ink font-medium underline underline-offset-2"
           >Edit</button>
         </div>
       </div>
 
       {/* Map */}
-      <div className="mx-5 mb-2 rounded-2xl overflow-hidden border border-border-light">
+      <div className="mx-5 mb-2 rounded-2xl overflow-hidden border border-border">
         {apiKey ? (
-          <div ref={mapRef} style={{ height: 320 }} className="w-full bg-gray-100" />
+          <div ref={mapRef} style={{ height: 320 }} className="w-full bg-mist" />
         ) : (
-          <div style={{ height: 200 }} className="w-full bg-navy/5 flex items-center justify-center">
+          <div style={{ height: 200 }} className="w-full bg-mist flex items-center justify-center">
             <div className="text-center text-tx-light text-sm px-4">
               <p className="text-2xl mb-2">🗺</p>
               <p className="font-medium">{fromName} → {toName}</p>
@@ -299,17 +299,17 @@ function ResultsContent() {
           onClick={() => { setBannerRetDate(retDate || ''); setBannerRetTime(retTime || '10:00'); setShowReturnPicker(true); }}
           style={{
             width: '100%', height: 44, borderRadius: 10,
-            background: '#FDFCFA', border: '1.5px solid #1A8A7D',
+            background: '#FAFAFA', border: '1px solid #E8E4DC',
             display: 'flex', alignItems: 'center',
             paddingLeft: 12, paddingRight: 12, gap: 8,
             cursor: 'pointer',
           }}
         >
-          <span style={{ color: '#1A8A7D', fontSize: 16, flexShrink: 0 }}>↔</span>
-          <span style={{ flex: 1, fontSize: 13, color: '#1B2D4F', textAlign: 'left' }}>
+          <span style={{ color: '#0D0D0D', fontSize: 16, flexShrink: 0 }}>↔</span>
+          <span style={{ flex: 1, fontSize: 13, color: '#0D0D0D', textAlign: 'left' }}>
             {hasReturn ? `Return: ${formatTransferDate(retDate)} at ${retTime}` : 'One way · Add return trip'}
           </span>
-          <span style={{ color: '#1A8A7D', fontSize: 13, fontWeight: 600 }}>
+          <span style={{ color: '#0D0D0D', fontSize: 13, fontWeight: 600 }}>
             {hasReturn ? 'edit' : '+'}
           </span>
         </button>
@@ -318,9 +318,9 @@ function ResultsContent() {
       {/* Vehicle cards */}
       <div className="px-5 space-y-3">
         {eligibleVehicles.length === 0 && (
-          <div className="bg-white rounded-2xl border border-border-light p-6 text-center space-y-3">
+          <div className="bg-white rounded-2xl border border-border p-6 text-center space-y-3">
             <p className="text-2xl">🚌</p>
-            <p className="text-sm font-semibold text-navy">No vehicles available for this group size</p>
+            <p className="text-sm font-semibold text-ink">No vehicles available for this group size</p>
             <p className="text-xs text-tx-light">For groups this size, please contact us via WhatsApp.</p>
             <a
               href={whatsappLink(`Hi, I need a transfer for ${pax} passengers and ${luggage} bags.\nRoute: ${fromName} → ${toName}\nDate: ${date} at ${time}`)}
@@ -343,7 +343,7 @@ function ResultsContent() {
           return (
             <Fragment key={slug}>
               <div
-                className="bg-white rounded-2xl border border-border-light overflow-hidden shadow-sm"
+                className="bg-white rounded-2xl border border-border overflow-hidden"
               >
                 <div className="flex gap-0">
                   {/* Vehicle image */}
@@ -356,7 +356,7 @@ function ResultsContent() {
                       style={{ height: 110 }}
                     />
                     {isBest && (
-                      <span className="absolute top-2 left-2 bg-teal text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full tracking-wide">
+                      <span className="absolute top-2 left-2 bg-lime text-ink text-[9px] font-bold px-1.5 py-0.5 rounded-full tracking-wide">
                         BEST VALUE
                       </span>
                     )}
@@ -366,7 +366,7 @@ function ResultsContent() {
                   <div className="flex-1 flex flex-col p-3 min-w-0">
                     <div className="flex items-start justify-between gap-1">
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-navy text-sm">{VEHICLE_LABELS[slug]}</p>
+                        <p className="font-semibold text-ink text-sm">{VEHICLE_LABELS[slug]}</p>
                         {discount_label && (
                           <span className="text-[9px] bg-red-50 text-red-500 px-1.5 py-0.5 rounded-full font-semibold">{discount_label}</span>
                         )}
@@ -386,14 +386,14 @@ function ResultsContent() {
                                 </p>
                               )}
                               {returnPricing.mode === 'discount' && returnPricing.discount_label && (
-                                <span className="text-[9px] bg-teal/10 text-teal px-1.5 py-0.5 rounded-full font-semibold block mb-0.5">
+                                <span className="text-[9px] bg-lime/20 text-ink px-1.5 py-0.5 rounded-full font-semibold block mb-0.5">
                                   {returnPricing.discount_label}
                                 </span>
                               )}
-                              <p className={`text-base font-bold ${original_price ? 'text-red-500' : 'text-navy'}`}>€{totalPrice}</p>
+                              <p className={`text-base font-bold ${original_price ? 'text-red-500' : 'text-ink'}`}>€{totalPrice}</p>
                             </>
                           ) : (
-                            <p className={`text-base font-bold ${original_price ? 'text-red-500' : 'text-navy'}`}>€{price}</p>
+                            <p className={`text-base font-bold ${original_price ? 'text-red-500' : 'text-ink'}`}>€{price}</p>
                           )}
                         </div>
                       ) : (
@@ -405,12 +405,12 @@ function ResultsContent() {
                     </p>
                     <p className="text-[11px] text-tx-light mt-0.5 truncate">{vtExamples[slug] ?? VEHICLE_EXAMPLES[slug]}</p>
                     {hasReturn && (
-                      <p className="text-[10px] text-teal mt-0.5 font-medium">↩ Return included</p>
+                      <p className="text-[10px] text-ink mt-0.5 font-medium">↩ Return included</p>
                     )}
                     <div className="flex-1" />
                     <button
                       onClick={() => handleSelect(slug)}
-                      className="mt-2 self-end bg-navy text-white text-xs font-semibold px-3 py-1.5 rounded-lg"
+                      className="mt-2 self-end bg-lime text-ink text-xs font-semibold px-3 py-1.5 rounded-full"
                     >
                       Select →
                     </button>
@@ -428,7 +428,7 @@ function ResultsContent() {
           <div className="absolute inset-0 bg-black/40" onClick={() => setShowReturnPicker(false)} />
           <div className="relative bg-white rounded-t-2xl px-5 pt-5 pb-10 w-full max-w-[480px] mx-auto">
             <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
-            <h2 className="font-display text-lg text-navy mb-4">Return trip</h2>
+            <h2 className="font-display text-lg font-light text-ink mb-4">Return trip</h2>
             <div className="space-y-3">
               <div>
                 <label className="block text-xs text-tx-light mb-1">Return date</label>
@@ -437,7 +437,7 @@ function ResultsContent() {
                   value={bannerRetDate}
                   min={date || new Date().toISOString().split('T')[0]}
                   onChange={e => setBannerRetDate(e.target.value)}
-                  className="w-full border border-border-light rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-navy/40"
+                  className="w-full border border-border rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-ink/40"
                 />
               </div>
               <div>
@@ -445,7 +445,7 @@ function ResultsContent() {
                 <select
                   value={bannerRetTime}
                   onChange={e => setBannerRetTime(e.target.value)}
-                  className="w-full border border-border-light rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-navy/40"
+                  className="w-full border border-border rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-ink/40"
                 >
                   {slots.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
@@ -453,7 +453,7 @@ function ResultsContent() {
               <button
                 onClick={applyReturnTrip}
                 disabled={!bannerRetDate}
-                className="w-full py-3 rounded-xl bg-teal text-white text-sm font-semibold disabled:opacity-40"
+                className="w-full py-3 rounded-full bg-lime text-ink text-sm font-semibold disabled:opacity-40"
               >
                 {hasReturn ? 'Update return trip' : 'Add return trip'}
               </button>
@@ -471,7 +471,7 @@ function ResultsContent() {
       )}
 
       {/* Sticky bottom summary */}
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] bg-white border-t border-border-light px-5 py-4 space-y-2">
+      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] bg-white border-t border-border px-5 py-4 space-y-2">
         <div className="flex items-center justify-between text-xs text-tx-light">
           <span>✓ Free cancellation up to 24h</span>
           <span>✓ Confirmed within 2 hours</span>
@@ -479,7 +479,7 @@ function ResultsContent() {
         <div className="flex items-center justify-between text-xs text-tx-light">
           <span>✓ Flight delays? We adjust</span>
           {hasReturn ? (
-            <span className="text-teal font-medium">↩ Return trip added</span>
+            <span className="text-ink font-medium">↩ Return trip added</span>
           ) : (
             <span className="text-tx-light">✓ Professional drivers</span>
           )}
@@ -491,7 +491,7 @@ function ResultsContent() {
 
 export default function TransferResultsPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-cream flex items-center justify-center text-tx-light text-sm">Loading…</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-white flex items-center justify-center text-tx-light text-sm">Loading…</div>}>
       <ResultsContent />
     </Suspense>
   );
