@@ -70,7 +70,7 @@ export function BookButton({ onClick, className }: { onClick?: () => void; class
     <button
       onClick={onClick}
       className={clsx(
-        'flex-1 py-3 bg-teal text-white rounded-sm font-bold text-sm transition-all active:scale-[0.97]',
+        'flex-1 py-3 bg-lime text-ink rounded-full font-bold text-sm transition-all active:scale-[0.97]',
         className
       )}
     >
@@ -117,10 +117,10 @@ export function CategoryChip({ label, icon, active, onClick }: ChipProps) {
     <button
       onClick={onClick}
       className={clsx(
-        'px-3.5 py-[7px] rounded-full text-[11px] font-semibold whitespace-nowrap transition-all border-[1.5px] flex-shrink-0',
+        'px-3.5 py-[7px] rounded-full text-[11px] font-semibold whitespace-nowrap transition-all border flex-shrink-0',
         active
-          ? 'bg-navy text-white border-navy'
-          : 'bg-white text-tx-mid border-border hover:border-navy/30'
+          ? 'bg-ink text-white border-ink'
+          : 'bg-white text-tx-mid border-border hover:border-ink/30'
       )}
     >
       {icon && <span className="mr-1">{icon}</span>}
@@ -177,10 +177,10 @@ export function ActivityCard({ title, description, category, priceFrom, duration
   return (
     <div
       onClick={onClick}
-      className="bg-white rounded border border-border-light cursor-pointer transition-all active:scale-[0.98] active:bg-sand overflow-hidden"
+      className="card-cinema bg-white cursor-pointer overflow-hidden"
     >
-      {/* 16:9 image */}
-      <div style={{ aspectRatio: '16/9', overflow: 'hidden', background: '#1B2D4F', position: 'relative' }}>
+      {/* Tall cinematic image — 5:3 ratio */}
+      <div style={{ aspectRatio: '5/3', overflow: 'hidden', background: '#0D0D0D', position: 'relative' }}>
         {imageUrl ? (
           <FocalImage
             src={imageUrl}
@@ -190,38 +190,45 @@ export function ActivityCard({ title, description, category, priceFrom, duration
             style={{ width: '100%', height: '100%', display: 'block' }}
           />
         ) : (
-          <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-            <span style={{ fontSize: 28 }}>{icon}</span>
-            <span style={{ fontSize: 10, fontWeight: 700, color: '#F5F0E8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{CATEGORY_LABELS[category] ?? category}</span>
+          <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, background: '#1A1A1A' }}>
+            <span style={{ fontSize: 32 }}>{icon}</span>
+            <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>{CATEGORY_LABELS[category] ?? category}</span>
           </div>
         )}
+        {/* Bottom scrim */}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 55%)' }} />
         {suitability && suitability.status !== 'good' && (
-          <div className="absolute top-2 left-2 z-10">
+          <div className="absolute top-2.5 left-3 z-10">
             <WeatherDot status={suitability.status} reason={suitability.reason} />
           </div>
         )}
         {heartItem && (
-          <div className="absolute top-2 right-2 z-10">
+          <div className="absolute top-2.5 right-3 z-10">
             <HeartButton item={heartItem} />
           </div>
         )}
+        {/* Duration badge — bottom left over scrim */}
+        {duration && (
+          <span className="absolute bottom-2.5 left-3 z-10 text-[10px] font-semibold text-white/80">{duration}</span>
+        )}
       </div>
       {/* Text */}
-      <div className="p-2.5">
-        <h3 className="font-semibold text-[13px] text-navy mb-0.5">{title}</h3>
+      <div className="px-3.5 py-3">
+        <div className="flex items-start justify-between gap-2 mb-1">
+          <h3 className="font-display font-normal text-[16px] text-ink leading-snug">{title}</h3>
+          <span className="text-[14px] font-bold text-ink whitespace-nowrap flex-shrink-0">
+            {priceFrom > 0 ? <>{formatPrice(priceFrom)}<span className="text-[10px] font-normal text-tx-light">pp</span></> : '—'}
+          </span>
+        </div>
         {externalRating && (
-          <div className="flex items-center gap-1 mb-1">
+          <div className="flex items-center gap-1 mb-1.5">
             <span className="text-amber-400 text-[11px] leading-none">{'★'.repeat(Math.round(externalRating))}</span>
-            <span className="text-[11px] font-semibold text-navy">{externalRating.toFixed(1)}</span>
+            <span className="text-[11px] font-semibold text-ink">{externalRating.toFixed(1)}</span>
             {externalRatingCount && <span className="text-[10px] text-tx-light">({externalRatingCount.toLocaleString()})</span>}
-            {externalRatingSource && <span className="text-[9px] text-tx-light bg-sand px-1 py-0.5 rounded">{externalRatingSource}</span>}
+            {externalRatingSource && <span className="text-[9px] text-tx-light bg-mist px-1.5 py-0.5 rounded-full">{externalRatingSource}</span>}
           </div>
         )}
-        <p className="text-[11px] text-tx-light leading-snug mb-1.5 line-clamp-2">{description}</p>
-        <div className="flex justify-between items-center">
-          <span className="text-xs font-bold text-teal">From {formatPrice(priceFrom)}pp</span>
-          <span className="text-[10px] text-tx-light">{duration}</span>
-        </div>
+        <p className="text-[12px] text-tx-mid leading-relaxed line-clamp-2">{description}</p>
       </div>
     </div>
   );
@@ -240,10 +247,10 @@ export function ActivityMiniCard({ title, subtitle, priceFrom, category, imageUr
   return (
     <div
       onClick={onClick}
-      className="w-[200px] min-w-[200px] snap-start bg-white rounded overflow-hidden border border-border-light cursor-pointer flex-shrink-0 transition-transform active:scale-[0.97]"
+      className="w-[220px] min-w-[220px] snap-start card-cinema bg-white cursor-pointer flex-shrink-0"
     >
-      {/* 16:9 image — 200px wide → ~112px tall */}
-      <div style={{ aspectRatio: '16/9', overflow: 'hidden', background: '#1B2D4F', position: 'relative' }}>
+      {/* 4:3 image — more cinematic, taller than 16:9 */}
+      <div style={{ aspectRatio: '4/3', overflow: 'hidden', background: '#1A1A1A', position: 'relative' }}>
         {imageUrl ? (
           <FocalImage
             src={imageUrl}
@@ -252,21 +259,23 @@ export function ActivityMiniCard({ title, subtitle, priceFrom, category, imageUr
             style={{ width: '100%', height: '100%', display: 'block' }}
           />
         ) : (
-          <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-            <span style={{ fontSize: 26 }}>{icon}</span>
-            <span style={{ fontSize: 9, fontWeight: 700, color: '#F5F0E8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{CATEGORY_LABELS[category] ?? category}</span>
+          <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <span style={{ fontSize: 30 }}>{icon}</span>
+            <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>{CATEGORY_LABELS[category] ?? category}</span>
           </div>
         )}
+        {/* Subtle bottom scrim for depth */}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.25) 0%, transparent 50%)' }} />
         {heartItem && (
-          <div className="absolute top-1.5 right-1.5 z-10">
+          <div className="absolute top-2 right-2 z-10">
             <HeartButton item={heartItem} />
           </div>
         )}
       </div>
-      <div className="p-2.5">
-        <h3 className="font-semibold text-xs text-navy mb-0.5">{title}</h3>
-        <p className="text-[10px] text-tx-light">{subtitle}</p>
-        <p className="text-[11px] font-bold text-teal mt-1">From {formatPrice(priceFrom)}pp</p>
+      <div className="p-3">
+        <h3 className="font-semibold text-[14px] text-ink mb-0.5 leading-snug">{title}</h3>
+        <p className="text-[11px] text-tx-light mb-1.5 leading-snug">{subtitle}</p>
+        <p className="text-[13px] font-bold text-ink">From {formatPrice(priceFrom)}pp</p>
       </div>
     </div>
   );
@@ -339,21 +348,24 @@ export function ArticleCard({ title, excerpt, category, readTime, bgGradient, ta
   return (
     <div
       onClick={onClick}
-      className="min-w-[240px] bg-white rounded overflow-hidden border border-border-light cursor-pointer flex-shrink-0 transition-transform active:scale-[0.97]"
+      className="min-w-[240px] card-cinema bg-white cursor-pointer flex-shrink-0"
     >
-      <div className="h-[120px] relative flex items-end p-2.5" style={image ? undefined : { background: bgGradient }}>
+      <div className="h-[132px] relative" style={image ? undefined : { background: bgGradient }}>
         {image && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={image} alt={title} className="absolute inset-0 w-full h-full object-cover" />
         )}
-        <span className="absolute top-2 left-2 text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded text-white z-10" style={{ background: tagColor }}>
+        {/* Subtle bottom scrim */}
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.3) 0%, transparent 55%)' }} />
+        <span className="absolute top-2.5 left-2.5 bg-ink/80 text-white text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded-full z-10"
+          style={{ backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}>
           {category}
         </span>
       </div>
-      <div className="p-2.5 pb-3">
-        <h3 className="font-semibold text-[13px] text-navy mb-0.5 leading-snug">{title}</h3>
+      <div className="p-3 pb-3.5">
+        <h3 className="font-semibold text-[13px] text-ink mb-1 leading-snug">{title}</h3>
         <p className="text-[11px] text-tx-light leading-snug line-clamp-2">{excerpt}</p>
-        <p className="text-[10px] font-semibold text-teal mt-1.5">Read · {readTime} min</p>
+        <p className="text-[11px] font-bold text-tx-mid mt-2">{readTime} min read</p>
       </div>
     </div>
   );
@@ -392,13 +404,13 @@ export function InfoCard({ icon, title, onClick }: { icon: string; title: string
 // ─── SECTION HEADER ───
 export function SectionHeader({ title, linkText, href, onLink }: { title: string; linkText?: string; href?: string; onLink?: () => void }) {
   return (
-    <div className="flex justify-between items-baseline px-5 mb-2.5">
-      <h2 className="font-display text-[16px] font-medium text-navy">{title}</h2>
+    <div className="flex justify-between items-center px-5 mb-3 mt-7">
+      <h2 className="font-display text-[22px] font-normal text-ink leading-tight">{title}</h2>
       {linkText && href && (
-        <Link href={href} className="text-[11px] font-semibold text-teal">{linkText}</Link>
+        <Link href={href} className="text-[12px] font-semibold text-tx-mid">{linkText}</Link>
       )}
       {linkText && !href && onLink && (
-        <button onClick={onLink} className="text-[11px] font-semibold text-teal">{linkText}</button>
+        <button onClick={onLink} className="text-[12px] font-semibold text-tx-mid">{linkText}</button>
       )}
     </div>
   );

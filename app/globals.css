@@ -2,64 +2,213 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,300;1,9..144,400&display=swap');
+/* ─────────────────────────────────────────────────────────────
+   ISLAND KEY — "Ink & Lime" design language
+   Fraunces (optical serif) × DM Sans (optical sans)
+   Palette: near-black ink · pure white · electric lime #C8F135
+───────────────────────────────────────────────────────────── */
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,300;1,9..144,400;1,9..144,600&display=swap');
+
+/* ── CSS custom properties ───────────────────────────────── */
+:root {
+  --lime:        #C8F135;
+  --lime-dim:    #AFDA1E;
+  --lime-tint:   #F2FBCC;
+  --ink:         #0D0D0D;
+  --ink-soft:    #1A1A1A;
+  --white:       #FFFFFF;
+  --shell:       #E8E5DE;
+  --mist:        #F7F5F1;
+  --gold:        #FFB800;
+  --ember:       #FF4F3B;
+  --border:      #E8E5DE;
+
+  /* app chrome */
+  --nav-height:  72px;
+  --nav-bottom:  28px;
+}
 
 @layer base {
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     scroll-behavior: smooth;
+    height: 100%;
   }
+
   body {
     @apply font-body text-tx;
-    background-color: #f0ede8; /* warm sand — visible on desktop beside the 480px column */
+    background-color: var(--shell);
     display: flex;
     justify-content: center;
     align-items: flex-start;
+    min-height: 100%;
     -webkit-tap-highlight-color: transparent;
   }
+
+  /* Lime-wash text selection */
   ::selection {
-    background: rgba(26, 138, 125, 0.15);
+    background: rgba(200, 241, 53, 0.30);
+    color: var(--ink);
+  }
+
+  /* Sharper headings — Fraunces at display sizes */
+  h1, h2, h3 {
+    font-feature-settings: "ss01", "cv01";
+    text-rendering: optimizeLegibility;
   }
 }
 
-@keyframes shimmer {
-  0%   { background-position: -200% 0; }
-  100% { background-position:  200% 0; }
-}
+/* ── Skeleton shimmer ─────────────────────────────────────── */
 .skeleton {
   background: linear-gradient(
     90deg,
-    #f0f0f0 25%,
-    #e0e0e0 50%,
-    #f0f0f0 75%
+    #eeebe5 25%,
+    #e4e0d8 50%,
+    #eeebe5 75%
   );
   background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-  border-radius: 8px;
+  animation: shimmer 1.6s linear infinite;
+  border-radius: 10px;
 }
 
 @layer components {
-  /* Hide scrollbars but keep scroll functionality */
+  /* ── Scrollbar suppression ───────────────────────────────── */
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-  /* Admin shell — full viewport width, no centering constraints */
+  /* ── Admin shell ─────────────────────────────────────────── */
   .admin-shell {
     width: 100%;
     min-height: 100vh;
-    background-color: #f8f7f4;
+    background-color: #F5F3EF;
     overflow-x: hidden;
   }
 
-  /* Guest app shell — constrains all content to 480px, centred on large screens */
+  /* ── Guest app shell ─────────────────────────────────────── */
+  /* 480px column, pure white, floats over warm shell bg */
   .app-shell {
     width: 100%;
     max-width: 480px;
     min-height: 100vh;
-    background-color: #FDFCFA; /* cream — the app background */
+    background-color: var(--white);
     position: relative;
     overflow-x: hidden;
-    box-shadow: 0 0 40px rgba(0, 0, 0, 0.08); /* only visible on desktop where sides are exposed */
+    /* cinematic shadow — only visible on wide desktop */
+    box-shadow:
+      0 0 0 1px rgba(0,0,0,0.04),
+      0 8px 48px rgba(0,0,0,0.12),
+      0 2px 8px rgba(0,0,0,0.06);
   }
+
+  /* ── Lime highlight text span ────────────────────────────── */
+  /* Usage: <span class="highlight">word</span> */
+  .highlight {
+    position: relative;
+    display: inline-block;
+    color: var(--ink);
+  }
+  .highlight::before {
+    content: '';
+    position: absolute;
+    inset: 0 -4px;
+    background: var(--lime);
+    border-radius: 6px;
+    z-index: -1;
+    transform: rotate(-0.5deg);
+  }
+
+  /* ── Pill / floating nav base ────────────────────────────── */
+  .pill-nav {
+    background: var(--ink);
+    border-radius: 9999px;
+    box-shadow:
+      0 8px 32px rgba(0,0,0,0.22),
+      0 2px 8px rgba(0,0,0,0.14),
+      inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+
+  /* ── Cinematic card ──────────────────────────────────────── */
+  .card-cinema {
+    border-radius: 22px;
+    overflow: hidden;
+    box-shadow:
+      0 2px 8px rgba(0,0,0,0.04),
+      0 8px 28px rgba(0,0,0,0.08);
+    transition: transform 0.25s cubic-bezier(0.16,1,0.3,1),
+                box-shadow 0.25s cubic-bezier(0.16,1,0.3,1);
+  }
+  .card-cinema:active {
+    transform: scale(0.98);
+    box-shadow:
+      0 1px 4px rgba(0,0,0,0.04),
+      0 4px 16px rgba(0,0,0,0.06);
+  }
+
+  /* ── Image scrim — bottom-up gradient overlay ────────────── */
+  .scrim {
+    background: linear-gradient(
+      to top,
+      rgba(0,0,0,0.72) 0%,
+      rgba(0,0,0,0.32) 40%,
+      transparent 70%
+    );
+  }
+  .scrim-mid {
+    background: linear-gradient(
+      to top,
+      rgba(0,0,0,0.55) 0%,
+      rgba(0,0,0,0.15) 50%,
+      transparent 100%
+    );
+  }
+  .scrim-top {
+    background: linear-gradient(
+      to bottom,
+      rgba(0,0,0,0.45) 0%,
+      transparent 60%
+    );
+  }
+
+  /* ── Glass button ────────────────────────────────────────── */
+  .glass-btn {
+    background: rgba(255,255,255,0.18);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.22);
+    border-radius: 9999px;
+  }
+
+  /* ── CTA strip — fixed bottom action bar ────────────────── */
+  .cta-strip {
+    background: var(--white);
+    border-top: 1px solid var(--border);
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+  }
+
+  /* ── Tag / category pill ─────────────────────────────────── */
+  .tag {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium;
+    background: var(--mist);
+    color: var(--ink);
+    border: 1px solid var(--border);
+  }
+  .tag-active {
+    background: var(--ink);
+    color: var(--white);
+    border-color: var(--ink);
+  }
+  .tag-lime {
+    background: var(--lime);
+    color: var(--ink);
+    border-color: transparent;
+  }
+
+  /* ── Stagger animation helpers ───────────────────────────── */
+  .stagger-1 { animation-delay: 60ms;  }
+  .stagger-2 { animation-delay: 120ms; }
+  .stagger-3 { animation-delay: 180ms; }
+  .stagger-4 { animation-delay: 240ms; }
+  .stagger-5 { animation-delay: 300ms; }
 }

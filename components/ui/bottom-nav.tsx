@@ -5,41 +5,66 @@ import Link from 'next/link';
 import { Home, Compass, Car, Sparkles, User } from 'lucide-react';
 
 const NAV_ITEMS = [
-  { href: '/home',     Icon: Home,     label: 'Home'        },
-  { href: '/explore',  Icon: Compass,  label: 'Explore'     },
-  { href: '/move',     Icon: Car,      label: 'Move Around' },
-  { href: '/services', Icon: Sparkles, label: 'Services'    },
-  { href: '/profile',  Icon: User,     label: 'Profile'     },
+  { href: '/home',     Icon: Home,     label: 'Home'     },
+  { href: '/explore',  Icon: Compass,  label: 'Explore'  },
+  { href: '/move',     Icon: Car,      label: 'Move'     },
+  { href: '/services', Icon: Sparkles, label: 'Services' },
+  { href: '/profile',  Icon: User,     label: 'Profile'  },
 ] as const;
 
 export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] h-[78px] bg-white border-t border-border-light flex pt-1.5 pb-6 z-50">
-      {NAV_ITEMS.map(({ href, Icon, label }) => {
-        const isActive = pathname === href || pathname.startsWith(href + '/');
-        return (
-          <Link
-            key={href}
-            href={href}
-            className="flex-1 flex flex-col items-center justify-center gap-0.5 transition-all active:scale-95"
-          >
-            <Icon
-              size={20}
-              strokeWidth={isActive ? 2.5 : 1.75}
-              className={isActive ? 'text-teal' : 'text-tx-light'}
-            />
-            <span
-              className={`text-[9px] font-semibold transition-colors leading-none mt-0.5 ${
-                isActive ? 'text-teal' : 'text-tx-light'
-              }`}
+    <nav
+      aria-label="Main navigation"
+      className="fixed bottom-7 left-1/2 -translate-x-1/2 z-50"
+    >
+      {/*
+        Outer pill — ink black, multi-layer shadow, inset highlight on top edge
+        All items sit inside with tight gap; active item expands via flex
+      */}
+      <div
+        className="pill-nav flex items-center gap-1 px-2 py-2"
+        style={{ paddingBottom: 'max(8px, calc(8px + env(safe-area-inset-bottom, 0px) * 0.4))' }}
+      >
+        {NAV_ITEMS.map(({ href, Icon, label }) => {
+          const isActive =
+            pathname === href || pathname.startsWith(href + '/');
+
+          return (
+            <Link
+              key={href}
+              href={href}
+              aria-current={isActive ? 'page' : undefined}
+              className={[
+                'flex items-center justify-center rounded-full',
+                'transition-all duration-300',
+                'active:scale-[0.92]',
+                isActive
+                  ? 'gap-2 px-4 py-2.5 bg-lime'
+                  : 'w-11 h-11 hover:bg-white/10',
+              ].join(' ')}
+              style={{ transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)' }}
             >
-              {label}
-            </span>
-          </Link>
-        );
-      })}
+              <Icon
+                size={isActive ? 17 : 20}
+                strokeWidth={isActive ? 2.5 : 1.75}
+                className={
+                  isActive
+                    ? 'text-ink flex-shrink-0'
+                    : 'text-white/55 flex-shrink-0'
+                }
+              />
+              {isActive && (
+                <span className="text-ink text-[13px] font-semibold leading-none whitespace-nowrap select-none">
+                  {label}
+                </span>
+              )}
+            </Link>
+          );
+        })}
+      </div>
     </nav>
   );
 }

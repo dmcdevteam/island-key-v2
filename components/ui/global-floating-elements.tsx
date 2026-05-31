@@ -22,7 +22,8 @@ function ConfirmedBookingsPill({ count }: { count: number }) {
       `}</style>
       <button
         onClick={() => router.push('/profile')}
-        className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[49] flex items-center gap-2.5 bg-white rounded-full shadow-lg px-5 py-3 active:scale-[0.98] transition-transform whitespace-nowrap"
+        className="fixed left-1/2 -translate-x-1/2 z-[49] flex items-center gap-2.5 bg-white rounded-full shadow-elevated px-5 py-3 active:scale-[0.98] transition-transform whitespace-nowrap"
+        style={{ bottom: '108px' }}
         aria-label={`${count} confirmed booking${count !== 1 ? 's' : ''} — view profile`}
       >
         <span className="ik-gpulse flex-shrink-0 w-2.5 h-2.5 rounded-full bg-green-500" />
@@ -80,7 +81,9 @@ function PendingCartCard({ pillShowing }: { pillShowing: boolean }) {
   if (hidden) return null
 
   // Sit above the confirmed pill when both are visible
-  const bottomPx = pillShowing ? 152 : 80
+  // New floating nav sits at bottom-7 (~28px) with ~56px height → top edge at ~84px
+  // Stack: cart card above bookings pill above nav
+  const bottomPx = pillShowing ? 180 : 108
 
   return (
     <div

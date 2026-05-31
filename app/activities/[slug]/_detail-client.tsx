@@ -12,12 +12,12 @@ import { getActivitySuitability, type WeatherData } from '@/lib/weather-suitabil
 import type { Activity } from '@/lib/types';
 
 const CATEGORY_GRADIENTS: Record<string, string> = {
-  sea:       'linear-gradient(135deg,rgba(26,138,125,0.15),rgba(27,45,79,0.1))',
-  land:      'linear-gradient(135deg,rgba(27,45,79,0.15),rgba(26,138,125,0.1))',
-  table:     'linear-gradient(135deg,rgba(26,138,125,0.15),rgba(212,133,74,0.1))',
-  culture:   'linear-gradient(135deg,rgba(122,107,93,0.15),rgba(196,112,63,0.1))',
-  adventure: 'linear-gradient(135deg,rgba(139,111,71,0.15),rgba(107,123,94,0.1))',
-  wellness:  'linear-gradient(135deg,rgba(26,138,125,0.15),rgba(232,245,243,0.1))',
+  sea:       'linear-gradient(160deg,#0D1B2A 0%,#0A2E2A 100%)',
+  land:      'linear-gradient(160deg,#1A1A12 0%,#2A2D1A 100%)',
+  table:     'linear-gradient(160deg,#1A120A 0%,#2A1E12 100%)',
+  culture:   'linear-gradient(160deg,#1A160E 0%,#2A2018 100%)',
+  adventure: 'linear-gradient(160deg,#121A0D 0%,#1E2A14 100%)',
+  wellness:  'linear-gradient(160deg,#0A1A18 0%,#122A26 100%)',
 };
 const CATEGORY_ICONS: Record<string, string> = {
   sea: '🌊', land: '⛰️', table: '🍷', culture: '🏛️', adventure: '🧗', wellness: '🧘',
@@ -80,7 +80,7 @@ function ImageCarousel({ images, alts, category, categoryIcon, coverFocalPoint, 
   }
 
   return (
-    <div className="h-[210px] relative flex-shrink-0 overflow-hidden">
+    <div className="h-[320px] relative flex-shrink-0 overflow-hidden">
       {/* Scrollable carousel */}
       <div
         ref={scrollRef}
@@ -98,26 +98,29 @@ function ImageCarousel({ images, alts, category, categoryIcon, coverFocalPoint, 
               className="w-full h-full"
               draggable={false}
             />
-            {/* Gradient overlay for readability */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/10 pointer-events-none" />
+            {/* Deep cinematic scrim */}
+            <div className="scrim absolute inset-0 pointer-events-none" />
           </div>
         ))}
       </div>
 
-      {/* Back button */}
+      {/* Back button — glass style */}
       <button
         onClick={onBack}
-        className="absolute top-[52px] left-4 bg-white/90 backdrop-blur-sm rounded-full flex items-center gap-1 px-3 h-[34px] text-[12px] font-semibold text-navy z-10 active:scale-90"
-      >← Activities</button>
+        className="glass-btn absolute top-[52px] left-4 flex items-center gap-1.5 px-3.5 h-[34px] text-[12px] font-semibold text-white z-10 active:scale-90"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        Back
+      </button>
 
       {/* Category badge */}
-      <span className="absolute bottom-10 left-4 text-[10px] font-bold text-white bg-black/30 backdrop-blur-sm px-2 py-1 rounded uppercase z-10">
+      <span className="absolute bottom-10 left-4 text-[10px] font-bold text-white/80 bg-black/30 backdrop-blur-sm px-2.5 py-1 rounded-full uppercase tracking-wide z-10">
         {categoryIcon} {category}
       </span>
 
       {/* Dot indicators — only when more than 1 image */}
       {images.length > 1 && (
-        <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-10">
+        <div className="absolute bottom-3.5 left-0 right-0 flex justify-center gap-1.5 z-10">
           {images.map((_, i) => (
             <button
               key={i}
@@ -126,7 +129,7 @@ function ImageCarousel({ images, alts, category, categoryIcon, coverFocalPoint, 
               className={`rounded-full transition-all ${
                 i === activeIndex
                   ? 'w-4 h-1.5 bg-white'
-                  : 'w-1.5 h-1.5 bg-white/50'
+                  : 'w-1.5 h-1.5 bg-white/40'
               }`}
             />
           ))}
@@ -284,12 +287,12 @@ export default function ActivityDetailPage({ initialActivity }: { initialActivit
   // ─── Loading ───
   if (loading) {
     return (
-      <div className="min-h-screen bg-cream flex flex-col">
-        <div className="h-[210px] bg-navy/5 animate-pulse flex-shrink-0" />
-        <div className="px-5 pt-4 space-y-3">
-          <div className="h-6 bg-navy/5 rounded animate-pulse w-3/4" />
-          <div className="h-4 bg-navy/5 rounded animate-pulse w-1/2" />
-          <div className="h-24 bg-navy/5 rounded animate-pulse" />
+      <div className="min-h-screen bg-white flex flex-col">
+        <div className="h-[320px] skeleton flex-shrink-0" />
+        <div className="px-5 pt-5 space-y-3">
+          <div className="h-7 skeleton rounded-xl w-3/4" />
+          <div className="h-4 skeleton rounded-lg w-1/3" />
+          <div className="h-24 skeleton rounded-xl" />
         </div>
       </div>
     );
@@ -298,11 +301,11 @@ export default function ActivityDetailPage({ initialActivity }: { initialActivit
   // ─── 404 ───
   if (notFound || !activity) {
     return (
-      <div className="min-h-screen bg-cream flex flex-col items-center justify-center px-8 text-center">
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center px-8 text-center">
         <p className="text-4xl mb-4">🌊</p>
-        <h1 className="font-display text-xl text-navy mb-2">Activity not found</h1>
-        <p className="text-sm text-tx-light mb-6">This experience may no longer be available.</p>
-        <button onClick={() => router.back()} className="text-sm font-semibold text-teal">← Back to activities</button>
+        <h1 className="font-display text-[28px] font-light text-ink mb-2">Activity not found</h1>
+        <p className="text-sm text-tx-mid mb-6">This experience may no longer be available.</p>
+        <button onClick={() => router.back()} className="text-sm font-semibold text-ink underline underline-offset-4">← Back to activities</button>
       </div>
     );
   }
@@ -320,7 +323,7 @@ export default function ActivityDetailPage({ initialActivity }: { initialActivit
   const hasImages = images.length > 0;
 
   return (
-    <div className="min-h-screen bg-cream flex flex-col relative">
+    <div className="min-h-screen bg-white flex flex-col relative">
       {/* Hero — image carousel or gradient fallback */}
       {hasImages ? (
         <ImageCarousel
@@ -332,12 +335,15 @@ export default function ActivityDetailPage({ initialActivity }: { initialActivit
           onBack={() => window.history.length <= 1 ? router.push('/activities') : router.back()}
         />
       ) : (
-        <div className="h-[210px] relative flex items-end p-4 flex-shrink-0" style={{ background: heroBg }}>
+        <div className="h-[320px] relative flex items-end p-5 flex-shrink-0" style={{ background: heroBg }}>
           <button
             onClick={() => window.history.length <= 1 ? router.push('/activities') : router.back()}
-            className="absolute top-[52px] left-4 bg-white/90 backdrop-blur-sm rounded-full flex items-center gap-1 px-3 h-[34px] text-[12px] font-semibold text-navy z-10 active:scale-90"
-          >← Activities</button>
-          <span className="text-[10px] font-bold text-white bg-black/30 backdrop-blur-sm px-2 py-1 rounded uppercase">
+            className="glass-btn absolute top-[52px] left-4 flex items-center gap-1.5 px-3.5 h-[34px] text-[12px] font-semibold text-white z-10 active:scale-90"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            Back
+          </button>
+          <span className="text-[10px] font-bold text-white/80 bg-black/30 backdrop-blur-sm px-2.5 py-1 rounded-full uppercase tracking-wide">
             {categoryIcon} {activity.category}
           </span>
         </div>
@@ -357,9 +363,9 @@ export default function ActivityDetailPage({ initialActivity }: { initialActivit
       })()}
 
       {/* Body */}
-      <div className="flex-1 overflow-y-auto px-5 pt-4 pb-[100px]">
-        <h1 className="font-display text-[21px] font-medium text-navy mb-0.5">{activity.title}</h1>
-        <p className="text-xs text-tx-light mb-1">{activity.region}</p>
+      <div className="flex-1 overflow-y-auto px-5 pt-5 pb-[100px]">
+        <h1 className="font-display text-[28px] font-light text-ink leading-tight mb-1">{activity.title}</h1>
+        <p className="text-[12px] text-tx-light mb-2">{activity.region}</p>
 
         {activity.external_rating && (
           <div className="flex items-center gap-1.5 mb-3">
@@ -367,19 +373,19 @@ export default function ActivityDetailPage({ initialActivity }: { initialActivit
               {'★'.repeat(Math.floor(activity.external_rating))}
               {activity.external_rating % 1 >= 0.5 ? '½' : ''}
             </span>
-            <span className="text-[13px] font-bold text-navy">{activity.external_rating.toFixed(1)}</span>
+            <span className="text-[13px] font-bold text-ink">{activity.external_rating.toFixed(1)}</span>
             {activity.external_rating_count && (
               <span className="text-[11px] text-tx-light">· {activity.external_rating_count.toLocaleString()} reviews</span>
             )}
             {activity.external_rating_source && (
-              <span className="text-[10px] text-tx-light bg-sand px-1.5 py-0.5 rounded">{activity.external_rating_source}</span>
+              <span className="text-[10px] text-tx-light bg-mist px-1.5 py-0.5 rounded-full">{activity.external_rating_source}</span>
             )}
           </div>
         )}
 
         {!activity.external_rating && <div className="mb-3" />}
 
-        <div className="flex flex-wrap gap-3 mb-3">
+        <div className="flex flex-wrap gap-3 mb-4">
           {activity.duration && <span className="text-[11px] text-tx-mid">⏱ {activity.duration}</span>}
           {activity.max_group_size && <span className="text-[11px] text-tx-mid">👥 Max {activity.max_group_size}</span>}
           {activity.season && <span className="text-[11px] text-tx-mid">📅 {activity.season}</span>}
@@ -387,24 +393,27 @@ export default function ActivityDetailPage({ initialActivity }: { initialActivit
         </div>
 
         {activity.availability_text && (
-          <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-teal/10 rounded-lg">
-            <span className="text-teal text-[13px]">🕐</span>
+          <div className="flex items-center gap-2.5 mb-4 px-4 py-3 bg-lime/15 rounded-2xl">
+            <span className="text-[15px]">🕐</span>
             <div>
-              <span className="text-[10px] font-bold text-teal uppercase tracking-wide">Availability · </span>
-              <span className="text-[13px] font-medium text-navy">{activity.availability_text}</span>
+              <span className="text-[10px] font-bold text-ink/50 uppercase tracking-wider">Availability · </span>
+              <span className="text-[13px] font-medium text-ink">{activity.availability_text}</span>
             </div>
           </div>
         )}
 
-        <p className="text-[13px] text-tx-mid leading-relaxed mb-4">{activity.description}</p>
+        <p className="text-[14px] text-tx-mid leading-relaxed mb-5">{activity.description}</p>
 
         {activity.includes && activity.includes.length > 0 && (
           <>
-            <h3 className="text-[11px] font-bold text-navy uppercase tracking-wide mb-2">What's included</h3>
-            <ul className="mb-4">
+            <h3 className="text-[11px] font-bold text-ink/40 uppercase tracking-widest mb-2">What&apos;s included</h3>
+            <ul className="mb-5">
               {activity.includes.map(item => (
-                <li key={item} className="text-xs text-tx-mid py-1.5 border-b border-border-light flex items-center gap-2">
-                  <span className="text-teal font-bold text-[11px]">✓</span>{item}
+                <li key={item} className="text-[13px] text-tx-mid py-2 border-b border-border flex items-center gap-2.5">
+                  <span className="w-4 h-4 rounded-full bg-lime flex items-center justify-center flex-shrink-0">
+                    <svg width="8" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="#0D0D0D" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </span>
+                  {item}
                 </li>
               ))}
             </ul>
@@ -413,11 +422,11 @@ export default function ActivityDetailPage({ initialActivity }: { initialActivit
 
         {activity.not_included && activity.not_included.length > 0 && (
           <>
-            <h3 className="text-[11px] font-bold text-navy uppercase tracking-wide mb-2">Not included</h3>
-            <ul className="mb-4">
+            <h3 className="text-[11px] font-bold text-ink/40 uppercase tracking-widest mb-2">Not included</h3>
+            <ul className="mb-5">
               {activity.not_included.map(item => (
-                <li key={item} className="text-xs text-tx-mid py-1.5 border-b border-border-light flex items-center gap-2">
-                  <span className="text-tx-light font-bold text-[11px]">✗</span>{item}
+                <li key={item} className="text-[13px] text-tx-mid py-2 border-b border-border flex items-center gap-2.5">
+                  <span className="text-tx-xlight font-bold text-[13px] flex-shrink-0">✗</span>{item}
                 </li>
               ))}
             </ul>
@@ -426,8 +435,8 @@ export default function ActivityDetailPage({ initialActivity }: { initialActivit
 
         {activity.good_to_know && (
           <>
-            <h3 className="text-[11px] font-bold text-navy uppercase tracking-wide mb-2">Good to know</h3>
-            <p className="text-[13px] text-tx-mid leading-relaxed mb-4">{activity.good_to_know}</p>
+            <h3 className="text-[11px] font-bold text-ink/40 uppercase tracking-widest mb-2">Good to know</h3>
+            <p className="text-[13px] text-tx-mid leading-relaxed mb-5">{activity.good_to_know}</p>
           </>
         )}
 
@@ -442,17 +451,17 @@ export default function ActivityDetailPage({ initialActivity }: { initialActivit
           const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encoded}`;
           return (
             <div style={{ marginTop: 24, marginBottom: 24 }}>
-              <h3 className="text-[11px] font-bold text-[#6B7280] uppercase tracking-[0.12em] mb-2">
+              <h3 className="text-[11px] font-bold text-ink/40 uppercase tracking-widest mb-2">
                 Meeting point
               </h3>
-              <p style={{ fontSize: 13, color: '#4B5563', lineHeight: 1.5, marginBottom: 10 }}>{mp}</p>
+              <p style={{ fontSize: 13, color: '#5C5A56', lineHeight: 1.6, marginBottom: 10 }}>{mp}</p>
               {staticMapUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={staticMapUrl}
                   alt="Meeting point map"
                   onError={() => setMapImgError(true)}
-                  style={{ width: '100%', height: 180, objectFit: 'cover', borderRadius: 12, display: 'block', marginBottom: 8 }}
+                  style={{ width: '100%', height: 180, objectFit: 'cover', borderRadius: 16, display: 'block', marginBottom: 8 }}
                 />
               )}
               <a
@@ -461,14 +470,14 @@ export default function ActivityDetailPage({ initialActivity }: { initialActivit
                 rel="noopener noreferrer"
                 style={{
                   display: 'flex', alignItems: 'center', gap: 8,
-                  height: 44, borderRadius: 10, marginTop: 8,
-                  background: 'white', border: '1px solid #E5E7EB',
-                  paddingLeft: 12, paddingRight: 12, textDecoration: 'none',
+                  height: 48, borderRadius: 12, marginTop: 8,
+                  background: '#F7F5F1', border: '1px solid #E8E5DE',
+                  paddingLeft: 14, paddingRight: 14, textDecoration: 'none',
                 }}
               >
-                <span style={{ color: '#1A8A7D', fontSize: 16, flexShrink: 0 }}>📍</span>
-                <span style={{ flex: 1, fontSize: 13, color: '#1A8A7D', fontWeight: 600 }}>Open in Google Maps</span>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A8A7D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <span style={{ fontSize: 16, flexShrink: 0 }}>📍</span>
+                <span style={{ flex: 1, fontSize: 13, color: '#0D0D0D', fontWeight: 600 }}>Open in Google Maps</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0D0D0D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
                 </svg>
               </a>
@@ -481,16 +490,16 @@ export default function ActivityDetailPage({ initialActivity }: { initialActivit
         )}
 
         {/* Contextual WhatsApp help */}
-        <div className="border-t border-border-light mt-6 pt-4 pb-2 text-center">
-          <p className="text-[13px] text-gray-400 mb-2">Can&apos;t find what you need?</p>
+        <div className="border-t border-border mt-6 pt-5 pb-2 text-center">
+          <p className="text-[13px] text-tx-light mb-2">Can&apos;t find what you need?</p>
           <a
             href="https://wa.me/306974176759?text=Hi%2C%20I%20need%20help%20booking%20an%20experience%20in%20Crete"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-1.5 text-[13px] font-semibold text-teal"
+            className="inline-flex items-center justify-center gap-1.5 text-[13px] font-semibold text-ink"
           >
             <svg width="14" height="14" viewBox="0 0 32 32" fill="none" aria-hidden>
-              <path d="M16 2C8.268 2 2 8.268 2 16c0 2.468.668 4.778 1.832 6.762L2 30l7.43-1.8A13.93 13.93 0 0016 30c7.732 0 14-6.268 14-14S23.732 2 16 2z" fill="#1A8A7D"/>
+              <path d="M16 2C8.268 2 2 8.268 2 16c0 2.468.668 4.778 1.832 6.762L2 30l7.43-1.8A13.93 13.93 0 0016 30c7.732 0 14-6.268 14-14S23.732 2 16 2z" fill="#0D0D0D"/>
               <path d="M23.5 19.75c-.3-.15-1.77-.87-2.04-.97-.28-.1-.48-.15-.68.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.47-.89-.79-1.49-1.76-1.66-2.06-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.68-1.63-.93-2.23-.24-.59-.49-.51-.68-.52h-.58c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.07 2.87 1.22 3.07.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.23 1.36.2 1.87.12.57-.09 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.07-.12-.27-.2-.57-.35z" fill="white"/>
             </svg>
             Chat with us on WhatsApp
@@ -499,11 +508,11 @@ export default function ActivityDetailPage({ initialActivity }: { initialActivit
       </div>
 
       {/* Bottom CTA */}
-      <div className="absolute bottom-0 left-0 right-0 px-5 pt-2.5 pb-8 bg-white border-t border-border-light flex items-center gap-2.5">
+      <div className="cta-strip absolute bottom-0 left-0 right-0 px-5 pt-3 pb-6 flex items-center gap-3">
         <div className="flex-shrink-0">
-          <p className="text-[10px] text-tx-light">From</p>
-          <p className="text-[19px] font-bold text-navy">
-            {hasPrice ? <>{formatPrice(unitPrice)}<span className="text-[11px] text-tx-light font-normal">/pp</span></> : '—'}
+          <p className="text-[10px] font-medium text-tx-light uppercase tracking-wide">From</p>
+          <p className="text-[22px] font-bold text-ink leading-none">
+            {hasPrice ? <>{formatPrice(unitPrice)}<span className="text-[12px] text-tx-light font-normal ml-0.5">/pp</span></> : '—'}
           </p>
         </div>
         <BookButton onClick={() => { setShowModal(true); setEnquiryError(null); }} />
@@ -515,10 +524,10 @@ export default function ActivityDetailPage({ initialActivity }: { initialActivit
           className="absolute inset-0 bg-black/35 z-[150] flex items-end"
           onClick={e => { if (e.target === e.currentTarget) setShowModal(false); }}
         >
-          <div className="w-full bg-white rounded-t-[18px] px-5 pt-5 pb-9 animate-slide-up max-h-[90%] overflow-y-auto">
+          <div className="w-full bg-white rounded-t-[24px] px-5 pt-5 pb-9 animate-slide-up max-h-[90%] overflow-y-auto">
             <div className="w-9 h-1 bg-border rounded-full mx-auto mb-4" />
-            <h2 className="font-display text-lg font-medium text-navy mb-1">Check Availability</h2>
-            <p className="text-xs text-tx-light mb-4">We&apos;ll send your request to your Island Key curator via WhatsApp — they&apos;ll confirm within a few hours.</p>
+            <h2 className="font-display text-[22px] font-light text-ink mb-1">Check Availability</h2>
+            <p className="text-[12px] text-tx-light mb-4">We&apos;ll send your request to your Island Key curator via WhatsApp — they&apos;ll confirm within a few hours.</p>
 
             {/* Activity summary */}
             <div className="flex justify-between items-start py-2.5 border-b border-border-light">
@@ -633,13 +642,13 @@ export default function ActivityDetailPage({ initialActivity }: { initialActivit
               <button
                 onClick={handleEnquiry}
                 disabled={enquiryLoading}
-                className="w-full py-3.5 bg-teal text-white rounded-sm font-semibold text-sm active:scale-[0.98] disabled:opacity-50"
+                className="w-full py-3.5 bg-lime text-ink rounded-full font-semibold text-sm active:scale-[0.98] disabled:opacity-50"
               >
                 {enquiryLoading ? 'Sending…' : 'Check Availability'}
               </button>
             </div>
 
-            <p className="text-center text-[10px] text-tx-light mt-3">
+            <p className="text-center text-[11px] text-tx-light mt-3">
               No payment taken now — your curator will confirm availability first.
             </p>
           </div>

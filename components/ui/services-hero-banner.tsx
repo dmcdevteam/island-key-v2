@@ -8,9 +8,9 @@ export function ServicesHeroBanner() {
         className="absolute inset-0"
         style={{
           background:
-            'radial-gradient(ellipse at 20% 50%, #0D5C52 0%, transparent 60%),' +
-            'radial-gradient(ellipse at 80% 30%, #1A3A5C 0%, transparent 55%),' +
-            'linear-gradient(135deg, #1B2D4F 0%, #0D3D38 55%, #1B2D4F 100%)',
+            'radial-gradient(ellipse at 20% 50%, rgba(200,241,53,0.12) 0%, transparent 60%),' +
+            'radial-gradient(ellipse at 85% 20%, rgba(200,241,53,0.08) 0%, transparent 55%),' +
+            'linear-gradient(160deg, #0D0D0D 0%, #111800 55%, #0D0D0D 100%)',
         }}
       />
 
@@ -32,7 +32,7 @@ export function ServicesHeroBanner() {
           <p
             style={{
               fontSize: 10,
-              color: '#1A8A7D',
+              color: '#C8F135',
               letterSpacing: '0.15em',
               textTransform: 'uppercase',
               fontWeight: 600,
@@ -78,7 +78,7 @@ export function ServicesHeroBanner() {
           bottom: 0,
           left: 0,
           right: 0,
-          borderTop: '1px solid rgba(26,138,125,0.30)',
+          borderTop: '1px solid rgba(200,241,53,0.20)',
           padding: '7px 20px',
         }}
       >

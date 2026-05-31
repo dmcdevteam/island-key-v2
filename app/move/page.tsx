@@ -34,48 +34,44 @@ export default function MovePage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-cream flex flex-col pb-[90px]">
+    <div className="min-h-screen bg-white flex flex-col pb-[90px]">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 pt-[52px] pb-3">
-        <div className="flex items-center gap-2">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo_icon_navy.png" alt="Island Key" style={{ height: 24, width: 'auto' }} />
+      <div className="flex items-end justify-between px-5 pt-[52px] pb-2">
+        <div>
+          <p className="text-[11px] font-semibold text-tx-light uppercase tracking-[0.14em] mb-1">Island Key</p>
+          <h1 className="font-display text-[36px] font-light text-ink leading-none">Move Around</h1>
         </div>
-        <Link href="/notifications" className="relative inline-flex active:scale-90 transition-transform">
-          <span className="text-[22px] opacity-70">🔔</span>
+        <Link href="/notifications" className="relative inline-flex active:scale-90 transition-transform mb-1">
+          <span className="text-[22px] opacity-60">🔔</span>
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-0.5 bg-ember text-white text-[9px] font-bold rounded-full flex items-center justify-center">
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}
         </Link>
       </div>
 
+      <p className="px-5 text-[13px] text-tx-mid mb-4">Rentals &amp; transfers across the island</p>
+
       {/* Search bar */}
-      <div className="px-5 pb-3">
+      <div className="px-5 pb-5">
         <button
           onClick={() => setSearchOpen(true)}
-          className="w-full flex items-center gap-3 bg-white border border-border-light rounded-2xl px-4 py-3 shadow-sm text-left"
+          className="w-full flex items-center gap-3 bg-mist border border-border rounded-2xl px-4 py-3 text-left"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9C9890" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
           </svg>
-          <span className="text-[15px] font-normal italic text-[#9CA3AF] flex-1">What are you looking for today?</span>
+          <span className="text-[14px] text-tx-light flex-1">Search rentals, transfers…</span>
         </button>
       </div>
 
-      {/* Page title */}
-      <div className="px-5 pb-5">
-        <h1 className="font-display text-2xl font-medium text-navy">Move Around</h1>
-        <p className="text-sm text-tx-light mt-1">Rentals and transfers across the Island</p>
-      </div>
-
-      <div className="px-5 flex flex-col gap-6">
+      <div className="px-5 flex flex-col gap-7">
 
         {/* Section A — Rent Something */}
         <div>
           <div className="flex items-baseline justify-between mb-3">
-            <h2 className="font-display text-lg font-medium text-navy">Rent Something</h2>
+            <h2 className="font-display text-[20px] font-light text-ink">Rent Something</h2>
             <p className="text-[11px] text-tx-light">Delivered to your door</p>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -83,25 +79,25 @@ export default function MovePage() {
               <button
                 key={card.href}
                 onClick={() => router.push(card.href)}
-                className="bg-white rounded-2xl border border-border-light shadow-sm py-6 flex flex-col items-center gap-2.5 active:scale-[0.97] transition-transform"
+                className="bg-mist rounded-2xl py-6 flex flex-col items-center gap-2.5 active:scale-[0.97] transition-transform"
               >
-                <span className="text-[32px] leading-none">{card.icon}</span>
-                <span className="text-[13px] font-semibold text-navy">{card.label}</span>
+                <span className="text-[34px] leading-none">{card.icon}</span>
+                <span className="text-[13px] font-semibold text-ink">{card.label}</span>
               </button>
             ))}
           </div>
         </div>
 
         {/* Divider */}
-        <div className="border-t border-border-light" />
+        <div className="border-t border-border" />
 
         {/* Section B — Get There */}
         <div>
-          <h2 className="font-display text-lg font-medium text-navy mb-3">Get There</h2>
+          <h2 className="font-display text-[20px] font-light text-ink mb-3">Get There</h2>
           <button
             onClick={() => router.push('/transfers')}
-            className="w-full relative rounded-2xl overflow-hidden active:scale-[0.98] transition-transform"
-            style={{ minHeight: 160 }}
+            className="card-cinema w-full relative overflow-hidden active:scale-[0.98] transition-transform"
+            style={{ height: 180 }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -109,18 +105,15 @@ export default function MovePage() {
               alt="Transfers"
               className="absolute inset-0 w-full h-full object-cover"
             />
-            <div
-              className="absolute inset-0"
-              style={{ background: 'linear-gradient(to top, rgba(27,45,79,0.85) 0%, rgba(27,45,79,0.3) 50%, transparent 100%)' }}
-            />
-            <div className="relative z-10 p-5 flex items-end justify-between" style={{ minHeight: 160 }}>
+            <div className="scrim absolute inset-0" />
+            <div className="absolute bottom-0 left-0 right-0 p-5 flex items-end justify-between">
               <div className="text-left">
-                <p className="font-display text-[20px] text-white leading-tight">Transfers</p>
-                <p className="text-[13px] text-white/70 mt-0.5 leading-snug">
-                  Airport, port and private transfers across Crete
+                <p className="font-display text-[22px] font-light text-white leading-tight">Transfers</p>
+                <p className="text-[13px] text-white/65 mt-0.5 leading-snug">
+                  Airport, port &amp; private — across Crete
                 </p>
               </div>
-              <div className="px-3 py-1.5 bg-teal rounded-full text-white text-[13px] font-semibold flex-shrink-0 ml-4">
+              <div className="px-4 py-2 bg-lime rounded-full text-ink text-[13px] font-semibold flex-shrink-0 ml-4">
                 Book →
               </div>
             </div>

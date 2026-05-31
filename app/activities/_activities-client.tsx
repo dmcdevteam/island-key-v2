@@ -56,25 +56,15 @@ export default function ActivitiesClient({ initialActivities }: { initialActivit
     .sort((a, b) => (a.sort_order - b.sort_order) || a.title.localeCompare(b.title));
 
   return (
-    <div className="min-h-screen bg-cream flex flex-col pb-[90px]">
-      <div className="px-5 pt-[52px] pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo_icon_navy.png" alt="Island Key" style={{ height: 24, width: 'auto' }} />
-            <h1 className="font-display text-xl font-medium text-navy">Explore</h1>
-          </div>
-        </div>
-        <p className="text-xs text-tx-light mt-0.5">Curated by locals, vetted for quality</p>
+    <div className="min-h-screen bg-white flex flex-col pb-[90px]">
+      {/* Editorial header */}
+      <div className="px-5 pt-[52px] pb-4">
+        <p className="text-[11px] font-semibold text-tx-light uppercase tracking-[0.14em] mb-1">Island Key</p>
+        <h1 className="font-display text-[36px] font-light text-ink leading-none">
+          Experiences
+        </h1>
+        <p className="text-[13px] text-tx-mid mt-2">Curated by locals · vetted for quality</p>
       </div>
-
-      {/* Boat trips banner */}
-      {selectedCategory === 'boat_trips' && (
-        <div className="mx-5 mb-3 px-4 py-3 rounded-xl bg-teal/10 border border-teal/20">
-          <p className="text-sm font-semibold text-teal">Boat trip experiences</p>
-          <p className="text-xs text-teal/80 mt-0.5">Organised tours and daily cruises in Crete</p>
-        </div>
-      )}
 
       {/* Category chips (single-select) */}
       <div className="flex gap-1.5 px-5 overflow-x-auto no-scrollbar mb-2 flex-shrink-0">
@@ -94,8 +84,8 @@ export default function ActivitiesClient({ initialActivities }: { initialActivit
       </div>
 
       {/* Mood chips (multi-select) */}
-      <div className="px-5 mb-3 flex-shrink-0">
-        <p className="text-[10px] font-semibold text-tx-light uppercase tracking-wide mb-1.5">How are you feeling?</p>
+      <div className="px-5 mb-4 flex-shrink-0">
+        <p className="text-[10px] font-semibold text-tx-light uppercase tracking-wider mb-2">Vibe</p>
         <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
           {Object.entries(MOOD_LABELS).map(([key, label]) => (
             <button
@@ -103,8 +93,8 @@ export default function ActivitiesClient({ initialActivities }: { initialActivit
               onClick={() => toggleMood(key)}
               className={`px-3 py-[5px] rounded-full text-[11px] font-medium whitespace-nowrap transition-all border flex-shrink-0 ${
                 selectedMoods.includes(key)
-                  ? 'bg-teal/10 text-teal border-teal/40'
-                  : 'bg-transparent text-tx-light border-border-light hover:border-teal/30 hover:text-teal'
+                  ? 'bg-lime text-ink border-transparent'
+                  : 'bg-transparent text-tx-light border-border hover:border-ink/30 hover:text-ink'
               }`}
             >
               {label}
@@ -113,9 +103,17 @@ export default function ActivitiesClient({ initialActivities }: { initialActivit
         </div>
       </div>
 
+      {/* Boat trips banner */}
+      {selectedCategory === 'boat_trips' && (
+        <div className="mx-5 mb-4 px-4 py-3 rounded-2xl bg-lime/20 border border-lime/40">
+          <p className="text-sm font-semibold text-ink">Boat trip experiences</p>
+          <p className="text-xs text-tx-mid mt-0.5">Organised tours and daily cruises in Crete</p>
+        </div>
+      )}
+
       {/* List */}
       <div className="flex-1 overflow-y-auto px-5">
-        <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col gap-3">
           {filtered.map((activity, i) => {
             const suitability = weather && activity.weather_driven !== false
               ? getActivitySuitability(activity.category, weather, activity.is_boat_activity)

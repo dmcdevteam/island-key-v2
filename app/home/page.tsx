@@ -304,176 +304,151 @@ export default function HomePage() {
   })();
 
   return (
-    <div className="min-h-screen bg-cream flex flex-col pb-[90px]">
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 pt-[52px] pb-3">
-        <div className="flex items-center gap-2">
+    <div className="min-h-screen bg-white flex flex-col pb-36">
+
+      {/* ── Header ──────────────────────────────────────────── */}
+      <div className="px-5 pt-[52px] pb-5">
+        {/* Top row: logo mark + bell */}
+        <div className="flex items-center justify-between mb-5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo_icon_navy.png" alt="Island Key" style={{ height: 24, width: 'auto' }} />
-          <h1 className="font-display text-xl font-normal text-navy">
-            Hello, <span className="font-semibold">{session.first_name}</span> 👋
-          </h1>
+          <img src="/logo_icon_navy.png" alt="Island Key" style={{ height: 18, width: 'auto', opacity: 0.3 }} />
+          <Link href="/notifications" className="relative inline-flex active:scale-90 transition-transform">
+            <div className="w-9 h-9 rounded-full bg-mist flex items-center justify-center text-tx-mid">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              </svg>
+            </div>
+            {unreadCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-0.5 bg-ember text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </Link>
         </div>
-        <Link href="/notifications" className="relative inline-flex active:scale-90 transition-transform">
-          <span className="text-[22px] opacity-70">🔔</span>
-          {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-              {unreadCount > 9 ? '9+' : unreadCount}
-            </span>
+
+        {/* Editorial greeting */}
+        <h1 className="font-display text-[40px] font-normal text-ink leading-[1.04] tracking-[-0.5px] mb-3">
+          Hello,{' '}
+          <em className="italic">{session.first_name}.</em>
+        </h1>
+
+        {/* Inline weather + trip status — single line, no box */}
+        <div className="flex items-center flex-wrap gap-x-2 gap-y-1 text-[14px] text-tx-mid">
+          {weather ? (
+            <span className="font-medium">{wmoIcon(weather.code)} {weather.temp}°C · {wmoDesc(weather.code)}</span>
+          ) : (
+            <span className="font-medium">Crete</span>
           )}
-        </Link>
-      </div>
-
-      {/* Search bar */}
-      <div className="px-5 pb-3">
-        <button
-          onClick={() => setSearchOpen(true)}
-          className="w-full flex items-center gap-3 bg-white border border-border-light rounded-2xl px-4 py-3 shadow-sm text-left"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-          </svg>
-          <span className="text-[15px] font-normal italic text-[#9CA3AF] flex-1">What are you looking for today?</span>
-        </button>
-      </div>
-
-      <div className="flex-1 overflow-y-auto">
-
-        {/* Weather / trip bar */}
-        <div className="mx-5 mb-5 p-2.5 px-3.5 bg-white rounded-sm border border-border-light">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <span className="text-xl">{weather ? wmoIcon(weather.code) : '🌡️'}</span>
-              <div>
-                {weather ? (
-                  <>
-                    <p className="text-base font-bold text-navy">{weather.temp}°C</p>
-                    <p className="text-[11px] text-tx-light">{wmoDesc(weather.code)}</p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-base font-bold text-navy">—°C</p>
-                    <p className="text-[11px] text-tx-light">Weather unavailable</p>
-                  </>
-                )}
-              </div>
-            </div>
-            <div className="text-right">
-              {tripStatus.type === 'before' && (
-                <>
-                  <p className="text-xs font-semibold text-tx-mid">Trip starts in {tripStatus.daysUntil} {tripStatus.daysUntil === 1 ? 'day' : 'days'}</p>
-                  <p className="text-[11px] text-tx-light">
-                    {new Date(checkIn + 'T00:00:00').toLocaleDateString('en', { weekday: 'short', day: 'numeric', month: 'short' })}
-                  </p>
-                </>
-              )}
-              {tripStatus.type === 'during' && (
-                <>
-                  <p className="text-xs font-semibold text-tx-mid">Day {tripStatus.dayNum} of {tripStatus.length}</p>
-                  <p className="text-[11px] text-tx-light">
-                    {new Date(checkIn + 'T00:00:00').toLocaleDateString('en', { weekday: 'short', day: 'numeric', month: 'short' })}
-                  </p>
-                </>
-              )}
-              {tripStatus.type === 'after' && (
-                <p className="text-xs font-semibold text-tx-mid">We hope you enjoyed your stay!</p>
-              )}
-              {tripStatus.type === 'unknown' && (
-                <p className="text-xs font-semibold text-tx-mid">Welcome to Crete</p>
-              )}
-            </div>
-          </div>
-
-          {/* Wind + UV row */}
+          {tripStatus.type === 'during' && (
+            <><span className="text-border">·</span><span>Day {tripStatus.dayNum} of {tripStatus.length}</span></>
+          )}
+          {tripStatus.type === 'before' && (
+            <><span className="text-border">·</span><span>{tripStatus.daysUntil}d to arrival</span></>
+          )}
+          {tripStatus.type === 'after' && (
+            <><span className="text-border">·</span><span>Thanks for visiting!</span></>
+          )}
           {weather && (
-            <div className="flex items-center gap-3 mt-1.5 pt-1.5 border-t border-border-light">
-              <span className="flex items-center gap-1 text-[11px] text-tx-light">
+            <>
+              <span className="text-border">·</span>
+              <span className="flex items-center gap-1 text-[12px] text-tx-light">
                 <WindArrow degrees={weather.windDir} />
                 {windCompass(weather.windDir)} {weather.wind} km/h
               </span>
               {(() => {
                 const b = uvBadge(weather.uv)
                 return (
-                  <span
-                    className="text-[10px] font-bold px-1.5 py-0.5 rounded"
-                    style={{ background: b.bg, color: b.text }}
-                  >
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md" style={{ background: b.bg, color: b.text }}>
                     {b.label}
                   </span>
                 )
               })()}
-            </div>
+            </>
           )}
         </div>
+      </div>
+
+      {/* ── Search bar ──────────────────────────────────────── */}
+      <div className="px-5 pb-6">
+        <button
+          onClick={() => setSearchOpen(true)}
+          className="w-full flex items-center gap-3 bg-mist border border-border rounded-2xl px-4 py-3.5 text-left transition-all active:scale-[0.99] active:bg-sand"
+        >
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#9C9890" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <span className="text-[15px] text-tx-light flex-1">What are you looking for?</span>
+          <div className="w-7 h-7 rounded-full bg-ink flex items-center justify-center flex-shrink-0">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </div>
+        </button>
+      </div>
+
+      {/* ── Scrollable content ──────────────────────────────── */}
+      <div className="flex-1">
 
         <SmartFeed />
 
-        {/* Error */}
         {error && (
-          <div className="mx-5 mb-4 p-3 rounded-2xl bg-red-50 text-red-600 text-sm">
+          <div className="mx-5 mb-4 p-3 rounded-xl bg-red-50 text-red-600 text-sm">
             Failed to load content: {error}
           </div>
         )}
 
-        {/* Deals banner — shown when active deals exist */}
+        {/* ── Deals banner ────────────────────────────────── */}
         {dealsStatus === 'data' && data.deals.length > 0 && (() => {
           const deal = data.deals[0]
           const img = deal.images?.[0] ?? null
           return (
             <button
               onClick={() => router.push('/deals')}
-              className="mx-4 mb-5 w-[calc(100%-32px)] rounded-2xl overflow-hidden text-left active:scale-[0.98] transition-transform shadow-md block"
+              className="mx-4 mb-4 w-[calc(100%-32px)] rounded-2xl overflow-hidden text-left active:scale-[0.98] transition-transform shadow-elevated block"
             >
-              <div className="relative h-[160px]">
+              <div className="relative h-[172px]">
                 {img ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={img} alt={deal.title} className="absolute inset-0 w-full h-full object-cover" />
                 ) : (
-                  <div className="absolute inset-0 bg-gradient-to-br from-terra to-navy" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-tx-mid to-ink" />
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                <div className="absolute inset-0 scrim" />
                 {(deal.savings_pct ?? 0) > 0 && (
-                  <div className="absolute top-3 right-3 bg-terra text-white text-[11px] font-bold px-2.5 py-1 rounded-full">
+                  <div className="absolute top-3 right-3 bg-lime text-ink text-[11px] font-bold px-2.5 py-1 rounded-full">
                     -{deal.savings_pct}%
                   </div>
                 )}
                 <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <p className="text-[10px] font-bold text-white/70 uppercase tracking-widest mb-0.5">⚡ Limited Deal</p>
-                  <p className="font-display text-[17px] font-semibold text-white leading-tight">{deal.title}</p>
+                  <p className="text-[10px] font-bold text-lime/90 uppercase tracking-widest mb-1">⚡ Limited Deal</p>
+                  <p className="font-display text-[19px] font-semibold text-white leading-tight">{deal.title}</p>
                   {(deal.original_price || deal.deal_price) && (
                     <div className="flex items-center gap-2 mt-1.5">
-                      {deal.original_price && (
-                        <span className="text-[12px] text-white/50 line-through">€{deal.original_price}</span>
-                      )}
-                      {deal.deal_price && (
-                        <span className="text-[14px] font-bold text-white">€{deal.deal_price}</span>
-                      )}
+                      {deal.original_price && <span className="text-[12px] text-white/50 line-through">€{deal.original_price}</span>}
+                      {deal.deal_price && <span className="text-[15px] font-bold text-white">€{deal.deal_price}</span>}
                     </div>
                   )}
                 </div>
               </div>
               {deal.valid_until && (
-                <div className="bg-terra/10 border-t border-terra/20 px-4 py-2.5 flex items-center justify-between">
-                  <span className="text-[11px] text-terra font-semibold">Expires in</span>
-                  <span className="text-[11px] font-bold text-terra font-mono">
-                    <DealCountdown validUntil={deal.valid_until} />
-                  </span>
+                <div className="bg-lime px-4 py-2.5 flex items-center justify-between">
+                  <span className="text-[11px] text-ink font-semibold">Expires in</span>
+                  <span className="text-[11px] font-bold text-ink font-mono"><DealCountdown validUntil={deal.valid_until} /></span>
                 </div>
               )}
             </button>
           )
         })()}
 
-        {/* Recommended for you */}
-        <SectionHeader title="Recommended Experiences for You" linkText="See all →" href="/activities" />
+        {/* ── Experiences ─────────────────────────────────── */}
+        <SectionHeader title="Experiences for You" linkText="See all" href="/activities" />
         {loading ? (
-          <div className="flex gap-2.5 px-5 mb-5">
+          <div className="flex gap-3 px-5 mb-4">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="min-w-[190px] h-[155px] rounded bg-navy/5 animate-pulse flex-shrink-0" />
+              <div key={i} className="min-w-[220px] h-[200px] rounded-xl skeleton flex-shrink-0" />
             ))}
           </div>
         ) : data.activities.length > 0 ? (
-          <div className="flex gap-2.5 px-5 overflow-x-auto snap-x snap-mandatory no-scrollbar mb-5">
+          <div className="flex gap-3 px-5 overflow-x-auto snap-x snap-mandatory no-scrollbar mb-4">
             {data.activities.map(a => (
               <ActivityMiniCard
                 key={a.id}
@@ -489,145 +464,77 @@ export default function HomePage() {
             ))}
           </div>
         ) : (
-          <p className="px-5 mb-5 text-xs text-tx-light">No featured activities yet.</p>
+          <p className="px-5 mb-4 text-sm text-tx-light">No featured experiences yet.</p>
         )}
 
-        {/* Boat Trips banner */}
+        {/* ── Boat Trips banner ───────────────────────────── */}
         <Link
           href="/activities?category=boat_trips"
-          className="mx-4 text-left active:scale-[0.98] transition-transform"
-          style={{
-            marginTop: 24,
-            marginBottom: 32,
-            width: 'calc(100% - 32px)',
-            display: 'block',
-            borderRadius: 16,
-            overflow: 'hidden',
-            position: 'relative',
-            height: 200,
-            boxShadow: '0 8px 32px rgba(27,45,79,0.25)',
-            transitionDuration: '150ms',
-          }}
+          className="mx-4 block active:scale-[0.98] transition-transform"
+          style={{ marginTop: 20, marginBottom: 16, width: 'calc(100% - 32px)', borderRadius: 22, overflow: 'hidden', position: 'relative', height: 224, boxShadow: '0 12px 40px rgba(0,0,0,0.16)' }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="https://images.unsplash.com/photo-1544551763-77ef2d0cfc6c?w=800&q=80"
-            alt="Boat Trips"
-            loading="eager"
-            style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }}
-          />
-          <div
-            style={{
-              position: 'absolute', inset: 0,
-              background: 'linear-gradient(to top, rgba(27,45,79,0.85) 0%, rgba(27,45,79,0.3) 50%, transparent 100%)',
-            }}
-          />
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16 }}>
-            <p style={{ fontSize: 10, color: '#1A8A7D', letterSpacing: '0.15em', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>
-              BOAT TRIPS
-            </p>
-            <p className="font-display" style={{ fontSize: 22, color: 'white', lineHeight: 1.2, marginBottom: 4 }}>
-              Sail the waters of Crete
-            </p>
-            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginBottom: 10 }}>
-              Sunset cruises, day trips and private charters
-            </p>
-            <span style={{
-              display: 'inline-block',
-              background: '#1A8A7D',
-              color: 'white',
-              borderRadius: 9999,
-              padding: '6px 16px',
-              fontSize: 12,
-              fontWeight: 600,
-            }}>
+          <img src="https://images.unsplash.com/photo-1544551763-77ef2d0cfc6c?w=800&q=80" alt="Boat Trips" loading="eager"
+            style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.84) 0%, rgba(0,0,0,0.2) 55%, transparent 100%)' }} />
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '16px 20px 22px' }}>
+            <p style={{ fontSize: 10, color: '#C8F135', letterSpacing: '0.15em', fontWeight: 700, textTransform: 'uppercase', marginBottom: 5 }}>Boat Trips</p>
+            <p className="font-display" style={{ fontSize: 24, color: 'white', lineHeight: 1.15, marginBottom: 7 }}>Sail the waters of Crete</p>
+            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginBottom: 14 }}>Sunset cruises, day trips and private charters</p>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#C8F135', color: '#0D0D0D', borderRadius: 9999, padding: '8px 18px', fontSize: 12, fontWeight: 700 }}>
               Explore Boat Trips →
             </span>
           </div>
         </Link>
 
-        {/* Culinary Experiences banner */}
+        {/* ── Culinary banner ─────────────────────────────── */}
         <Link
           href="/activities?category=culinary"
-          className="mx-4 text-left active:scale-[0.98] transition-transform"
-          style={{
-            marginTop: 16,
-            marginBottom: 32,
-            width: 'calc(100% - 32px)',
-            display: 'block',
-            borderRadius: 16,
-            overflow: 'hidden',
-            position: 'relative',
-            height: 200,
-            boxShadow: '0 8px 32px rgba(27,45,79,0.25)',
-            transitionDuration: '150ms',
-          }}
+          className="mx-4 block active:scale-[0.98] transition-transform"
+          style={{ marginTop: 16, marginBottom: 16, width: 'calc(100% - 32px)', borderRadius: 22, overflow: 'hidden', position: 'relative', height: 224, boxShadow: '0 12px 40px rgba(0,0,0,0.16)' }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&q=80"
-            alt="Culinary Experiences"
-            loading="lazy"
-            style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }}
-          />
-          <div
-            style={{
-              position: 'absolute', inset: 0,
-              background: 'linear-gradient(to top, rgba(27,45,79,0.85) 0%, rgba(27,45,79,0.3) 50%, transparent 100%)',
-            }}
-          />
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16 }}>
-            <p style={{ fontSize: 10, color: '#1A8A7D', letterSpacing: '0.15em', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>
-              CULINARY CRETE
-            </p>
-            <p className="font-display" style={{ fontSize: 22, color: 'white', lineHeight: 1.2, marginBottom: 4 }}>
-              Cooking lessons &amp; food experiences
-            </p>
-            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginBottom: 10 }}>
-              Authentic Cretan cuisine with local chefs
-            </p>
-            <span style={{
-              display: 'inline-block',
-              background: '#1A8A7D',
-              color: 'white',
-              borderRadius: 9999,
-              padding: '6px 16px',
-              fontSize: 12,
-              fontWeight: 600,
-            }}>
+          <img src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&q=80" alt="Culinary Experiences" loading="lazy"
+            style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.84) 0%, rgba(0,0,0,0.2) 55%, transparent 100%)' }} />
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '16px 20px 22px' }}>
+            <p style={{ fontSize: 10, color: '#C8F135', letterSpacing: '0.15em', fontWeight: 700, textTransform: 'uppercase', marginBottom: 5 }}>Culinary Crete</p>
+            <p className="font-display" style={{ fontSize: 24, color: 'white', lineHeight: 1.15, marginBottom: 7 }}>Cooking lessons &amp; food experiences</p>
+            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginBottom: 14 }}>Authentic Cretan cuisine with local chefs</p>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#C8F135', color: '#0D0D0D', borderRadius: 9999, padding: '8px 18px', fontSize: 12, fontWeight: 700 }}>
               Discover →
             </span>
           </div>
         </Link>
 
-        {/* What's happening today — hidden only when fetch completes with no results */}
+        {/* ── What's on Today ─────────────────────────────── */}
         {eventsStatus !== 'empty' && (
           <>
-            <SectionHeader title="What&apos;s happening today" linkText="See all →" href="/events" />
+            <SectionHeader title="What's on Today" linkText="See all" href="/events" />
             {eventsStatus === 'loading' ? (
-              <div className="mx-5 mb-5 space-y-2">
+              <div className="mx-5 mb-4 space-y-2">
                 {Array.from({ length: 2 }).map((_, i) => (
-                  <div key={i} className="h-[52px] rounded-sm bg-navy/5 animate-pulse" />
+                  <div key={i} className="h-14 rounded-xl skeleton" />
                 ))}
               </div>
             ) : (
-              <div className="mb-5">
+              <div className="mb-4">
                 {data.events.map(ev => (
                   <div
                     key={ev.id}
                     onClick={() => router.push(`/events/${ev.slug}`)}
-                    className="mx-5 mb-2.5 flex gap-2.5 p-2.5 px-3 bg-white rounded-sm border border-border-light items-center cursor-pointer active:bg-sand"
+                    className="mx-5 mb-2 flex gap-3 p-3 px-4 bg-mist rounded-xl items-center cursor-pointer active:bg-sand transition-colors"
                   >
-                    <span className="text-lg">{EVENT_ICONS[ev.category ?? 'other'] ?? '📅'}</span>
-                    <div className="flex-1">
-                      <p className="text-xs font-semibold text-navy">{ev.title}</p>
-                      <p className="text-[10px] text-tx-light">
+                    <span className="text-[18px] flex-shrink-0">{EVENT_ICONS[ev.category ?? 'other'] ?? '📅'}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-semibold text-ink leading-snug truncate">{ev.title}</p>
+                      <p className="text-[11px] text-tx-light mt-0.5">
                         {formatEventWhen(ev.start_date)}
                         {ev.location_name ? ` · ${ev.location_name}` : ''}
-                        {ev.is_free ? ' · Free entry' : ''}
+                        {ev.is_free ? ' · Free' : ''}
                       </p>
                     </div>
-                    <span className="text-[11px] text-teal">→</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9C9890" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                   </div>
                 ))}
               </div>
@@ -635,48 +542,37 @@ export default function HomePage() {
           </>
         )}
 
-        {/* Events hero card — always visible */}
+        {/* ── Events hero card ────────────────────────────── */}
         <Link
           href="/events"
-          className="mx-4 mb-5 block w-[calc(100%-32px)] text-left active:opacity-90 transition-opacity"
-          style={{ borderRadius: 16, overflow: 'hidden', position: 'relative', height: 160 }}
+          className="mx-4 mb-4 block active:opacity-90 transition-opacity"
+          style={{ width: 'calc(100% - 32px)', borderRadius: 22, overflow: 'hidden', position: 'relative', height: 172 }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=800"
-            alt="Events in Chania"
-            loading="lazy"
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-          />
-          <div
-            style={{
-              position: 'absolute', inset: 0,
-              background: 'linear-gradient(to bottom, transparent 20%, rgba(27,45,79,0.75) 100%)',
-            }}
-          />
-          <div style={{ position: 'absolute', bottom: 14, left: 16, right: 48 }}>
-            <p style={{ fontSize: 10, color: 'white', letterSpacing: '0.15em', fontWeight: 600, textTransform: 'uppercase', marginBottom: 2 }}>
-              Events &amp; Culture
-            </p>
-            <p className="font-display" style={{ fontSize: 18, color: 'white', fontWeight: 600, lineHeight: 1.2 }}>
-              See what&apos;s on in Chania
-            </p>
+          <img src="https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=800" alt="Events in Chania" loading="lazy"
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 20%, rgba(0,0,0,0.78) 100%)' }} />
+          <div style={{ position: 'absolute', bottom: 18, left: 20, right: 60 }}>
+            <p style={{ fontSize: 10, color: '#C8F135', letterSpacing: '0.15em', fontWeight: 600, textTransform: 'uppercase', marginBottom: 5 }}>Events &amp; Culture</p>
+            <p className="font-display" style={{ fontSize: 20, color: 'white', fontWeight: 500, lineHeight: 1.2 }}>See what&apos;s on in Chania</p>
           </div>
-          <div style={{ position: 'absolute', bottom: 14, right: 16, fontSize: 20, color: 'white' }}>
-            →
+          <div style={{ position: 'absolute', bottom: 18, right: 20 }}>
+            <div style={{ width: 38, height: 38, borderRadius: '50%', background: '#C8F135', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0D0D0D" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
           </div>
         </Link>
 
-        {/* Local Insights */}
-        <SectionHeader title="Local Insights" linkText="Read more →" href="/insights" />
+        {/* ── Local Insights ──────────────────────────────── */}
+        <SectionHeader title="Local Insights" linkText="Read more" href="/insights" />
         {loading ? (
-          <div className="flex gap-2.5 px-5 mb-5">
+          <div className="flex gap-3 px-5 mb-6">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="min-w-[240px] h-[175px] rounded bg-navy/5 animate-pulse flex-shrink-0" />
+              <div key={i} className="min-w-[240px] h-[195px] rounded-xl skeleton flex-shrink-0" />
             ))}
           </div>
         ) : data.articles.length > 0 ? (
-          <div className="flex gap-2.5 px-5 overflow-x-auto snap-x no-scrollbar mb-5">
+          <div className="flex gap-3 px-5 overflow-x-auto snap-x no-scrollbar mb-6">
             {data.articles.map(a => {
               const style = ARTICLE_STYLES[a.category ?? ''] ?? { bg: ARTICLE_STYLES.guide.bg, tagColor: '#5A5A5A' };
               return (
@@ -695,101 +591,65 @@ export default function HomePage() {
             })}
           </div>
         ) : (
-          <p className="px-5 mb-5 text-xs text-tx-light">No articles published yet.</p>
+          <p className="px-5 mb-5 text-sm text-tx-light">No articles published yet.</p>
         )}
 
       </div>
 
-      {/* Prefetch hint — loads /activities in background while user reads Home */}
+      {/* Prefetch hint */}
       <Link href="/activities" prefetch={true} className="hidden" aria-hidden="true" tabIndex={-1} />
 
       {searchOpen && <GlobalSearch onClose={() => setSearchOpen(false)} />}
 
-      {/* Welcome bottom sheet — shown once after onboarding */}
+      {/* ── Welcome bottom sheet ────────────────────────── */}
       {showWelcome && (
-        <div className="fixed inset-0 z-[300] flex items-end" style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}>
-          <div className="bg-white rounded-t-3xl w-full shadow-2xl px-6 pt-6 pb-10 animate-slide-up">
-            {/* Close button */}
-            <button
-              onClick={() => setShowWelcome(false)}
-              className="absolute top-4 right-5 text-[22px] text-tx-light leading-none"
-              style={{ position: 'absolute' }}
-            >
-              ×
-            </button>
-
-            {/* Handle */}
-            <div className="w-9 h-1 bg-border rounded-full mx-auto mb-5" />
-
-            {/* Decorative */}
-            <div className="text-center mb-3" style={{ fontSize: 48 }}>🌊</div>
-
-            {/* Headline */}
-            <h2 className="font-display text-[24px] font-normal text-navy text-center leading-tight">
-              Welcome to Island Key, {session.first_name}.
+        <div className="fixed inset-0 z-[300] flex items-end" style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}>
+          <div className="bg-white rounded-t-[32px] w-full shadow-modal px-6 pt-6 pb-10 animate-slide-up relative">
+            <button onClick={() => setShowWelcome(false)} className="absolute top-4 right-5 text-2xl text-tx-light leading-none">×</button>
+            <div className="w-10 h-1 bg-border rounded-full mx-auto mb-6" />
+            <div className="text-center text-5xl mb-4">🌊</div>
+            <h2 className="font-display text-[30px] font-normal text-ink text-center leading-tight mb-2">
+              Welcome, {session.first_name}.
             </h2>
-            <p className="text-[15px] text-tx-light text-center mt-2 mb-5">
-              Your Crete experience starts now.
-            </p>
-
-            {/* Personalised card */}
-            <div className="rounded-xl p-4 mb-2" style={{ background: '#F5F0E8' }}>
+            <p className="text-[15px] text-tx-light text-center mb-6">Your Crete experience starts now.</p>
+            <div className="rounded-2xl p-4 mb-2 bg-mist">
               {tripStatus.type === 'before' ? (
                 <>
-                  <p className="text-[14px] text-navy leading-relaxed mb-4">
+                  <p className="text-[14px] text-ink leading-relaxed mb-4">
                     You arrive in <strong>{tripStatus.daysUntil} {tripStatus.daysUntil === 1 ? 'day' : 'days'}</strong>. Smart move to sort the essentials now — airport transfers and car rentals fill up fast in summer.
                   </p>
-                  <button
-                    onClick={() => { setShowWelcome(false); router.push('/transfers'); }}
-                    className="w-full py-3.5 rounded-xl bg-navy text-white text-[14px] font-semibold mb-2"
-                  >
+                  <button onClick={() => { setShowWelcome(false); router.push('/transfers'); }}
+                    className="w-full py-4 rounded-xl bg-ink text-white text-[14px] font-semibold mb-2">
                     Book Airport Transfer →
                   </button>
-                  <button
-                    onClick={() => { setShowWelcome(false); router.push('/move'); }}
-                    className="w-full py-3.5 rounded-xl text-[14px] font-semibold border-2 border-teal text-teal"
-                  >
+                  <button onClick={() => { setShowWelcome(false); router.push('/move'); }}
+                    className="w-full py-4 rounded-xl text-[14px] font-semibold bg-lime text-ink">
                     Rent a Car or Vehicle →
                   </button>
                 </>
               ) : (tripStatus.type === 'during' || tripStatus.type === 'after') ? (
                 <>
-                  <p className="text-[14px] text-navy leading-relaxed mb-4">
-                    You&apos;re in Crete. Time to make the most of it — discover what&apos;s available today.
-                  </p>
-                  <button
-                    onClick={() => { setShowWelcome(false); router.push('/explore'); }}
-                    className="w-full py-3.5 rounded-xl bg-navy text-white text-[14px] font-semibold mb-2"
-                  >
+                  <p className="text-[14px] text-ink leading-relaxed mb-4">You&apos;re in Crete. Time to make the most of it.</p>
+                  <button onClick={() => { setShowWelcome(false); router.push('/explore'); }}
+                    className="w-full py-4 rounded-xl bg-ink text-white text-[14px] font-semibold mb-2">
                     See Today&apos;s Experiences →
                   </button>
-                  <button
-                    onClick={() => setShowWelcome(false)}
-                    className="w-full py-3.5 rounded-xl text-[14px] font-semibold border-2 border-teal text-teal"
-                  >
+                  <button onClick={() => setShowWelcome(false)}
+                    className="w-full py-4 rounded-xl text-[14px] font-semibold bg-lime text-ink">
                     View Today&apos;s Highlights →
                   </button>
                 </>
               ) : (
                 <>
-                  <p className="text-[14px] text-navy leading-relaxed mb-4">
-                    Your concierge is ready. Start exploring what Crete has to offer.
-                  </p>
-                  <button
-                    onClick={() => { setShowWelcome(false); router.push('/explore'); }}
-                    className="w-full py-3.5 rounded-xl bg-navy text-white text-[14px] font-semibold"
-                  >
+                  <p className="text-[14px] text-ink leading-relaxed mb-4">Your concierge is ready. Start exploring.</p>
+                  <button onClick={() => { setShowWelcome(false); router.push('/explore'); }}
+                    className="w-full py-4 rounded-xl bg-ink text-white text-[14px] font-semibold">
                     Start Exploring →
                   </button>
                 </>
               )}
             </div>
-
-            {/* Skip */}
-            <button
-              onClick={() => setShowWelcome(false)}
-              className="w-full text-center text-[12px] text-tx-light mt-4"
-            >
+            <button onClick={() => setShowWelcome(false)} className="w-full text-center text-[12px] text-tx-light mt-4">
               Skip for now
             </button>
           </div>
