@@ -39,13 +39,13 @@ export default function ServiceListingsPage() {
     : `/services/${categoryParam}`
 
   return (
-    <div className="min-h-screen bg-cream flex flex-col pb-[90px]">
+    <div className="min-h-screen bg-white flex flex-col pb-[90px]">
       {/* Header */}
-      <div className="sticky top-0 z-20 bg-cream border-b border-border-light px-4 py-3">
+      <div className="sticky top-0 z-20 bg-white border-b border-border px-4 py-3">
         <div className="flex items-center gap-3">
-          <button onClick={() => router.push(parentPath)} className="text-navy text-sm flex-shrink-0">←</button>
+          <button onClick={() => router.push(parentPath)} className="text-ink text-sm flex-shrink-0">←</button>
           <div className="min-w-0">
-            <h1 className="font-display text-lg font-medium text-navy leading-tight truncate">
+            <h1 className="font-display text-lg font-light text-ink leading-tight truncate">
               {subcatMeta?.label ?? subcategoryParam}
             </h1>
             {subcatMeta?.tagline && (
@@ -59,7 +59,7 @@ export default function ServiceListingsPage() {
       <div className="flex-1 overflow-y-auto px-4 pt-3">
         {loading && (
           <div className="flex flex-col gap-3">
-            {[0, 1, 2].map(i => <div key={i} className="h-[200px] rounded-sm bg-navy/5 animate-pulse" />)}
+            {[0, 1, 2].map(i => <div key={i} className="h-[200px] rounded-2xl skeleton animate-pulse" />)}
           </div>
         )}
 
@@ -72,7 +72,7 @@ export default function ServiceListingsPage() {
             {services.map(s => (
               <div
                 key={s.id}
-                className="bg-white rounded-sm border border-border-light overflow-hidden"
+                className="bg-white rounded-2xl border border-border overflow-hidden"
               >
                 {/* Hero image */}
                 {(s.image_wide ?? s.images?.[0]) ? (
@@ -83,14 +83,14 @@ export default function ServiceListingsPage() {
                     className="w-full h-[160px] object-cover"
                   />
                 ) : (
-                  <div className="w-full h-[120px] bg-navy/10 flex items-center justify-center">
+                  <div className="w-full h-[120px] bg-mist flex items-center justify-center">
                     <span className="text-4xl">🛎️</span>
                   </div>
                 )}
 
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-2 mb-1.5">
-                    <h3 className="font-display text-base text-navy leading-tight">{s.title}</h3>
+                    <h3 className="font-display text-base text-ink leading-tight">{s.title}</h3>
                     <div className="flex flex-col items-end gap-1 flex-shrink-0">
                       {s.is_on_offer && (
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-terra text-white whitespace-nowrap">
@@ -98,14 +98,14 @@ export default function ServiceListingsPage() {
                         </span>
                       )}
                       {s.duration && (
-                        <span className="text-[11px] text-tx-mid bg-sand border border-border-light rounded-full px-2 py-0.5 whitespace-nowrap">
+                        <span className="text-[11px] text-tx-mid bg-mist border border-border rounded-full px-2 py-0.5 whitespace-nowrap">
                           ⏱ {s.duration}
                         </span>
                       )}
                     </div>
                   </div>
                   {s.service_type && (
-                    <span className="inline-block text-[10px] font-semibold text-teal border border-teal/30 rounded-full px-2 py-0.5 mb-1.5">
+                    <span className="inline-block text-[10px] font-semibold text-tx-mid border border-border rounded-full px-2 py-0.5 mb-1.5">
                       {s.service_type}
                     </span>
                   )}
@@ -129,7 +129,7 @@ export default function ServiceListingsPage() {
                   </div>
                   <button
                     onClick={() => router.push(`/services/${s.slug}`)}
-                    className="w-full py-2.5 bg-navy text-white text-sm font-semibold rounded-sm active:scale-[0.98] transition-transform"
+                    className="w-full py-2.5 bg-lime text-ink text-sm font-bold rounded-full active:scale-[0.98] transition-transform"
                   >
                     Enquire →
                   </button>

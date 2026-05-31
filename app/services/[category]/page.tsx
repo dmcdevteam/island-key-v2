@@ -58,7 +58,7 @@ function ImageCarousel({ images, title, onBack }: { images: string[]; title: str
       </div>
       <button
         onClick={onBack}
-        className="absolute top-[52px] left-4 bg-white/90 backdrop-blur-sm rounded-full flex items-center gap-1 px-3 h-[34px] text-[12px] font-semibold text-navy z-10 active:scale-90"
+        className="absolute top-[52px] left-4 bg-white/90 backdrop-blur-sm rounded-full flex items-center gap-1 px-3 h-[34px] text-[12px] font-semibold text-ink z-10 active:scale-90"
       >
         ← Services
       </button>
@@ -139,14 +139,14 @@ function EnquiryModal({ service, onClose }: { service: Service; onClose: () => v
         {emailSent ? (
           <div className="px-5 py-8 text-center">
             <p className="text-3xl mb-3">✅</p>
-            <h3 className="font-display text-lg text-navy mb-1">Enquiry Sent</h3>
+            <h3 className="font-display text-lg text-ink mb-1">Enquiry Sent</h3>
             <p className="text-sm text-tx-light mb-1">We&apos;ll confirm availability via WhatsApp shortly.</p>
             <p className="text-xs text-tx-light">Check your email for a copy.</p>
-            <button onClick={onClose} className="mt-6 w-full py-3 bg-navy text-white font-semibold rounded-sm text-sm">Done</button>
+            <button onClick={onClose} className="mt-6 w-full py-3 bg-ink text-white font-semibold rounded-full text-sm">Done</button>
           </div>
         ) : (
           <div className="px-5 pb-8">
-            <h3 className="font-display text-lg text-navy mt-2 mb-4">Enquire — {service.title}</h3>
+            <h3 className="font-display text-lg font-light text-ink mt-2 mb-4">Enquire — {service.title}</h3>
 
             <div className="mb-3">
               <label className="text-[11px] font-semibold text-tx-mid uppercase tracking-wide block mb-1">Preferred Date *</label>
@@ -161,7 +161,7 @@ function EnquiryModal({ service, onClose }: { service: Service; onClose: () => v
 
             <div className="mb-3">
               <label className="text-[11px] font-semibold text-tx-mid uppercase tracking-wide block mb-1">Preferred Time</label>
-              <select value={preferredTime} onChange={e => setPreferredTime(e.target.value)} className="w-full border border-border rounded-sm px-3 py-2.5 text-sm text-navy bg-white">
+              <select value={preferredTime} onChange={e => setPreferredTime(e.target.value)} className="w-full border border-border rounded-2xl px-3 py-2.5 text-sm text-ink bg-mist">
                 {TIME_OPTIONS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
             </div>
@@ -169,36 +169,36 @@ function EnquiryModal({ service, onClose }: { service: Service; onClose: () => v
             <div className="mb-3">
               <label className="text-[11px] font-semibold text-tx-mid uppercase tracking-wide block mb-1">Number of Guests</label>
               <div className="flex items-center gap-3">
-                <button onClick={() => setNumGuests(g => Math.max(1, g - 1))} className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-navy font-bold text-lg active:bg-sand">−</button>
-                <span className="text-base font-semibold text-navy w-6 text-center">{numGuests}</span>
-                <button onClick={() => setNumGuests(g => Math.min(20, g + 1))} className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-navy font-bold text-lg active:bg-sand">+</button>
+                <button onClick={() => setNumGuests(g => Math.max(1, g - 1))} className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-ink font-bold text-lg active:bg-mist">−</button>
+                <span className="text-base font-semibold text-ink w-6 text-center">{numGuests}</span>
+                <button onClick={() => setNumGuests(g => Math.min(20, g + 1))} className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-ink font-bold text-lg active:bg-mist">+</button>
               </div>
             </div>
 
             <div className="mb-3">
               <label className="text-[11px] font-semibold text-tx-mid uppercase tracking-wide block mb-1">Special Requests (optional)</label>
-              <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Any special requests or details?" rows={3} className="w-full border border-border rounded-sm px-3 py-2 text-sm text-navy bg-white resize-none" />
+              <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Any special requests or details?" rows={3} className="w-full border border-border rounded-2xl px-3 py-2 text-sm text-ink bg-mist resize-none" />
             </div>
 
             <div className="mb-3">
               <label className="text-[11px] font-semibold text-tx-mid uppercase tracking-wide block mb-1">Your Name *</label>
-              <input type="text" value={guestName} onChange={e => setGuestName(e.target.value)} placeholder="First name" className="w-full border border-border rounded-sm px-3 py-2.5 text-sm text-navy bg-white" />
+              <input type="text" value={guestName} onChange={e => setGuestName(e.target.value)} placeholder="First name" className="w-full border border-border rounded-2xl px-3 py-2.5 text-sm text-ink bg-mist" />
             </div>
             <div className="mb-3">
               <label className="text-[11px] font-semibold text-tx-mid uppercase tracking-wide block mb-1">Email *</label>
-              <input type="email" value={guestEmail} onChange={e => setGuestEmail(e.target.value)} placeholder="your@email.com" className="w-full border border-border rounded-sm px-3 py-2.5 text-sm text-navy bg-white" />
+              <input type="email" value={guestEmail} onChange={e => setGuestEmail(e.target.value)} placeholder="your@email.com" className="w-full border border-border rounded-2xl px-3 py-2.5 text-sm text-ink bg-mist" />
             </div>
             <div className="mb-5">
               <label className="text-[11px] font-semibold text-tx-mid uppercase tracking-wide block mb-1">Phone / WhatsApp *</label>
-              <input type="tel" value={guestPhone} onChange={e => setGuestPhone(e.target.value)} placeholder="+30 69..." className="w-full border border-border rounded-sm px-3 py-2.5 text-sm text-navy bg-white" />
+              <input type="tel" value={guestPhone} onChange={e => setGuestPhone(e.target.value)} placeholder="+30 69..." className="w-full border border-border rounded-2xl px-3 py-2.5 text-sm text-ink bg-mist" />
             </div>
 
             {error && <p className="text-xs text-red-500 mb-3">{error}</p>}
 
-            <button onClick={() => submit('whatsapp')} disabled={submitting} className="w-full py-3.5 bg-teal text-white font-bold rounded-sm flex items-center justify-center gap-2 text-sm active:scale-[0.98] transition-transform mb-2 disabled:opacity-60">
+            <button onClick={() => submit('whatsapp')} disabled={submitting} className="w-full py-3.5 bg-lime text-ink font-bold rounded-full flex items-center justify-center gap-2 text-sm active:scale-[0.98] transition-transform mb-2 disabled:opacity-60">
               💬 Enquire via WhatsApp →
             </button>
-            <button onClick={() => submit('email')} disabled={submitting || !guestEmail} className="w-full py-3.5 bg-white text-navy font-semibold rounded-sm border border-border text-sm active:scale-[0.98] transition-transform disabled:opacity-40">
+            <button onClick={() => submit('email')} disabled={submitting || !guestEmail} className="w-full py-3.5 bg-mist text-ink font-semibold rounded-full border border-border text-sm active:scale-[0.98] transition-transform disabled:opacity-40">
               Send Enquiry by Email
             </button>
           </div>
@@ -237,12 +237,12 @@ export default function ServiceDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-cream flex flex-col">
-        <div className="h-[240px] bg-navy/5 animate-pulse flex-shrink-0" />
+      <div className="min-h-screen bg-white flex flex-col">
+        <div className="h-[240px] skeleton animate-pulse flex-shrink-0" />
         <div className="px-5 pt-4 space-y-3">
-          <div className="h-7 bg-navy/5 rounded animate-pulse w-3/4" />
-          <div className="h-4 bg-navy/5 rounded animate-pulse w-1/2" />
-          <div className="h-24 bg-navy/5 rounded animate-pulse" />
+          <div className="h-7 skeleton rounded-2xl animate-pulse w-3/4" />
+          <div className="h-4 skeleton rounded-2xl animate-pulse w-1/2" />
+          <div className="h-24 skeleton rounded-2xl animate-pulse" />
         </div>
       </div>
     )
@@ -250,11 +250,11 @@ export default function ServiceDetailPage() {
 
   if (notFound || !service) {
     return (
-      <div className="min-h-screen bg-cream flex flex-col items-center justify-center px-8 text-center">
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center px-8 text-center">
         <p className="text-4xl mb-4">🛎️</p>
-        <h1 className="font-display text-xl text-navy mb-2">Service not found</h1>
+        <h1 className="font-display text-xl text-ink mb-2">Service not found</h1>
         <p className="text-sm text-tx-light mb-6">This service may no longer be available.</p>
-        <button onClick={handleBack} className="text-sm font-semibold text-teal">← Back to services</button>
+        <button onClick={handleBack} className="text-sm font-semibold text-ink">← Back to services</button>
       </div>
     )
   }
@@ -266,12 +266,12 @@ export default function ServiceDetailPage() {
   const hasImages = images.length > 0
 
   return (
-    <div className="min-h-screen bg-cream flex flex-col relative">
+    <div className="min-h-screen bg-white flex flex-col relative">
       {hasImages ? (
         <ImageCarousel images={images} title={service.title} onBack={handleBack} />
       ) : (
-        <div className="h-[240px] relative flex items-end p-4 flex-shrink-0" style={{ background: 'linear-gradient(135deg, rgba(27,45,79,0.12), rgba(26,138,125,0.08))' }}>
-          <button onClick={handleBack} className="absolute top-[52px] left-4 bg-white/90 backdrop-blur-sm rounded-full flex items-center gap-1 px-3 h-[34px] text-[12px] font-semibold text-navy z-10 active:scale-90">← Services</button>
+        <div className="h-[240px] relative flex items-end p-4 flex-shrink-0" style={{ background: 'linear-gradient(135deg, rgba(13,13,13,0.06), rgba(200,241,53,0.10))' }}>
+          <button onClick={handleBack} className="absolute top-[52px] left-4 bg-white/90 backdrop-blur-sm rounded-full flex items-center gap-1 px-3 h-[34px] text-[12px] font-semibold text-ink z-10 active:scale-90">← Services</button>
           <span className="text-5xl">🛎️</span>
         </div>
       )}
@@ -280,18 +280,18 @@ export default function ServiceDetailPage() {
         <div className="px-5 pt-4">
           <div className="flex flex-wrap gap-1.5 mb-2">
             {service.subcategory && (
-              <span className="text-[10px] font-bold uppercase text-teal tracking-wide border border-teal/30 rounded-full px-2 py-0.5">
+              <span className="text-[10px] font-bold uppercase text-tx-mid tracking-wide border border-border rounded-full px-2 py-0.5">
                 {SUBCATEGORY_LABELS[service.subcategory] ?? service.subcategory}
               </span>
             )}
             {service.service_type && (
-              <span className="text-[10px] font-semibold text-navy border border-navy/20 rounded-full px-2 py-0.5">
+              <span className="text-[10px] font-semibold text-tx-mid border border-border rounded-full px-2 py-0.5">
                 {service.service_type}
               </span>
             )}
           </div>
 
-          <h1 className="font-display text-2xl text-navy leading-tight mb-2">{service.title}</h1>
+          <h1 className="font-display text-2xl text-ink font-light leading-tight mb-2">{service.title}</h1>
 
           <div className="flex flex-wrap items-center gap-2 mb-3">
             {service.is_on_offer && (
@@ -308,7 +308,7 @@ export default function ServiceDetailPage() {
               </span>
             )}
             {service.duration && (
-              <span className="text-xs text-tx-mid bg-sand border border-border-light rounded-full px-2.5 py-0.5">⏱ {service.duration}</span>
+              <span className="text-xs text-tx-mid bg-mist border border-border rounded-full px-2.5 py-0.5">⏱ {service.duration}</span>
             )}
           </div>
           {service.is_on_offer && service.offer_label && (
@@ -321,11 +321,11 @@ export default function ServiceDetailPage() {
 
           {service.includes && service.includes.length > 0 && (
             <div className="mb-5">
-              <h2 className="text-sm font-semibold text-navy mb-2">What&apos;s included</h2>
+              <h2 className="text-sm font-semibold text-ink mb-2">What&apos;s included</h2>
               <ul className="space-y-1.5">
                 {service.includes.map((item, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm text-tx-mid">
-                    <span className="text-teal flex-shrink-0 mt-0.5">✓</span>
+                    <span className="text-ink flex-shrink-0 mt-0.5">✓</span>
                     {item}
                   </li>
                 ))}
@@ -334,20 +334,20 @@ export default function ServiceDetailPage() {
           )}
 
           {service.good_to_know && (
-            <div className="mb-5 p-3.5 rounded-sm bg-sand border border-border-light">
-              <h2 className="text-sm font-semibold text-navy mb-1.5">ℹ Good to know</h2>
+            <div className="mb-5 p-3.5 rounded-2xl bg-mist border border-border">
+              <h2 className="text-sm font-semibold text-ink mb-1.5">ℹ Good to know</h2>
               <p className="text-xs text-tx-mid leading-relaxed">{service.good_to_know}</p>
             </div>
           )}
 
           {/* Contextual WhatsApp help */}
-          <div className="border-t border-border-light mt-2 pt-4 pb-2 text-center">
+          <div className="border-t border-border mt-2 pt-4 pb-2 text-center">
             <p className="text-[13px] text-gray-400 mb-2">Can&apos;t find what you need?</p>
             <a
               href="https://wa.me/306974176759?text=Hi%2C%20I%20need%20help%20booking%20a%20service%20in%20Crete"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-1.5 text-[13px] font-semibold text-teal"
+              className="inline-flex items-center justify-center gap-1.5 text-[13px] font-semibold text-ink"
             >
               <svg width="14" height="14" viewBox="0 0 32 32" fill="currentColor">
                 <path d="M16 0C7.163 0 0 7.163 0 16c0 2.84.742 5.508 2.043 7.824L0 32l8.385-2.199A15.94 15.94 0 0016 32c8.837 0 16-7.163 16-16S24.837 0 16 0zm0 29.333a13.283 13.283 0 01-6.766-1.848l-.485-.288-5.016 1.315 1.339-4.884-.316-.501A13.261 13.261 0 012.667 16C2.667 8.636 8.636 2.667 16 2.667c7.364 0 13.333 5.969 13.333 13.333 0 7.364-5.969 13.333-13.333 13.333zm7.307-9.98c-.4-.2-2.368-1.168-2.735-1.3-.367-.132-.634-.2-.9.2-.267.4-1.033 1.3-1.267 1.568-.233.267-.467.3-.867.1-.4-.2-1.688-.623-3.217-1.984-1.189-1.06-1.99-2.37-2.224-2.77-.233-.4-.025-.617.175-.816.18-.178.4-.467.6-.7.2-.233.267-.4.4-.667.133-.267.067-.5-.033-.7-.1-.2-.9-2.168-1.233-2.968-.325-.78-.655-.674-.9-.686-.233-.012-.5-.015-.767-.015-.267 0-.7.1-1.067.5-.367.4-1.4 1.368-1.4 3.334s1.434 3.868 1.634 4.134c.2.267 2.82 4.305 6.831 6.036.955.413 1.7.659 2.282.844.958.305 1.83.262 2.519.159.768-.115 2.368-.967 2.702-1.901.333-.933.333-1.734.233-1.901-.1-.167-.367-.267-.767-.467z"/>
@@ -358,8 +358,8 @@ export default function ServiceDetailPage() {
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-cream border-t border-border-light" style={{ zIndex: 30 }}>
-        <button onClick={() => setShowEnquiry(true)} className="w-full py-3.5 bg-navy text-white font-bold rounded-sm text-sm active:scale-[0.98] transition-transform">
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-border" style={{ zIndex: 30 }}>
+        <button onClick={() => setShowEnquiry(true)} className="w-full py-3.5 bg-lime text-ink font-bold rounded-full text-sm active:scale-[0.98] transition-transform">
           Enquire About This Service →
         </button>
       </div>

@@ -23,13 +23,13 @@ export default function ReservationsSubcategoriesPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-cream flex flex-col pb-[90px]">
+    <div className="min-h-screen bg-white flex flex-col pb-[90px]">
       {/* Header */}
-      <div className="sticky top-0 z-20 bg-cream border-b border-border-light px-4 py-3">
+      <div className="sticky top-0 z-20 bg-white border-b border-border px-4 py-3">
         <div className="flex items-center gap-3">
-          <button onClick={() => router.push('/services')} className="text-navy text-sm">←</button>
+          <button onClick={() => router.push('/services')} className="text-ink text-sm">←</button>
           <div>
-            <h1 className="font-display text-lg font-medium text-navy leading-tight">Restaurants, Access &amp; Event Planning</h1>
+            <h1 className="font-display text-lg font-light text-ink leading-tight">Restaurants, Access &amp; Event Planning</h1>
             <p className="text-[11px] text-tx-light">The best seats, tables and stages in Crete</p>
           </div>
         </div>
@@ -62,7 +62,7 @@ export default function ReservationsSubcategoriesPage() {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={heroImage} alt={cat.label} className="absolute inset-0 w-full h-full object-cover" />
                   ) : (
-                    <div className="absolute inset-0 bg-navy" />
+                    <div className="absolute inset-0 bg-ink" />
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent" />
                   <div className="absolute bottom-0 left-0 right-0 p-3">
