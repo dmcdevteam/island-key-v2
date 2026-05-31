@@ -13,8 +13,10 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   if (!await isAdminAuthed()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const body = await request.json()
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { notify_guests, ...updateData } = body
   const supabase = createServerClient()
-  const { data, error } = await supabase.from('deals').update(body).eq('id', params.id).select().single()
+  const { data, error } = await supabase.from('deals').update(updateData).eq('id', params.id).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)
 }
