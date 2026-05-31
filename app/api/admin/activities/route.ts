@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { createServerClient } from '@/lib/supabase'
+
+export const dynamic = 'force-dynamic'
 import { isAdminAuthed } from '../_lib/auth'
 import { createNotificationFromContent } from '@/lib/create-notification'
 

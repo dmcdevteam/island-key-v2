@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
 
+export const dynamic = 'force-dynamic'
+
 const COLS = [
   'id','type','car_class','name','description','price_per_day','price_per_week',
   'seats','doors','transmission','fuel_type','ac','zero_deposit','deposit_amount',

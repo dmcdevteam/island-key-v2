@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { createServerClient } from '@/lib/supabase'
+
+export const dynamic = 'force-dynamic'
 import type { CarEnquiryPayload } from '@/lib/types'
 
 const FROM           = 'bookings@islandkey.gr'

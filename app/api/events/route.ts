@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
 
+export const dynamic = 'force-dynamic'
+
 // Expand a recurring event into instances within [from, to] date range
 function expandRecurring(event: Record<string, unknown>, fromDate: Date, toDate: Date): Record<string, unknown>[] {
   const instances: Record<string, unknown>[] = []

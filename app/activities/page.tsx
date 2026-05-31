@@ -1,11 +1,11 @@
 import { Suspense } from 'react'
-import { createServerClient } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase'
 import ActivitiesClient from './_activities-client'
 
 export const revalidate = 300 // revalidate every 5 minutes
 
 export default async function ActivitiesPage() {
-  const supabase = createServerClient()
+  const supabase = createClient()
   const { data } = await supabase
     .from('activities')
     .select('*')

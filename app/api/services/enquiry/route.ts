@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
+
+export const dynamic = 'force-dynamic'
 import { Resend } from 'resend'
 
 const SUBCATEGORY_LABELS: Record<string, string> = {

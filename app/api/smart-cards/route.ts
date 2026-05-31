@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
 import type { SmartCard } from '@/lib/types'
 
+export const dynamic = 'force-dynamic'
+
 interface WeatherSnapshot {
   temperature: number
   wind_speed: number

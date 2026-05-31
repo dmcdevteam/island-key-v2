@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { createServerClient } from '@/lib/supabase'
 
+export const dynamic = 'force-dynamic'
+
 const FROM           = 'bookings@islandkey.gr'
 const INTERNAL_EMAIL = 'islandkeygr@gmail.com'
 

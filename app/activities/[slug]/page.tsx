@@ -1,4 +1,4 @@
-import { createClient, createServerClient } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase'
 import ActivityDetailClient from './_detail-client'
 import type { Activity } from '@/lib/types'
 
@@ -19,7 +19,7 @@ export async function generateStaticParams() {
 }
 
 export default async function ActivityDetailPage({ params }: { params: { slug: string } }) {
-  const supabase = createServerClient()
+  const supabase = createClient()
   const { data } = await supabase
     .from('activities')
     .select('*')

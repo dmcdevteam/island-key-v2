@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
+
+export const dynamic = 'force-dynamic'
 import { isAdminAuthed } from '../_lib/auth'
 
 const ALLOWED_BUCKETS = new Set(['activity-images', 'rental-images', 'transfer-images', 'deal-images', 'event-images', 'article-images'])

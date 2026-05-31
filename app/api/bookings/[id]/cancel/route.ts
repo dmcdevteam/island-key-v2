@@ -1,4 +1,6 @@
 import { createServerClient } from '@/lib/supabase'
+
+export const dynamic = 'force-dynamic'
 import { sendGuestBookingCancelled } from '@/lib/email'
 
 function html(title: string, heading: string, body: string, color: string) {

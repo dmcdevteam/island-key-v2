@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
+
+export const dynamic = 'force-dynamic'
 import { isAdminAuthed } from '../../../_lib/auth'
 
 // PATCH: toggle a boolean field on an activity

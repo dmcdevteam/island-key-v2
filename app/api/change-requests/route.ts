@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
+
+export const dynamic = 'force-dynamic'
 import { sendChangeRequestSubmissionEmails } from '@/lib/email'
 import { whatsappLink } from '@/lib/utils'
 

@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
+
+export const dynamic = 'force-dynamic'
 import { sendGuestConfirmation, sendHostNotification, sendInternalNotification, sendTransferEnquiryEmails } from '@/lib/email'
 
 export async function POST(request: Request) {

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import sharp from 'sharp'
 import { createServerClient } from '@/lib/supabase'
+
+export const dynamic = 'force-dynamic'
 import { isAdminAuthed } from '../admin/_lib/auth'
 
 export const maxDuration = 60

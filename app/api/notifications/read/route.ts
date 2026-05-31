@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: Request) {
   const { notification_id, guest_id } = await request.json()
   if (!notification_id || !guest_id) {
