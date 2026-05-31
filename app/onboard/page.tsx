@@ -170,6 +170,7 @@ function OnboardContent() {
         body: JSON.stringify({
           first_name: firstName || 'Guest',
           property_id: propertyUuid,
+          accommodation_name: propertyUuid ? null : (propertyName || null),
           tier,
           region,
           check_in: checkIn,

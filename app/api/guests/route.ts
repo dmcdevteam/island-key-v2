@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic';
 interface GuestPayload {
   first_name: string | null;
   property_id: string | null;
+  accommodation_name: string | null;
   tier: string | null;
   region: string | null;
   check_in: string | null;
@@ -35,6 +36,7 @@ export async function POST(req: Request) {
     .insert({
       first_name: body.first_name,
       property_id: body.property_id,
+      accommodation_name: body.accommodation_name,
       tier: body.tier,
       region: body.region,
       check_in: body.check_in,

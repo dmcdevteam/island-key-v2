@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getSession } from '@/lib/utils';
@@ -187,11 +186,17 @@ export default function HomePage() {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
 
   useEffect(() => {
     const s = getSession();
     if (!s) { router.replace('/splash'); return; }
     setSession(s);
+    // Show welcome sheet once after onboarding
+    if (!localStorage.getItem('ik_welcomed')) {
+      localStorage.setItem('ik_welcomed', 'true');
+      setShowWelcome(true);
+    }
     if (s.guest_id) {
       const params = new URLSearchParams({ guest_id: s.guest_id });
       if (s.property_id) params.set('property_id', s.property_id);
@@ -460,7 +465,7 @@ export default function HomePage() {
         })()}
 
         {/* Recommended for you */}
-        <SectionHeader title="Recommended for you" linkText="See all →" href="/activities" />
+        <SectionHeader title="Recommended Experiences for You" linkText="See all →" href="/activities" />
         {loading ? (
           <div className="flex gap-2.5 px-5 mb-5">
             {Array.from({ length: 3 }).map((_, i) => (
@@ -487,9 +492,9 @@ export default function HomePage() {
           <p className="px-5 mb-5 text-xs text-tx-light">No featured activities yet.</p>
         )}
 
-        {/* Explore Crete hero card → /explore */}
+        {/* Boat Trips banner */}
         <Link
-          href="/explore"
+          href="/activities?category=boat_trips"
           className="mx-4 text-left active:scale-[0.98] transition-transform"
           style={{
             marginTop: 24,
@@ -504,52 +509,46 @@ export default function HomePage() {
             transitionDuration: '150ms',
           }}
         >
-          {/* Background photo */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="https://images.unsplash.com/photo-1516483638261-f4dbaf036963?w=800&q=80"
-            alt="Explore Crete"
+            src="https://images.unsplash.com/photo-1544551763-77ef2d0cfc6c?w=800&q=80"
+            alt="Boat Trips"
             loading="eager"
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }}
           />
-          {/* Gradient overlay */}
           <div
             style={{
               position: 'absolute', inset: 0,
-              background: 'linear-gradient(135deg, rgba(27,45,79,0.85) 0%, rgba(26,138,125,0.45) 100%)',
+              background: 'linear-gradient(to top, rgba(27,45,79,0.85) 0%, rgba(27,45,79,0.3) 50%, transparent 100%)',
             }}
           />
-          {/* Top-left label */}
-          <p style={{
-            position: 'absolute', top: 20, left: 20,
-            fontSize: 10, color: 'white', letterSpacing: '0.15em',
-            fontWeight: 600, textTransform: 'uppercase', opacity: 0.85, margin: 0,
-          }}>
-            Experiences &amp; Culture
-          </p>
-          {/* Bottom-left title */}
-          <p className="font-display" style={{
-            position: 'absolute', bottom: 20, left: 20,
-            fontSize: 28, color: 'white', fontStyle: 'italic',
-            lineHeight: 1.15, margin: 0,
-          }}>
-            Explore<br />Crete
-          </p>
-          {/* Bottom-right arrow circle */}
-          <div style={{
-            position: 'absolute', bottom: 20, right: 20,
-            width: 44, height: 44, borderRadius: '50%',
-            border: '1.5px solid rgba(255,255,255,0.6)',
-            background: 'rgba(255,255,255,0.15)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <ArrowRight size={18} color="white" />
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16 }}>
+            <p style={{ fontSize: 10, color: '#1A8A7D', letterSpacing: '0.15em', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>
+              BOAT TRIPS
+            </p>
+            <p className="font-display" style={{ fontSize: 22, color: 'white', lineHeight: 1.2, marginBottom: 4 }}>
+              Sail the waters of Crete
+            </p>
+            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginBottom: 10 }}>
+              Sunset cruises, day trips and private charters
+            </p>
+            <span style={{
+              display: 'inline-block',
+              background: '#1A8A7D',
+              color: 'white',
+              borderRadius: 9999,
+              padding: '6px 16px',
+              fontSize: 12,
+              fontWeight: 600,
+            }}>
+              Explore Boat Trips →
+            </span>
           </div>
         </Link>
 
-        {/* Explore Services hero card */}
+        {/* Culinary Experiences banner */}
         <Link
-          href="/services"
+          href="/activities?category=culinary"
           className="mx-4 text-left active:scale-[0.98] transition-transform"
           style={{
             marginTop: 16,
@@ -564,53 +563,40 @@ export default function HomePage() {
             transitionDuration: '150ms',
           }}
         >
-          {/* Background photo */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800"
-            alt="Explore Services"
+            src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&q=80"
+            alt="Culinary Experiences"
             loading="lazy"
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }}
           />
-          {/* Gradient overlay */}
           <div
             style={{
               position: 'absolute', inset: 0,
-              background: 'linear-gradient(135deg, rgba(212,133,74,0.85) 0%, rgba(27,45,79,0.65) 100%)',
+              background: 'linear-gradient(to top, rgba(27,45,79,0.85) 0%, rgba(27,45,79,0.3) 50%, transparent 100%)',
             }}
           />
-          {/* Top-left label */}
-          <p style={{
-            position: 'absolute', top: 20, left: 20,
-            fontSize: 10, color: 'white', letterSpacing: '0.15em',
-            fontWeight: 600, textTransform: 'uppercase', opacity: 0.85, margin: 0,
-          }}>
-            Services &amp; Essentials
-          </p>
-          {/* Bottom-left title */}
-          <p className="font-display" style={{
-            position: 'absolute', bottom: 20, left: 20,
-            fontSize: 28, color: 'white', fontStyle: 'italic',
-            lineHeight: 1.15, margin: 0,
-          }}>
-            Services &amp;<br />Essentials
-          </p>
-          {/* Subtitle */}
-          <p style={{
-            position: 'absolute', bottom: 54, left: 20,
-            fontSize: 13, color: 'rgba(255,255,255,0.80)', margin: 0,
-          }}>
-            Wellness, dining, entertainment &amp; more
-          </p>
-          {/* Bottom-right arrow circle */}
-          <div style={{
-            position: 'absolute', bottom: 20, right: 20,
-            width: 44, height: 44, borderRadius: '50%',
-            border: '1.5px solid rgba(255,255,255,0.6)',
-            background: 'rgba(255,255,255,0.15)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <ArrowRight size={18} color="white" />
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16 }}>
+            <p style={{ fontSize: 10, color: '#1A8A7D', letterSpacing: '0.15em', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>
+              CULINARY CRETE
+            </p>
+            <p className="font-display" style={{ fontSize: 22, color: 'white', lineHeight: 1.2, marginBottom: 4 }}>
+              Cooking lessons &amp; food experiences
+            </p>
+            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginBottom: 10 }}>
+              Authentic Cretan cuisine with local chefs
+            </p>
+            <span style={{
+              display: 'inline-block',
+              background: '#1A8A7D',
+              color: 'white',
+              borderRadius: 9999,
+              padding: '6px 16px',
+              fontSize: 12,
+              fontWeight: 600,
+            }}>
+              Discover →
+            </span>
           </div>
         </Link>
 
@@ -718,6 +704,98 @@ export default function HomePage() {
       <Link href="/activities" prefetch={true} className="hidden" aria-hidden="true" tabIndex={-1} />
 
       {searchOpen && <GlobalSearch onClose={() => setSearchOpen(false)} />}
+
+      {/* Welcome bottom sheet — shown once after onboarding */}
+      {showWelcome && (
+        <div className="fixed inset-0 z-[300] flex items-end" style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}>
+          <div className="bg-white rounded-t-3xl w-full shadow-2xl px-6 pt-6 pb-10 animate-slide-up">
+            {/* Close button */}
+            <button
+              onClick={() => setShowWelcome(false)}
+              className="absolute top-4 right-5 text-[22px] text-tx-light leading-none"
+              style={{ position: 'absolute' }}
+            >
+              ×
+            </button>
+
+            {/* Handle */}
+            <div className="w-9 h-1 bg-border rounded-full mx-auto mb-5" />
+
+            {/* Decorative */}
+            <div className="text-center mb-3" style={{ fontSize: 48 }}>🌊</div>
+
+            {/* Headline */}
+            <h2 className="font-display text-[24px] font-normal text-navy text-center leading-tight">
+              Welcome to Island Key, {session.first_name}.
+            </h2>
+            <p className="text-[15px] text-tx-light text-center mt-2 mb-5">
+              Your Crete experience starts now.
+            </p>
+
+            {/* Personalised card */}
+            <div className="rounded-xl p-4 mb-2" style={{ background: '#F5F0E8' }}>
+              {tripStatus.type === 'before' ? (
+                <>
+                  <p className="text-[14px] text-navy leading-relaxed mb-4">
+                    You arrive in <strong>{tripStatus.daysUntil} {tripStatus.daysUntil === 1 ? 'day' : 'days'}</strong>. Smart move to sort the essentials now — airport transfers and car rentals fill up fast in summer.
+                  </p>
+                  <button
+                    onClick={() => { setShowWelcome(false); router.push('/transfers'); }}
+                    className="w-full py-3.5 rounded-xl bg-navy text-white text-[14px] font-semibold mb-2"
+                  >
+                    Book Airport Transfer →
+                  </button>
+                  <button
+                    onClick={() => { setShowWelcome(false); router.push('/move'); }}
+                    className="w-full py-3.5 rounded-xl text-[14px] font-semibold border-2 border-teal text-teal"
+                  >
+                    Rent a Car or Vehicle →
+                  </button>
+                </>
+              ) : (tripStatus.type === 'during' || tripStatus.type === 'after') ? (
+                <>
+                  <p className="text-[14px] text-navy leading-relaxed mb-4">
+                    You&apos;re in Crete. Time to make the most of it — discover what&apos;s available today.
+                  </p>
+                  <button
+                    onClick={() => { setShowWelcome(false); router.push('/explore'); }}
+                    className="w-full py-3.5 rounded-xl bg-navy text-white text-[14px] font-semibold mb-2"
+                  >
+                    See Today&apos;s Experiences →
+                  </button>
+                  <button
+                    onClick={() => setShowWelcome(false)}
+                    className="w-full py-3.5 rounded-xl text-[14px] font-semibold border-2 border-teal text-teal"
+                  >
+                    View Today&apos;s Highlights →
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="text-[14px] text-navy leading-relaxed mb-4">
+                    Your concierge is ready. Start exploring what Crete has to offer.
+                  </p>
+                  <button
+                    onClick={() => { setShowWelcome(false); router.push('/explore'); }}
+                    className="w-full py-3.5 rounded-xl bg-navy text-white text-[14px] font-semibold"
+                  >
+                    Start Exploring →
+                  </button>
+                </>
+              )}
+            </div>
+
+            {/* Skip */}
+            <button
+              onClick={() => setShowWelcome(false)}
+              className="w-full text-center text-[12px] text-tx-light mt-4"
+            >
+              Skip for now
+            </button>
+          </div>
+        </div>
+      )}
+
       <BottomNav />
     </div>
   );

@@ -73,6 +73,7 @@ export interface GuestAdmin {
   property_id: string | null;
   property_name: string | null;
   property_slug: string | null;
+  accommodation_name: string | null;
   tier: string | null;
   region: string | null;
   check_in: string | null;

@@ -26,8 +26,8 @@ export function ServicesHeroBanner() {
       {/* Content row */}
       <div className="relative z-10 flex items-center h-full px-5" style={{ paddingBottom: 36 }}>
 
-        {/* LEFT — text */}
-        <div style={{ width: '60%', paddingRight: 16 }}>
+        {/* Text */}
+        <div style={{ width: '100%', paddingRight: 16 }}>
           {/* Eyebrow */}
           <p
             style={{
@@ -69,79 +69,6 @@ export function ServicesHeroBanner() {
           </p>
         </div>
 
-        {/* RIGHT — icon cluster */}
-        <div style={{ width: '40%', position: 'relative', height: 110, flexShrink: 0 }}>
-          {/* Glow ring behind primary icon */}
-          <div
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: 80,
-              height: 80,
-              borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(26,138,125,0.28) 0%, transparent 70%)',
-            }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: 110,
-              height: 110,
-              borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(26,138,125,0.10) 0%, transparent 70%)',
-            }}
-          />
-
-          {/* 🍽️ — large, centered */}
-          <span
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              fontSize: 40,
-              lineHeight: 1,
-              filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.35))',
-            }}
-          >
-            🍽️
-          </span>
-
-          {/* 🚤 — medium, top-right */}
-          <span
-            style={{
-              position: 'absolute',
-              top: '10%',
-              right: '8%',
-              fontSize: 28,
-              lineHeight: 1,
-              filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.30))',
-              opacity: 0.92,
-            }}
-          >
-            🚤
-          </span>
-
-          {/* 🌿 — small, bottom-left */}
-          <span
-            style={{
-              position: 'absolute',
-              bottom: '8%',
-              left: '12%',
-              fontSize: 22,
-              lineHeight: 1,
-              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.25))',
-              opacity: 0.85,
-            }}
-          >
-            🌿
-          </span>
-        </div>
       </div>
 
       {/* Bottom rule + micro-stats */}

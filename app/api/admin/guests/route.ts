@@ -20,7 +20,7 @@ export async function GET(request: Request) {
   let query = supabase
     .from('guests')
     .select(`
-      id, first_name, property_id, tier, region,
+      id, first_name, property_id, accommodation_name, tier, region,
       check_in, check_out, group_type, group_size,
       adults, children, whatsapp_number, whatsapp_opted_in,
       user_agent, created_at,

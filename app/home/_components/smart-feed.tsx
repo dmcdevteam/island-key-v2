@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { SmartCard } from '@/lib/types'
 
@@ -109,6 +109,8 @@ function SmartCardItem({ card }: { card: SmartCard }) {
 export function SmartFeed() {
   const [cards, setCards] = useState<SmartCard[]>([])
   const [status, setStatus] = useState<'loading' | 'done'>('loading')
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const userInteracted = useRef(false)
 
   useEffect(() => {
     fetch('/api/smart-cards')
@@ -119,6 +121,30 @@ export function SmartFeed() {
       })
       .catch(() => setStatus('done'))
   }, [])
+
+  useEffect(() => {
+    if (status !== 'done' || cards.length <= 1) return
+    const CARD_WIDTH = 232 // 220px + 12px gap
+
+    const interval = setInterval(() => {
+      if (userInteracted.current) return
+      const el = scrollRef.current
+      if (!el) return
+      const maxScroll = el.scrollWidth - el.clientWidth
+      if (el.scrollLeft >= maxScroll - 4) {
+        // Loop back instantly, then smooth will resume next tick
+        el.scrollLeft = 0
+      } else {
+        el.scrollBy({ left: CARD_WIDTH, behavior: 'smooth' })
+      }
+    }, 4000)
+
+    return () => clearInterval(interval)
+  }, [status, cards.length])
+
+  function handleUserInteraction() {
+    userInteracted.current = true
+  }
 
   if (status === 'loading') {
     return (
@@ -147,8 +173,11 @@ export function SmartFeed() {
         </h2>
       </div>
       <div
+        ref={scrollRef}
+        onTouchStart={handleUserInteraction}
+        onMouseDown={handleUserInteraction}
         className="flex gap-3 overflow-x-auto no-scrollbar"
-        style={{ paddingLeft: 20, paddingRight: 20 }}
+        style={{ paddingLeft: 20, paddingRight: 20, scrollBehavior: 'smooth' }}
       >
         {cards.map(card => (
           <SmartCardItem key={card.id} card={card} />

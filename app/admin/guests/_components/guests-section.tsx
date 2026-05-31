@@ -413,6 +413,11 @@ export function GuestsSection() {
                               <p className="text-navy font-medium whitespace-nowrap">{g.property_name}</p>
                               <p className="text-[11px] text-gray-400 font-mono">{g.property_slug}</p>
                             </>
+                          ) : g.accommodation_name ? (
+                            <>
+                              <p className="text-navy font-medium whitespace-nowrap">{g.accommodation_name}</p>
+                              <p className="text-[11px] text-gray-400 italic">manual entry</p>
+                            </>
                           ) : <span className="text-gray-400">—</span>}
                         </td>
 
