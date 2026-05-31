@@ -419,15 +419,15 @@ export function SectionHeader({ title, linkText, href, onLink }: { title: string
 // ─── ACCOMMODATION ID CARD (Onboarding) ───
 export function AccommodationCard({ name, onChangeProperty }: { name: string; onChangeProperty: () => void }) {
   return (
-    <div className="flex items-center gap-3 p-3 bg-teal-light border-[1.5px] border-teal/20 rounded-sm mb-5">
-      <span className="text-xl">🏠</span>
-      <div className="flex-1">
-        <p className="text-[10px] font-bold text-teal uppercase tracking-wide">You're staying at</p>
-        <p className="text-sm font-semibold text-navy mt-0.5">{name}</p>
+    <div className="flex items-center gap-3 px-4 py-3.5 bg-lime/15 border border-lime/30 rounded-2xl mb-5">
+      <span className="text-xl flex-shrink-0">🏠</span>
+      <div className="flex-1 min-w-0">
+        <p className="text-[10px] font-bold text-ink/40 uppercase tracking-widest mb-0.5">You&apos;re staying at</p>
+        <p className="text-[13px] font-semibold text-ink leading-snug truncate">{name}</p>
       </div>
       <button
         onClick={onChangeProperty}
-        className="text-[11px] font-semibold text-teal px-3 py-1.5 border-[1.5px] border-teal rounded-full bg-white whitespace-nowrap"
+        className="text-[12px] font-semibold text-ink px-3 py-1.5 bg-white border border-border rounded-full whitespace-nowrap flex-shrink-0"
       >
         Change
       </button>

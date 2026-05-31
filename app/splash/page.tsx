@@ -15,47 +15,56 @@ export default function SplashPage() {
     <div
       onClick={() => router.push('/onboard')}
       className="min-h-screen flex items-center justify-center cursor-pointer relative overflow-hidden"
-      style={{ background: 'linear-gradient(155deg, #1B2D4F 0%, #1a3a5c 40%, #1A8A7D 100%)' }}
+      style={{ background: '#0D0D0D' }}
     >
-      {/* Grain texture */}
-      <div className="absolute inset-0 opacity-[0.04]" style={{
-        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`
+      {/* Lime radial glow — top left */}
+      <div className="absolute inset-0 pointer-events-none" style={{
+        background: 'radial-gradient(ellipse at 25% 30%, rgba(200,241,53,0.13) 0%, transparent 55%)',
       }} />
 
-      {/* Admin Skip — top right, only in preview mode */}
+      {/* Grain texture */}
+      <svg className="absolute inset-0 w-full h-full opacity-[0.06] pointer-events-none" aria-hidden="true">
+        <filter id="sp-noise">
+          <feTurbulence type="fractalNoise" baseFrequency="0.72" numOctaves="4" stitchTiles="stitch" />
+          <feColorMatrix type="saturate" values="0" />
+        </filter>
+        <rect width="100%" height="100%" filter="url(#sp-noise)" />
+      </svg>
+
+      {/* Admin Skip */}
       {isAdminPreview && (
         <button
           onClick={e => { e.stopPropagation(); router.push('/onboard'); }}
           className="absolute top-4 right-4 z-10 flex items-center gap-1.5 text-white/40 text-[12px] hover:text-white/70 transition-colors"
         >
-          <span className="text-[9px] font-bold bg-white/15 text-white/50 px-1.5 py-0.5 rounded uppercase tracking-wide">Admin</span>
+          <span className="text-[9px] font-bold bg-white/10 text-white/40 px-1.5 py-0.5 rounded uppercase tracking-wide">Admin</span>
           Skip →
         </button>
       )}
 
       {/* Content */}
-      <div className="relative text-center z-10 animate-fade-up">
-        {/* Logo image */}
-        <div className="flex justify-center mb-5">
+      <div className="relative text-center z-10 animate-fade-up px-8">
+        {/* Logo */}
+        <div className="flex justify-center mb-6">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo_icon_transparent.png" alt="Island Key" style={{ height: 160, width: 'auto' }} />
+          <img src="/logo_icon_transparent.png" alt="Island Key" style={{ height: 148, width: 'auto' }} />
         </div>
 
         {/* Wordmark */}
-        <div className="mb-8">
-          <h1 className="font-display text-[42px] font-medium text-white tracking-tight leading-none">
-            <span className="font-bold">Island</span>{' '}Key
-            <span className="inline-block w-2 h-2 bg-teal rounded-full ml-0.5 align-super" />
+        <div className="mb-6">
+          <h1 className="font-display text-[48px] font-light text-white tracking-tight leading-none">
+            Island Key
+            <span className="inline-block w-2 h-2 bg-lime rounded-full ml-1 align-super" />
           </h1>
         </div>
 
         {/* Tagline */}
-        <p className="text-[13px] text-white/45 tracking-[0.2em] uppercase mb-12">
+        <p className="text-[12px] text-white/40 tracking-[0.22em] uppercase mb-14">
           Your island. Unlocked.
         </p>
 
         {/* Tap prompt */}
-        <p className="text-xs text-white/25 animate-pulse-soft">
+        <p className="text-[11px] text-white/20 animate-pulse-soft">
           Tap to continue
         </p>
       </div>

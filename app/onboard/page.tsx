@@ -225,32 +225,39 @@ function OnboardContent() {
     }
   }
 
+  // Shared input class
+  const inputCls = (error?: boolean) =>
+    `w-full px-4 py-3 border rounded-2xl font-body text-[14px] text-ink bg-white outline-none transition-colors focus:border-ink/40 placeholder:text-tx-light ${error ? 'border-red-400' : 'border-border'}`
+
   return (
-    <div className="min-h-screen bg-cream flex flex-col">
-      {/* Admin preview bar — full-width, top of page, in normal flow (no overlap issues) */}
+    <div className="min-h-screen bg-white flex flex-col">
+      {/* Admin preview bar */}
       {isAdminPreview && (
         <button
           type="button"
           onClick={handleAdminSkip}
-          className="w-full flex items-center justify-center gap-2 bg-gray-100 border-b border-gray-200 px-4 py-2.5 text-[12px] text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors flex-shrink-0"
+          className="w-full flex items-center justify-center gap-2 bg-mist border-b border-border px-4 py-2.5 text-[12px] text-tx-mid hover:bg-shell transition-colors flex-shrink-0"
         >
-          <span className="text-[9px] font-bold bg-gray-300 text-gray-500 px-1.5 py-0.5 rounded uppercase tracking-wide">Admin</span>
-          ⚙ Admin Preview — Skip onboarding →
+          <span className="text-[9px] font-bold bg-border text-tx-light px-1.5 py-0.5 rounded uppercase tracking-wide">Admin</span>
+          Skip onboarding →
         </button>
       )}
 
-      <div className="flex-1 flex flex-col px-6 pt-[72px] pb-8">
+      <div className="flex-1 flex flex-col px-6 pt-[64px] pb-10">
         {/* Header */}
-        <h1 className="font-display text-[26px] font-normal text-navy mb-1">Welcome to</h1>
-        <p className="text-sm font-semibold text-teal mb-5">{REGION_LABELS[region]}</p>
+        <p className="text-[11px] font-semibold text-tx-light uppercase tracking-[0.14em] mb-2">Island Key</p>
+        <h1 className="font-display text-[34px] font-light text-ink leading-tight mb-1">
+          Welcome to<br /><em>{REGION_LABELS[region]}</em>
+        </h1>
+        <p className="text-[13px] text-tx-mid mb-6">Tell us a little about your stay.</p>
 
-        {/* Accommodation ID */}
+        {/* Accommodation */}
         {propertyLoading ? (
-          <div className="h-[64px] bg-gray-100 rounded-sm animate-pulse mb-4" />
+          <div className="h-[64px] skeleton rounded-2xl mb-4" />
         ) : (
           <>
-            <p className="text-[11px] font-bold text-tx-mid uppercase tracking-wide mb-1">
-              You're staying at
+            <p className="text-[11px] font-bold text-tx-mid uppercase tracking-widest mb-1.5">
+              You&apos;re staying at
             </p>
             <AccommodationCard name={propertyName} onChangeProperty={handleChangeProperty} />
           </>
@@ -258,7 +265,7 @@ function OnboardContent() {
 
         {/* Name */}
         <div className="mb-4">
-          <label className="text-[11px] font-bold text-tx-mid uppercase tracking-wide mb-1.5 block">
+          <label className="text-[11px] font-bold text-tx-mid uppercase tracking-widest mb-1.5 block">
             Your first name
           </label>
           <input
@@ -266,14 +273,14 @@ function OnboardContent() {
             value={firstName}
             onChange={(e) => { setFirstName(e.target.value); if (e.target.value.trim()) setNameError(false); }}
             placeholder="e.g. Maria"
-            className={`w-full px-3.5 py-3 border-[1.5px] rounded-sm font-body text-sm text-tx bg-white outline-none transition-colors focus:border-teal placeholder:text-tx-light ${nameError ? 'border-red-400' : 'border-border'}`}
+            className={inputCls(nameError)}
           />
           {nameError && <p className="text-[11px] text-red-500 mt-1">Please enter your name</p>}
         </div>
 
         {/* Dates */}
         <div className="mb-4">
-          <label className="text-[11px] font-bold text-tx-mid uppercase tracking-wide mb-1.5 block">
+          <label className="text-[11px] font-bold text-tx-mid uppercase tracking-widest mb-1.5 block">
             When are you here?
           </label>
           <div className="flex gap-2">
@@ -285,17 +292,16 @@ function OnboardContent() {
                 const v = e.target.value;
                 setCheckIn(v);
                 if (v) setDateError(false);
-                // Reset check-out if it's no longer after the new check-in
                 if (checkOut && v && checkOut <= v) setCheckOut('');
               }}
-              className={`flex-1 px-3.5 py-3 border-[1.5px] rounded-sm font-body text-sm text-tx bg-white outline-none focus:border-teal ${dateError && !checkIn ? 'border-red-400' : 'border-border'}`}
+              className={inputCls(dateError && !checkIn)}
             />
             <input
               type="date"
               value={checkOut}
               min={checkIn ? (() => { const d = new Date(checkIn + 'T00:00:00'); d.setDate(d.getDate() + 1); return d.toISOString().slice(0, 10); })() : undefined}
               onChange={(e) => { setCheckOut(e.target.value); if (e.target.value) setDateError(false); }}
-              className={`flex-1 px-3.5 py-3 border-[1.5px] rounded-sm font-body text-sm text-tx bg-white outline-none focus:border-teal ${dateError && !checkOut ? 'border-red-400' : 'border-border'}`}
+              className={inputCls(dateError && !checkOut)}
             />
           </div>
           {dateError && <p className="text-[11px] text-red-500 mt-1">Please enter your check-in and check-out dates</p>}
@@ -303,7 +309,7 @@ function OnboardContent() {
 
         {/* Group type */}
         <div className="mb-4">
-          <label className="text-[11px] font-bold text-tx-mid uppercase tracking-wide mb-1.5 block">
+          <label className="text-[11px] font-bold text-tx-mid uppercase tracking-widest mb-1.5 block">
             Travelling with
           </label>
           <div className="flex gap-2 flex-wrap">
@@ -318,97 +324,58 @@ function OnboardContent() {
           </div>
 
           {/* Family inputs */}
-          <div
-            className={`overflow-hidden transition-all duration-300 ease-in-out ${
-              groupType === 'family' ? 'max-h-24 opacity-100 mt-3' : 'max-h-0 opacity-0'
-            }`}
-          >
+          <div className={`overflow-hidden transition-all duration-300 ease-in-out ${groupType === 'family' ? 'max-h-24 opacity-100 mt-3' : 'max-h-0 opacity-0'}`}>
             <div className="flex gap-3">
               <div className="flex-1">
                 <label className="text-[11px] text-tx-mid mb-1 block">Adults</label>
-                <input
-                  type="number"
-                  min={1}
-                  value={adults}
-                  onChange={(e) => setAdults(e.target.value)}
-                  placeholder="2"
-                  inputMode="numeric"
-                  className="w-full px-3.5 py-3 border-[1.5px] border-border rounded-sm font-body text-sm text-tx bg-white outline-none focus:border-teal"
-                />
+                <input type="number" min={1} value={adults} onChange={(e) => setAdults(e.target.value)}
+                  placeholder="2" inputMode="numeric" className={inputCls()} />
               </div>
               <div className="flex-1">
                 <label className="text-[11px] text-tx-mid mb-1 block">Children</label>
-                <input
-                  type="number"
-                  min={0}
-                  value={children}
-                  onChange={(e) => setChildren(e.target.value)}
-                  placeholder="0"
-                  inputMode="numeric"
-                  className="w-full px-3.5 py-3 border-[1.5px] border-border rounded-sm font-body text-sm text-tx bg-white outline-none focus:border-teal"
-                />
+                <input type="number" min={0} value={children} onChange={(e) => setChildren(e.target.value)}
+                  placeholder="0" inputMode="numeric" className={inputCls()} />
               </div>
             </div>
           </div>
 
           {/* Friends input */}
-          <div
-            className={`overflow-hidden transition-all duration-300 ease-in-out ${
-              groupType === 'friends' ? 'max-h-24 opacity-100 mt-3' : 'max-h-0 opacity-0'
-            }`}
-          >
+          <div className={`overflow-hidden transition-all duration-300 ease-in-out ${groupType === 'friends' ? 'max-h-24 opacity-100 mt-3' : 'max-h-0 opacity-0'}`}>
             <div>
               <label className="text-[11px] text-tx-mid mb-1 block">How many in your group?</label>
-              <input
-                type="number"
-                min={2}
-                value={friendsCount}
-                onChange={(e) => setFriendsCount(e.target.value)}
-                placeholder="4"
-                inputMode="numeric"
-                className="w-full px-3.5 py-3 border-[1.5px] border-border rounded-sm font-body text-sm text-tx bg-white outline-none focus:border-teal"
-              />
+              <input type="number" min={2} value={friendsCount} onChange={(e) => setFriendsCount(e.target.value)}
+                placeholder="4" inputMode="numeric" className={inputCls()} />
             </div>
           </div>
         </div>
 
         {/* WhatsApp opt-in */}
         <div className="mt-1">
-          <div className="flex items-center gap-3 p-3 bg-teal-light rounded-sm">
-            <span className="text-base">💬</span>
-            <p className="text-xs text-navy flex-1 leading-snug">
-              Get local tips & deals on WhatsApp
+          <div className="flex items-center gap-3 px-4 py-3.5 bg-lime/15 rounded-2xl">
+            <span className="text-base flex-shrink-0">💬</span>
+            <p className="text-[13px] text-ink flex-1 leading-snug">
+              Get local tips &amp; deals on WhatsApp
             </p>
             <button
               onClick={() => setWaOptIn(!waOptIn)}
-              className={`w-11 h-[26px] rounded-full relative transition-colors flex-shrink-0 ${
-                waOptIn ? 'bg-teal' : 'bg-border'
-              }`}
+              className={`w-11 h-[26px] rounded-full relative transition-colors flex-shrink-0 ${waOptIn ? 'bg-ink' : 'bg-border'}`}
             >
               <span
-                className={`absolute top-[3px] left-[3px] w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${
-                  waOptIn ? 'translate-x-[18px]' : 'translate-x-0'
-                }`}
+                className={`absolute top-[3px] left-[3px] w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${waOptIn ? 'translate-x-[18px]' : 'translate-x-0'}`}
               />
             </button>
           </div>
 
-          {/* Phone input — animates in when opt-in is ON */}
-          <div
-            className={`overflow-hidden transition-all duration-300 ease-in-out ${
-              waOptIn ? 'max-h-20 opacity-100 mt-2' : 'max-h-0 opacity-0'
-            }`}
-          >
+          {/* Phone input */}
+          <div className={`overflow-hidden transition-all duration-300 ease-in-out ${waOptIn ? 'max-h-20 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
             <div className="flex gap-2">
               <select
                 value={countryCode}
                 onChange={(e) => setCountryCode(e.target.value)}
-                className="w-[90px] px-2 py-3 border-[1.5px] border-border rounded-sm font-body text-sm text-tx bg-white outline-none focus:border-teal flex-shrink-0"
+                className="w-[90px] px-2 py-3 border border-border rounded-2xl font-body text-sm text-ink bg-white outline-none focus:border-ink/40 flex-shrink-0"
               >
                 {COUNTRY_CODES.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.flag} {c.label}
-                  </option>
+                  <option key={c.code} value={c.code}>{c.flag} {c.label}</option>
                 ))}
               </select>
               <input
@@ -417,80 +384,69 @@ function OnboardContent() {
                 onChange={(e) => setLocalPhone(e.target.value)}
                 placeholder="Your WhatsApp number"
                 inputMode="tel"
-                className="flex-1 px-3.5 py-3 border-[1.5px] border-border rounded-sm font-body text-sm text-tx bg-white outline-none transition-colors focus:border-teal placeholder:text-tx-light"
+                className={inputCls()}
               />
             </div>
           </div>
         </div>
-      {/* Submit */}
-      <Button
-        variant="primary"
-        size="lg"
-        fullWidth
-        onClick={handleSubmit}
-        className="mt-5 flex-shrink-0"
-        disabled={submitting}
-      >
-        {submitting ? 'Saving...' : "Let's go →"}
-      </Button>
-    </div>{/* end padded content area */}
 
-      {/* Accommodation change bottom sheet */}
+        {/* Submit */}
+        <button
+          onClick={handleSubmit}
+          disabled={submitting}
+          className="mt-6 w-full py-4 bg-lime text-ink text-[15px] font-bold rounded-full transition-all active:scale-[0.98] disabled:opacity-50 flex-shrink-0"
+        >
+          {submitting ? 'Saving…' : "Let's go →"}
+        </button>
+      </div>
+
+      {/* Accommodation change sheet */}
       {changeSheetOpen && (
         <div className="fixed inset-0 z-[200] flex items-end bg-black/40" onClick={() => setChangeSheetOpen(false)}>
-          <div
-            className="bg-white rounded-t-2xl px-6 pt-6 pb-10 w-full shadow-xl"
-            onClick={e => e.stopPropagation()}
-          >
+          <div className="bg-white rounded-t-[24px] px-6 pt-6 pb-10 w-full shadow-xl" onClick={e => e.stopPropagation()}>
             <div className="w-9 h-1 bg-border rounded-full mx-auto mb-5" />
-            <h2 className="font-display text-[18px] font-medium text-navy mb-1">Change accommodation</h2>
+            <h2 className="font-display text-[22px] font-light text-ink mb-1">Change accommodation</h2>
             <p className="text-[12px] text-tx-light mb-4">Search for your villa, hotel or apartment.</p>
-            <AccommodationInput
-              initialValue={propertyName}
-              onSelect={handleAccommodationSelect}
-            />
-            <button
-              onClick={() => setChangeSheetOpen(false)}
-              className="mt-5 w-full py-3 text-[13px] text-tx-mid"
-            >
+            <AccommodationInput initialValue={propertyName} onSelect={handleAccommodationSelect} />
+            <button onClick={() => setChangeSheetOpen(false)} className="mt-5 w-full py-3 text-[13px] text-tx-mid">
               Cancel
             </button>
           </div>
         </div>
       )}
 
-      {/* WhatsApp success message */}
+      {/* WhatsApp success */}
       {showSuccess && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 px-6">
-          <div className="bg-white rounded-2xl px-6 py-7 max-w-sm w-full text-center shadow-xl">
-            <div className="text-3xl mb-3">💬</div>
-            <p className="text-[15px] text-navy leading-relaxed">
-              You're all set! We'll send you curated tips, last-minute deals and local news on WhatsApp during your stay in Crete.
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 px-6">
+          <div className="bg-white rounded-[24px] px-6 py-8 max-w-sm w-full text-center shadow-float">
+            <div className="w-14 h-14 bg-lime rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-2xl">💬</span>
+            </div>
+            <h2 className="font-display text-[22px] font-light text-ink mb-2">You&apos;re all set!</h2>
+            <p className="text-[13px] text-tx-mid leading-relaxed">
+              We&apos;ll send you curated tips, last-minute deals and local news on WhatsApp during your stay in Crete.
             </p>
           </div>
         </div>
       )}
 
-      {/* WhatsApp nudge modal */}
+      {/* WhatsApp nudge */}
       {showNudge && (
         <div className="fixed inset-0 z-[200] flex items-end bg-black/40">
-          <div className="bg-white rounded-t-2xl px-6 pt-6 pb-10 w-full shadow-xl animate-slide-up">
+          <div className="bg-white rounded-t-[24px] px-6 pt-6 pb-10 w-full shadow-xl animate-slide-up">
             <div className="w-9 h-1 bg-border rounded-full mx-auto mb-5" />
-            <h2 className="font-display text-[20px] font-medium text-navy mb-2">Don't miss out</h2>
+            <h2 className="font-display text-[24px] font-light text-ink mb-2">Don&apos;t miss out</h2>
             <p className="text-[13px] text-tx-mid leading-relaxed mb-6">
-              Our WhatsApp updates are how guests discover the best last-minute deals, hidden gems and local events during their stay. It's free, easy to unsubscribe, and we'll never spam you.
+              Our WhatsApp updates are how guests discover the best last-minute deals, hidden gems and local events during their stay. It&apos;s free, easy to unsubscribe, and we&apos;ll never spam you.
             </p>
             <div className="flex flex-col gap-2.5">
               <button
                 onClick={() => setShowNudge(false)}
-                className="w-full py-3.5 rounded-lg bg-teal text-white text-[14px] font-semibold"
+                className="w-full py-4 rounded-full bg-lime text-ink text-[14px] font-bold"
               >
                 Stay in the loop
               </button>
-              <button
-                onClick={() => router.push('/home')}
-                className="w-full py-3 text-[13px] text-tx-mid"
-              >
+              <button onClick={() => router.push('/home')} className="w-full py-3 text-[13px] text-tx-mid">
                 No thanks, continue
               </button>
             </div>
@@ -503,7 +459,7 @@ function OnboardContent() {
 
 export default function OnboardPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-cream" />}>
+    <Suspense fallback={<div className="min-h-screen bg-white" />}>
       <OnboardContent />
     </Suspense>
   )
